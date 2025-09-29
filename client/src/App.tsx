@@ -24,6 +24,14 @@ import Tools from "@/pages/tools";
 import DPICalculator from "@/pages/tools/dpi-calculator";
 import TurnaroundEstimator from "@/pages/tools/turnaround-estimator";
 import VectorChecker from "@/pages/tools/vector-checker";
+import FormatConverter from "@/pages/tools/format-converter";
+import ColorExtractor from "@/pages/tools/color-extractor";
+import FileSizeCalculator from "@/pages/tools/file-size-calculator";
+import PrintSizeCalculator from "@/pages/tools/print-size-calculator";
+import LogoDimensions from "@/pages/tools/logo-dimensions";
+import VectorSimplifier from "@/pages/tools/vector-simplifier";
+import AspectRatioCalculator from "@/pages/tools/aspect-ratio-calculator";
+import FontToVector from "@/pages/tools/font-to-vector";
 import AdminPage from "@/pages/admin";
 
 function Router() {
@@ -42,6 +50,14 @@ function Router() {
         <Route path="/tools/dpi-calculator" component={DPICalculator} />
         <Route path="/tools/turnaround-estimator" component={TurnaroundEstimator} />
         <Route path="/tools/vector-checker" component={VectorChecker} />
+        <Route path="/tools/format-converter" component={FormatConverter} />
+        <Route path="/tools/color-extractor" component={ColorExtractor} />
+        <Route path="/tools/file-size-calculator" component={FileSizeCalculator} />
+        <Route path="/tools/print-size-calculator" component={PrintSizeCalculator} />
+        <Route path="/tools/logo-dimensions" component={LogoDimensions} />
+        <Route path="/tools/vector-simplifier" component={VectorSimplifier} />
+        <Route path="/tools/aspect-ratio-calculator" component={AspectRatioCalculator} />
+        <Route path="/tools/font-to-vector" component={FontToVector} />
         <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
