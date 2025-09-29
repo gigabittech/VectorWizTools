@@ -2,13 +2,8 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
+import { Paper, Box, Title, Button, TextInput, Textarea, Select, Progress } from "@mantine/core";
+import { MantineForm, MantineFormField } from "@/components/ui/mantine-form";
 import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -111,6 +106,11 @@ export default function GuestOrderForm() {
   };
 
   const onSubmit = async (data: GuestOrder) => {
+    // Only allow submission on the summary step
+    if (currentStep !== "summary") {
+      return;
+    }
+    
     // Add selected service pricing
     const selectedService = services.find(s => s.value === data.service);
     if (selectedService) {
@@ -134,18 +134,25 @@ export default function GuestOrderForm() {
 
   const selectedService = services.find(s => s.value === form.watch("service"));
 
+  // Prevent form submission via Enter key except on summary step
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && currentStep !== 'summary') {
+      event.preventDefault();
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto" data-testid="guest-order-form">
       {/* Progress Header */}
-      <Card className="mb-8">
-        <CardHeader>
+      <Paper withBorder p="lg" className="mb-8">
+        <Box>
           <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-2xl">Create Your Order</CardTitle>
+            <Title order={2}>Create Your Order</Title>
             <span className="text-sm text-muted-foreground">
               Step {currentStepIndex + 1} of {steps.length}
             </span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} size="sm" />
           <div className="flex justify-between mt-4">
             {steps.map((step, index) => (
               <div 
@@ -165,13 +172,12 @@ export default function GuestOrderForm() {
               </div>
             ))}
           </div>
-        </CardHeader>
-      </Card>
+        </Box>
+      </Paper>
 
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <div onKeyDown={handleKeyDown}>
         {/* Step Content */}
-        <Card>
-          <CardContent className="p-8">
+        <Paper withBorder p="xl">
             {currentStep === "service" && (
               <div className="space-y-6">
                 <div>
@@ -181,22 +187,22 @@ export default function GuestOrderForm() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {services.map((service) => (
-                    <Card 
+                    <Paper 
                       key={service.value} 
+                      withBorder
+                      p="md"
                       className={`cursor-pointer transition-all hover:shadow-md ${
                         form.watch("service") === service.value ? 'ring-2 ring-primary' : ''
                       }`}
                       onClick={() => form.setValue("service", service.value as any)}
                       data-testid={`service-${service.value}`}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium">{service.label}</h4>
-                          <span className="text-lg font-bold text-primary">${service.price}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{service.description}</p>
-                      </CardContent>
-                    </Card>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium">{service.label}</h4>
+                        <span className="text-lg font-bold text-primary">${service.price}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{service.description}</p>
+                    </Paper>
                   ))}
                 </div>
               </div>
@@ -209,54 +215,66 @@ export default function GuestOrderForm() {
                   <p className="text-muted-foreground mb-6">We'll use this to send you updates about your order</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="guestName">Full Name *</Label>
-                    <Input
-                      id="guestName"
-                      {...form.register("guestName")}
-                      placeholder="Your full name"
-                      data-testid="input-guest-name"
+                <MantineForm>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <MantineFormField
+                      name="guestName"
+                      control={form.control}
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label="Full Name *"
+                          placeholder="Your full name"
+                          error={fieldState.error?.message}
+                          data-testid="input-guest-name"
+                          {...field}
+                        />
+                      )}
                     />
-                    {form.formState.errors.guestName && (
-                      <p className="text-destructive text-sm">{form.formState.errors.guestName.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="guestEmail">Email Address *</Label>
-                    <Input
-                      id="guestEmail"
-                      type="email"
-                      {...form.register("guestEmail")}
-                      placeholder="your.email@example.com"
-                      data-testid="input-guest-email"
+                    
+                    <MantineFormField
+                      name="guestEmail"
+                      control={form.control}
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label="Email Address *"
+                          type="email"
+                          placeholder="your.email@example.com"
+                          error={fieldState.error?.message}
+                          data-testid="input-guest-email"
+                          {...field}
+                        />
+                      )}
                     />
-                    {form.formState.errors.guestEmail && (
-                      <p className="text-destructive text-sm">{form.formState.errors.guestEmail.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="guestPhone">Phone Number</Label>
-                    <Input
-                      id="guestPhone"
-                      {...form.register("guestPhone")}
-                      placeholder="(555) 123-4567"
-                      data-testid="input-guest-phone"
+                    
+                    <MantineFormField
+                      name="guestPhone"
+                      control={form.control}
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label="Phone Number"
+                          placeholder="(555) 123-4567"
+                          error={fieldState.error?.message}
+                          data-testid="input-guest-phone"
+                          {...field}
+                        />
+                      )}
+                    />
+                    
+                    <MantineFormField
+                      name="guestCompany"
+                      control={form.control}
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label="Company (Optional)"
+                          placeholder="Your company name"
+                          error={fieldState.error?.message}
+                          data-testid="input-guest-company"
+                          {...field}
+                        />
+                      )}
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="guestCompany">Company (Optional)</Label>
-                    <Input
-                      id="guestCompany"
-                      {...form.register("guestCompany")}
-                      placeholder="Your company name"
-                      data-testid="input-guest-company"
-                    />
-                  </div>
-                </div>
+                </MantineForm>
               </div>
             )}
 
@@ -269,13 +287,13 @@ export default function GuestOrderForm() {
                 
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                   <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <Label htmlFor="file-upload" className="cursor-pointer">
+                  <label htmlFor="file-upload" className="cursor-pointer">
                     <span className="text-lg font-medium">Click to upload files</span>
                     <p className="text-sm text-muted-foreground mt-2">
                       Support formats: JPG, PNG, GIF, PDF, AI, PSD
                     </p>
-                  </Label>
-                  <Input
+                  </label>
+                  <input
                     id="file-upload"
                     type="file"
                     multiple
@@ -294,7 +312,7 @@ export default function GuestOrderForm() {
                         <span className="text-sm">{file.name}</span>
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="subtle"
                           size="sm"
                           onClick={() => removeFile(index)}
                           data-testid={`remove-file-${index}`}
@@ -306,16 +324,20 @@ export default function GuestOrderForm() {
                   </div>
                 )}
                 
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Special Instructions (Optional)</Label>
-                  <Textarea
-                    id="notes"
-                    {...form.register("notes")}
-                    placeholder="Any special requirements or notes about your order..."
-                    rows={4}
-                    data-testid="input-notes"
-                  />
-                </div>
+                <MantineFormField
+                  name="notes"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Textarea
+                      label="Special Instructions (Optional)"
+                      placeholder="Any special requirements or notes about your order..."
+                      rows={4}
+                      error={fieldState.error?.message}
+                      data-testid="input-notes"
+                      {...field}
+                    />
+                  )}
+                />
               </div>
             )}
 
@@ -348,26 +370,23 @@ export default function GuestOrderForm() {
                     </div>
                   </div>
                   
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-4">Order Summary</h4>
-                      <div className="flex justify-between mb-2">
-                        <span>{selectedService?.label}</span>
+                  <Paper withBorder p="md">
+                    <h4 className="font-medium mb-4">Order Summary</h4>
+                    <div className="flex justify-between mb-2">
+                      <span>{selectedService?.label}</span>
+                      <span>${selectedService?.price}</span>
+                    </div>
+                    <div className="border-t pt-2">
+                      <div className="flex justify-between font-bold">
+                        <span>Total</span>
                         <span>${selectedService?.price}</span>
                       </div>
-                      <div className="border-t pt-2">
-                        <div className="flex justify-between font-bold">
-                          <span>Total</span>
-                          <span>${selectedService?.price}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </Paper>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </Paper>
 
         {/* Navigation */}
         <div className="flex justify-between mt-8">
@@ -392,16 +411,17 @@ export default function GuestOrderForm() {
             </Button>
           ) : (
             <Button 
-              type="submit" 
+              type="button" 
+              onClick={() => form.handleSubmit(onSubmit)()}
               disabled={!canProceed() || createOrderMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              color="green"
               data-testid="button-submit-order"
             >
               {createOrderMutation.isPending ? "Submitting..." : "Submit Order"}
             </Button>
           )}
         </div>
-      </form>
+      </div>
     </div>
   );
 }
