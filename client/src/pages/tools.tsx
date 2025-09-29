@@ -1,13 +1,8 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import DPICalculator from "@/components/tools/DPICalculator";
-import TurnaroundEstimator from "@/components/tools/TurnaroundEstimator";
-import VectorChecker from "@/components/tools/VectorChecker";
 import BeforeAfterSlider from "@/components/tools/BeforeAfterSlider";
-import { Paper, Title } from "@mantine/core";
-import { Button } from "@mantine/core";
-import { Tabs } from "@mantine/core";
+import { Paper, Title, Button, Grid, Text, Badge, Group, Container } from "@mantine/core";
 import { Calculator, Clock, Search, Eye, Plus } from "lucide-react";
 import { Link } from "wouter";
 
@@ -35,106 +30,135 @@ export default function Tools() {
   return (
     <div className="bg-gradient-to-br from-background to-muted">
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="tools-page">
+      <Container size="xl" py="xl" data-testid="tools-page">
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <Group justify="space-between" align="flex-start" mb="xl">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Professional Tools</h1>
-              <p className="text-muted-foreground">
-                Free tools to help you prepare and optimize your vector projects
-              </p>
+              <Title order={1} size="h1" mb="xs">Professional Vector Tools</Title>
+              <Text size="lg" c="dimmed">
+                Free tools to help you prepare and optimize your vector graphics projects
+              </Text>
             </div>
             
             <Button 
               component={Link}
               href="/order/new"
               color="green"
+              size="lg"
+              leftSection={<Plus size={16} />}
               data-testid="start-new-order"
             >
-              <Plus className="mr-2 h-4 w-4" />
               Start New Order
             </Button>
-          </div>
+          </Group>
         </div>
 
-        <Tabs defaultValue="dpi-calculator" className="space-y-8">
-          <Tabs.List className="grid w-full grid-cols-3">
-            <Tabs.Tab value="dpi-calculator" className="flex items-center space-x-2" data-testid="dpi-tab">
-              <Calculator className="h-4 w-4" />
-              <span>DPI Calculator</span>
-            </Tabs.Tab>
-            <Tabs.Tab value="turnaround-estimator" className="flex items-center space-x-2" data-testid="turnaround-tab">
-              <Clock className="h-4 w-4" />
-              <span>Turnaround Estimator</span>
-            </Tabs.Tab>
-            <Tabs.Tab value="vector-checker" className="flex items-center space-x-2" data-testid="vector-checker-tab">
-              <Search className="h-4 w-4" />
-              <span>Vector Checker</span>
-            </Tabs.Tab>
-          </Tabs.List>
+        {/* Available Tools Grid */}
+        <div className="mb-16">
+          <Title order={2} mb="xl" ta="center">Professional Vector Tools</Title>
+          <Grid gutter="lg">
 
-          <Tabs.Panel value="dpi-calculator">
-            <div className="space-y-8">
-              <Paper withBorder shadow="lg" p="xl">
-                <div className="space-y-4">
-                  <Title order={2} className="flex items-center space-x-2">
-                    <Calculator className="h-5 w-5 text-blue-600" />
-                    <span>DPI Calculator</span>
-                  </Title>
-                  <p className="text-muted-foreground">
-                    Calculate optimal DPI for your print projects and determine if vectorization is needed
-                  </p>
-                  <DPICalculator />
-                </div>
+            <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
+              <Paper withBorder shadow="md" p="xl" className="h-full hover:shadow-lg transition-shadow">
+                <Group gap="sm" mb="md">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                    <Calculator className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <Title order={3} size="h4">DPI Calculator</Title>
+                    <Badge variant="light" color="blue" size="sm">Free Tool</Badge>
+                  </div>
+                </Group>
+                <Text size="sm" c="dimmed" mb="lg">
+                  Calculate optimal DPI for print projects and determine if vectorization is needed for professional quality.
+                </Text>
+                <Button component={Link} href="/tools/dpi-calculator" fullWidth color="blue" data-testid="dpi-calculator-link">
+                  Use DPI Calculator
+                </Button>
               </Paper>
-            </div>
-          </Tabs.Panel>
+            </Grid.Col>
 
-          <Tabs.Panel value="turnaround-estimator">
-            <div className="space-y-8">
-              <Paper withBorder shadow="lg" p="xl">
-                <div className="space-y-4">
-                  <Title order={2} className="flex items-center space-x-2">
-                    <Clock className="h-5 w-5 text-purple-600" />
-                    <span>Turnaround Estimator</span>
-                  </Title>
-                  <p className="text-muted-foreground">
-                    Get accurate delivery estimates based on service type, complexity, and current queue status
-                  </p>
-                  <TurnaroundEstimator />
-                </div>
+            <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
+              <Paper withBorder shadow="md" p="xl" className="h-full hover:shadow-lg transition-shadow">
+                <Group gap="sm" mb="md">
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <Title order={3} size="h4">Turnaround Estimator</Title>
+                    <Badge variant="light" color="purple" size="sm">Instant Results</Badge>
+                  </div>
+                </Group>
+                <Text size="sm" c="dimmed" mb="lg">
+                  Get accurate delivery estimates based on service type, complexity, and current queue status.
+                </Text>
+                <Button component={Link} href="/tools/turnaround-estimator" fullWidth color="purple" data-testid="turnaround-estimator-link">
+                  Get Time Estimate
+                </Button>
               </Paper>
-            </div>
-          </Tabs.Panel>
+            </Grid.Col>
 
-          <Tabs.Panel value="vector-checker">
-            <div className="space-y-8">
-              <Paper withBorder shadow="lg" p="xl">
-                <div className="space-y-4">
-                  <Title order={2} className="flex items-center space-x-2">
-                    <Search className="h-5 w-5 text-emerald-600" />
-                    <span>Vector Checker</span>
-                  </Title>
-                  <p className="text-muted-foreground">
-                    Upload your files to instantly verify if they're true vectors or raster images
-                  </p>
-                  <VectorChecker />
-                </div>
+            <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
+              <Paper withBorder shadow="md" p="xl" className="h-full hover:shadow-lg transition-shadow">
+                <Group gap="sm" mb="md">
+                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                    <Search className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <Title order={3} size="h4">Vector Checker</Title>
+                    <Badge variant="light" color="emerald" size="sm">Upload & Analyze</Badge>
+                  </div>
+                </Group>
+                <Text size="sm" c="dimmed" mb="lg">
+                  Upload files to instantly verify if they're true vectors or raster images and get recommendations.
+                </Text>
+                <Button component={Link} href="/tools/vector-checker" fullWidth color="green" data-testid="vector-checker-link">
+                  Check File Format
+                </Button>
               </Paper>
-            </div>
-          </Tabs.Panel>
-        </Tabs>
+            </Grid.Col>
+          </Grid>
+        </div>
+
+        {/* Coming Soon Tools */}
+        <Paper withBorder shadow="md" p="xl" mb="xl">
+          <Title order={2} mb="lg" ta="center">More Tools Coming Soon</Title>
+          <Text ta="center" c="dimmed" mb="xl" maw={600} mx="auto">
+            We're continuously expanding our toolkit to help you with all your vector graphics needs. 
+            Here's what's coming next:
+          </Text>
+          <Grid gutter="md">
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+              <Paper p="md" className="text-center bg-gray-50 dark:bg-gray-800">
+                <Title order={4} size="h5" mb="xs">Format Converter</Title>
+                <Text size="sm" c="dimmed">Convert between SVG, PNG, JPG, and more</Text>
+              </Paper>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+              <Paper p="md" className="text-center bg-gray-50 dark:bg-gray-800">
+                <Title order={4} size="h5" mb="xs">Color Extractor</Title>
+                <Text size="sm" c="dimmed">Extract color palettes from images</Text>
+              </Paper>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+              <Paper p="md" className="text-center bg-gray-50 dark:bg-gray-800">
+                <Title order={4} size="h5" mb="xs">Logo Dimensions</Title>
+                <Text size="sm" c="dimmed">Generate standard logo sizes</Text>
+              </Paper>
+            </Grid.Col>
+          </Grid>
+        </Paper>
 
         {/* Before/After Showcase */}
-        <div className="mt-16">
+        <div className="mb-16">
           <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold mb-2 flex items-center justify-center space-x-2">
+            <Title order={2} mb="md" className="flex items-center justify-center space-x-2">
               <Eye className="h-6 w-6" />
               <span>See the Difference</span>
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            </Title>
+            <Text c="dimmed" maw={600} mx="auto">
               Transform your raster images into crisp, scalable vectors that look perfect at any size
-            </p>
+            </Text>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -184,7 +208,7 @@ export default function Tools() {
             </div>
           </div>
         </Paper>
-      </main>
+      </Container>
     </div>
   );
 }

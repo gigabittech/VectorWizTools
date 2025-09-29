@@ -1,11 +1,8 @@
 import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Paper, Title, TextInput, Button, Badge, Container, Group, Stack, Grid, Text, List, Anchor } from "@mantine/core";
 import Navigation from "@/components/layout/Navigation";
-import { Calculator } from "lucide-react";
+import { Calculator, ArrowLeft, Printer, Monitor, Smartphone, Award, CheckCircle } from "lucide-react";
+import { Link } from "wouter";
 
 export default function DPICalculator() {
   const [width, setWidth] = useState("");
@@ -57,153 +54,291 @@ export default function DPICalculator() {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       <Navigation />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Container size="xl" py="xl">
         <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Calculator className="h-6 w-6 text-blue-600" />
+          <Link href="/tools">
+            <Button variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />} mb="md" data-testid="back-to-tools">
+              Back to Tools
+            </Button>
+          </Link>
+          
+          <Group align="flex-start" gap="lg" mb="xl">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+              <Calculator className="h-8 w-8 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">DPI Calculator</h1>
-              <p className="text-muted-foreground">Calculate resolution and determine if vectorization is needed</p>
+              <Title order={1} size="h1" mb="xs">Free DPI Calculator Tool</Title>
+              <Text size="lg" c="dimmed" mb="md">
+                Calculate image resolution and determine if your graphics need vectorization for professional printing
+              </Text>
+              <Group gap="xs">
+                <Badge variant="light" color="blue">Free Tool</Badge>
+                <Badge variant="light" color="green">Instant Results</Badge>
+                <Badge variant="light" color="purple">Print Ready</Badge>
+              </Group>
             </div>
-          </div>
+          </Group>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Image & Print Dimensions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="width">Image Width (pixels)</Label>
-                  <Input
-                    id="width"
-                    type="number"
-                    value={width}
-                    onChange={(e) => setWidth(e.target.value)}
-                    placeholder="e.g., 1920"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="height">Image Height (pixels)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                    placeholder="e.g., 1080"
-                  />
-                </div>
-              </div>
+        <Grid gutter="xl">
+          <Grid.Col span={{ base: 12, lg: 6 }}>
+            <Paper withBorder shadow="md" p="xl" data-testid="dpi-calculator">
+              <Title order={3} mb="lg">Image & Print Dimensions</Title>
+              <Stack gap="md">
+                <Grid>
+                  <Grid.Col span={6}>
+                    <TextInput
+                      label="Image Width (pixels)"
+                      type="number"
+                      value={width}
+                      onChange={(e) => setWidth(e.target.value)}
+                      placeholder="e.g., 1920"
+                      data-testid="image-width"
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={6}>
+                    <TextInput
+                      label="Image Height (pixels)"
+                      type="number"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      placeholder="e.g., 1080"
+                      data-testid="image-height"
+                    />
+                  </Grid.Col>
+                </Grid>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="printWidth">Print Width (inches)</Label>
-                  <Input
-                    id="printWidth"
-                    type="number"
-                    step="0.1"
-                    value={printWidth}
-                    onChange={(e) => setPrintWidth(e.target.value)}
-                    placeholder="e.g., 8.5"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="printHeight">Print Height (inches)</Label>
-                  <Input
-                    id="printHeight"
-                    type="number"
-                    step="0.1"
-                    value={printHeight}
-                    onChange={(e) => setPrintHeight(e.target.value)}
-                    placeholder="e.g., 11"
-                  />
-                </div>
-              </div>
+                <Grid>
+                  <Grid.Col span={6}>
+                    <TextInput
+                      label="Print Width (inches)"
+                      type="number"
+                      step={0.1}
+                      value={printWidth}
+                      onChange={(e) => setPrintWidth(e.target.value)}
+                      placeholder="e.g., 8.5"
+                      data-testid="print-width"
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={6}>
+                    <TextInput
+                      label="Print Height (inches)"
+                      type="number"
+                      step={0.1}
+                      value={printHeight}
+                      onChange={(e) => setPrintHeight(e.target.value)}
+                      placeholder="e.g., 11"
+                      data-testid="print-height"
+                    />
+                  </Grid.Col>
+                </Grid>
 
-              <Button onClick={calculateDPI} className="w-full gradient-primary">
-                Calculate DPI
-              </Button>
-            </CardContent>
-          </Card>
+                <Button 
+                  onClick={calculateDPI} 
+                  fullWidth 
+                  size="lg"
+                  color="green" 
+                  data-testid="calculate-dpi"
+                >
+                  Calculate DPI
+                </Button>
+              </Stack>
+            </Paper>
+          </Grid.Col>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Results</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Grid.Col span={{ base: 12, lg: 6 }}>
+            <Paper withBorder shadow="md" p="xl">
+              <Title order={3} mb="lg">Results</Title>
               {results ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <p className="text-2xl font-bold">{results.dpiX}</p>
-                      <p className="text-sm text-muted-foreground">DPI (Width)</p>
-                    </div>
-                    <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <p className="text-2xl font-bold">{results.dpiY}</p>
-                      <p className="text-sm text-muted-foreground">DPI (Height)</p>
-                    </div>
-                  </div>
+                <Stack gap="lg" data-testid="dpi-results">
+                  <Grid>
+                    <Grid.Col span={6}>
+                      <Paper p="md" className="text-center bg-gray-50 dark:bg-gray-800">
+                        <Text size="xl" fw={700} data-testid="dpi-x-result">{results.dpiX}</Text>
+                        <Text size="sm" c="dimmed">DPI (Width)</Text>
+                      </Paper>
+                    </Grid.Col>
+                    <Grid.Col span={6}>
+                      <Paper p="md" className="text-center bg-gray-50 dark:bg-gray-800">
+                        <Text size="xl" fw={700} data-testid="dpi-y-result">{results.dpiY}</Text>
+                        <Text size="sm" c="dimmed">DPI (Height)</Text>
+                      </Paper>
+                    </Grid.Col>
+                  </Grid>
 
                   <div className="text-center">
                     <Badge 
-                      className={`text-lg px-4 py-2 ${
-                        results.quality === "Excellent" ? "bg-emerald-100 text-emerald-700" :
-                        results.quality === "Good" ? "bg-blue-100 text-blue-700" :
-                        results.quality === "Fair" ? "bg-amber-100 text-amber-700" :
-                        "bg-red-100 text-red-700"
-                      }`}
+                      size="lg"
+                      variant="light"
+                      color={
+                        results.quality === "Excellent" ? "green" :
+                        results.quality === "Good" ? "blue" :
+                        results.quality === "Fair" ? "orange" :
+                        "red"
+                      }
+                      data-testid="quality-badge"
                     >
                       {results.quality} Quality
                     </Badge>
                   </div>
 
                   {results.needsVector && (
-                    <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                      <h3 className="font-semibold text-destructive mb-2">Vectorization Recommended</h3>
-                      <p className="text-sm text-destructive/80">
+                    <Paper p="md" className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                      <Title order={4} size="h5" c="red" mb="xs">Vectorization Recommended</Title>
+                      <Text size="sm" c="red" mb="md">
                         Your image resolution is too low for high-quality printing. Consider vectorizing for scalable, crisp results.
-                      </p>
-                      <Button className="mt-3 gradient-primary" size="sm">
+                      </Text>
+                      <Button component={Link} href="/order/new" color="green" size="sm" data-testid="start-vector-order">
                         Start Vector Order
                       </Button>
-                    </div>
+                    </Paper>
                   )}
-                </div>
+                </Stack>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">Enter dimensions above to calculate DPI</p>
+                  <Text c="dimmed">Enter dimensions above to calculate DPI</Text>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </Paper>
+          </Grid.Col>
+        </Grid>
 
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>DPI Guidelines</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-emerald-50 rounded-lg">
-                <h3 className="font-semibold text-emerald-700 mb-2">300+ DPI</h3>
-                <p className="text-sm text-emerald-600">Excellent for professional printing, magazines, and marketing materials</p>
-              </div>
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-semibold text-blue-700 mb-2">150-300 DPI</h3>
-                <p className="text-sm text-blue-600">Good for general printing, posters, and large format displays</p>
-              </div>
-              <div className="p-4 bg-amber-50 rounded-lg">
-                <h3 className="font-semibold text-amber-700 mb-2">72-150 DPI</h3>
-                <p className="text-sm text-amber-600">Fair for web use but may appear pixelated when printed</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+        {/* Comprehensive SEO Content */}
+        <Paper withBorder shadow="md" p="xl" mt="xl">
+          <Title order={2} mb="lg">Complete DPI Guidelines & Print Quality Standards</Title>
+          <Grid gutter="lg">
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Paper p="lg" className="bg-green-50 dark:bg-green-950/20">
+                <Group gap="xs" mb="md">
+                  <Award className="h-5 w-5 text-green-600" />
+                  <Title order={4} c="green">300+ DPI</Title>
+                </Group>
+                <Text size="sm" c="green">
+                  Excellent for professional printing, magazines, marketing materials, business cards, and high-end brochures
+                </Text>
+              </Paper>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Paper p="lg" className="bg-blue-50 dark:bg-blue-950/20">
+                <Group gap="xs" mb="md">
+                  <Printer className="h-5 w-5 text-blue-600" />
+                  <Title order={4} c="blue">150-300 DPI</Title>
+                </Group>
+                <Text size="sm" c="blue">
+                  Good for general printing, posters, large format displays, banners, and most commercial printing
+                </Text>
+              </Paper>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Paper p="lg" className="bg-orange-50 dark:bg-orange-950/20">
+                <Group gap="xs" mb="md">
+                  <Monitor className="h-5 w-5 text-orange-600" />
+                  <Title order={4} c="orange">72-150 DPI</Title>
+                </Group>
+                <Text size="sm" c="orange">
+                  Fair for web use and digital displays but may appear pixelated when printed
+                </Text>
+              </Paper>
+            </Grid.Col>
+          </Grid>
+        </Paper>
+
+        {/* What is DPI Section */}
+        <Paper withBorder shadow="md" p="xl" mt="xl">
+          <Title order={2} mb="lg">What is DPI and Why Does It Matter?</Title>
+          <Grid gutter="xl">
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Stack gap="md">
+                <Text>
+                  <strong>DPI (Dots Per Inch)</strong> is a measure of printing resolution that determines how many individual dots of ink 
+                  a printer can place within a one-inch square. Higher DPI means more detail and sharper print quality.
+                </Text>
+                <Text>
+                  Our free DPI calculator helps you determine if your images have sufficient resolution for professional printing 
+                  or if you need vector conversion services to achieve crisp, scalable graphics.
+                </Text>
+                <List spacing="xs" size="sm" icon={<CheckCircle size={16} className="text-green-500" />}>
+                  <List.Item>Calculate exact DPI from pixel dimensions</List.Item>
+                  <List.Item>Determine print quality before production</List.Item>
+                  <List.Item>Identify when vectorization is needed</List.Item>
+                  <List.Item>Save time and money on reprints</List.Item>
+                </List>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Title order={3} mb="md">Common Print Applications</Title>
+              <Stack gap="xs">
+                <Group>
+                  <Badge variant="light" color="blue">Business Cards</Badge>
+                  <Text size="sm" c="dimmed">300+ DPI recommended</Text>
+                </Group>
+                <Group>
+                  <Badge variant="light" color="green">Brochures</Badge>
+                  <Text size="sm" c="dimmed">300+ DPI for text, 150+ for images</Text>
+                </Group>
+                <Group>
+                  <Badge variant="light" color="purple">Banners</Badge>
+                  <Text size="sm" c="dimmed">100-150 DPI (viewed from distance)</Text>
+                </Group>
+                <Group>
+                  <Badge variant="light" color="orange">T-Shirts</Badge>
+                  <Text size="sm" c="dimmed">150-300 DPI, vector preferred</Text>
+                </Group>
+                <Group>
+                  <Badge variant="light" color="red">Billboards</Badge>
+                  <Text size="sm" c="dimmed">25-72 DPI (large viewing distance)</Text>
+                </Group>
+              </Stack>
+            </Grid.Col>
+          </Grid>
+        </Paper>
+
+        {/* When to Vectorize Section */}
+        <Paper withBorder shadow="md" p="xl" mt="xl">
+          <Title order={2} mb="lg">When Should You Vectorize Your Graphics?</Title>
+          <Grid gutter="xl">
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Title order={3} mb="md" c="red">Vectorization Recommended When:</Title>
+              <List spacing="md" size="sm">
+                <List.Item>DPI is below 150 for intended print size</List.Item>
+                <List.Item>You need to scale graphics to multiple sizes</List.Item>
+                <List.Item>Creating logos or brand elements</List.Item>
+                <List.Item>Preparing graphics for large format printing</List.Item>
+                <List.Item>Working with simple graphics, logos, or text</List.Item>
+                <List.Item>Need editable vector elements</List.Item>
+              </List>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Title order={3} mb="md" c="green">Benefits of Vector Graphics:</Title>
+              <List spacing="md" size="sm">
+                <List.Item>Infinite scalability without quality loss</List.Item>
+                <List.Item>Smaller file sizes for simple graphics</List.Item>
+                <List.Item>Perfect crisp edges at any resolution</List.Item>
+                <List.Item>Editable individual elements and colors</List.Item>
+                <List.Item>Professional print quality guaranteed</List.Item>
+                <List.Item>Compatible with all design software</List.Item>
+              </List>
+            </Grid.Col>
+          </Grid>
+        </Paper>
+
+        {/* CTA Section */}
+        <Paper withBorder shadow="md" p="xl" mt="xl" className="text-center">
+          <Title order={2} mb="md">Need Professional Vector Conversion?</Title>
+          <Text size="lg" c="dimmed" mb="xl" maw={600} mx="auto">
+            If your DPI calculation shows you need vectorization, our expert designers can convert your graphics 
+            into crisp, scalable vectors perfect for any application.
+          </Text>
+          <Group justify="center" gap="md">
+            <Button component={Link} href="/order/new" size="lg" color="green" data-testid="start-order-cta">
+              Get Vector Conversion Quote
+            </Button>
+            <Button component={Link} href="/tools/vector-checker" variant="outline" size="lg">
+              Check Vector Format
+            </Button>
+          </Group>
+        </Paper>
+      </Container>
     </div>
   );
 }
