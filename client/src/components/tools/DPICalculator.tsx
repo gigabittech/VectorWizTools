@@ -1,9 +1,5 @@
 import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Paper, Title, TextInput, Button, Badge } from "@mantine/core";
 import { Calculator } from "lucide-react";
 
 interface DPIResults {
@@ -55,20 +51,17 @@ export default function DPICalculator() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" data-testid="dpi-calculator">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <Paper withBorder shadow="md" p="lg" data-testid="dpi-calculator">
+        <div className="space-y-4">
+          <Title order={3} className="flex items-center space-x-2">
             <Calculator className="h-5 w-5" />
             <span>Image & Print Dimensions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </Title>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="width">Image Width (pixels)</Label>
-              <Input
-                id="width"
+              <TextInput
+                label="Image Width (pixels)"
                 type="number"
                 value={width}
                 onChange={(e) => setWidth(e.target.value)}
@@ -77,9 +70,8 @@ export default function DPICalculator() {
               />
             </div>
             <div>
-              <Label htmlFor="height">Image Height (pixels)</Label>
-              <Input
-                id="height"
+              <TextInput
+                label="Image Height (pixels)"
                 type="number"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
@@ -91,11 +83,10 @@ export default function DPICalculator() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="printWidth">Print Width (inches)</Label>
-              <Input
-                id="printWidth"
+              <TextInput
+                label="Print Width (inches)"
                 type="number"
-                step="0.1"
+                step={0.1}
                 value={printWidth}
                 onChange={(e) => setPrintWidth(e.target.value)}
                 placeholder="e.g., 8.5"
@@ -103,11 +94,10 @@ export default function DPICalculator() {
               />
             </div>
             <div>
-              <Label htmlFor="printHeight">Print Height (inches)</Label>
-              <Input
-                id="printHeight"
+              <TextInput
+                label="Print Height (inches)"
                 type="number"
-                step="0.1"
+                step={0.1}
                 value={printHeight}
                 onChange={(e) => setPrintHeight(e.target.value)}
                 placeholder="e.g., 11"
@@ -119,14 +109,12 @@ export default function DPICalculator() {
           <Button onClick={calculateDPI} className="w-full gradient-primary" data-testid="calculate-dpi">
             Calculate DPI
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </Paper>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Results</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Paper withBorder shadow="md" p="lg">
+        <div className="space-y-4">
+          <Title order={3}>Results</Title>
           {results ? (
             <div className="space-y-4" data-testid="dpi-results">
               <div className="grid grid-cols-2 gap-4">
@@ -171,8 +159,8 @@ export default function DPICalculator() {
               <p className="text-muted-foreground">Enter dimensions above to calculate DPI</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Paper>
     </div>
   );
 }

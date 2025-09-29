@@ -1,7 +1,7 @@
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@mantine/core";
+import { Paper, Title } from "@mantine/core";
+import { Badge } from "@mantine/core";
 import { 
   ArrowRight, 
   Upload, 
@@ -87,7 +87,13 @@ export default function Homepage() {
       <section className="bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
           <div className="text-center max-w-4xl mx-auto">
-            <Badge className="mb-6 bg-green-500/20 text-green-300 border-green-500/30" data-testid="badge-professional">
+            <Badge 
+              variant="light" 
+              color="green" 
+              size="lg"
+              className="mb-6" 
+              data-testid="badge-professional"
+            >
               Professional Vector Conversion Services
             </Badge>
             
@@ -104,18 +110,28 @@ export default function Homepage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button asChild size="lg" className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-semibold">
-                <Link href="/order/new" data-testid="button-start-order">
-                  Start Your Order
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
+              <Button 
+                component={Link} 
+                href="/order/new"
+                size="lg" 
+                color="green"
+                className="px-8 py-4 text-lg font-semibold"
+                data-testid="button-start-order"
+              >
+                Start Your Order
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               
-              <Button asChild variant="outline" size="lg" className="border-blue-300 text-white hover:bg-blue-800 px-8 py-4 text-lg">
-                <Link href="/tools" data-testid="button-free-tools">
-                  Free Tools
-                  <Zap className="ml-2 h-5 w-5" />
-                </Link>
+              <Button 
+                component={Link}
+                href="/tools"
+                variant="outline" 
+                size="lg" 
+                className="border-blue-300 text-white hover:bg-blue-800 px-8 py-4 text-lg"
+                data-testid="button-free-tools"
+              >
+                Free Tools
+                <Zap className="ml-2 h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -138,20 +154,18 @@ export default function Homepage() {
             {steps.map((step, index) => {
               const IconComponent = step.icon;
               return (
-                <Card key={index} className="text-center border-0 shadow-lg" data-testid={`card-step-${step.step}`}>
-                  <CardHeader>
-                    <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Paper key={index} withBorder shadow="lg" className="text-center p-6" data-testid={`card-step-${step.step}`}>
+                  <div className="space-y-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
                       <IconComponent className="h-8 w-8 text-white" />
                     </div>
-                    <CardTitle className="text-xl font-bold">
+                    <Title order={3} className="text-xl font-bold">
                       <span className="text-green-600 text-2xl font-bold mr-2">{step.step}</span>
                       {step.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                    </Title>
                     <p className="text-gray-600">{step.description}</p>
-                  </CardContent>
-                </Card>
+                  </div>
+                </Paper>
               );
             })}
           </div>
@@ -172,13 +186,14 @@ export default function Homepage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {services.map((service, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow" data-testid={`card-service-${index}`}>
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold">{service.title}</CardTitle>
-                  <p className="text-gray-600">{service.description}</p>
-                  <div className="text-2xl font-bold text-green-600">{service.price}</div>
-                </CardHeader>
-                <CardContent>
+              <Paper key={index} withBorder shadow="lg" className="hover:shadow-xl transition-shadow p-6" data-testid={`card-service-${index}`}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Title order={3} className="text-xl font-bold">{service.title}</Title>
+                    <p className="text-gray-600">{service.description}</p>
+                    <div className="text-2xl font-bold text-green-600">{service.price}</div>
+                  </div>
+                  
                   <ul className="space-y-2">
                     {service.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center text-gray-600">
@@ -188,14 +203,17 @@ export default function Homepage() {
                     ))}
                   </ul>
                   
-                  <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 mt-6">
-                    <Link href="/order/new" data-testid={`button-order-${index}`}>
-                      Order Now
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+                  <Button 
+                    component={Link}
+                    href="/order/new"
+                    className="w-full bg-blue-600 hover:bg-blue-700 mt-6"
+                    data-testid={`button-order-${index}`}
+                  >
+                    Order Now
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </Paper>
             ))}
           </div>
         </div>
@@ -241,18 +259,28 @@ export default function Homepage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button asChild size="lg" className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-semibold">
-              <Link href="/order/new" data-testid="button-cta-order">
-                Start Your Order Now
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
+            <Button 
+              component={Link}
+              href="/order/new"
+              size="lg" 
+              color="green"
+              className="px-8 py-4 text-lg font-semibold"
+              data-testid="button-cta-order"
+            >
+              Start Your Order Now
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             
-            <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg">
-              <Link href="/signup" data-testid="button-cta-signup">
-                Create Account
-                <Users className="ml-2 h-5 w-5" />
-              </Link>
+            <Button 
+              component={Link}
+              href="/signup"
+              variant="outline" 
+              size="lg" 
+              className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg"
+              data-testid="button-cta-signup"
+            >
+              Create Account
+              <Users className="ml-2 h-5 w-5" />
             </Button>
           </div>
           

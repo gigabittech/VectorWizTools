@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Paper, Title, Button, Badge } from "@mantine/core";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useToast } from "@/hooks/use-toast";
 import { Search, CheckCircle, XCircle, FileText } from "lucide-react";
@@ -96,15 +94,13 @@ export default function VectorChecker() {
   };
 
   return (
-    <div className="space-y-8" data-testid="vector-checker">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+    <div className="space-y-8">
+      <Paper withBorder shadow="md" p="lg" data-testid="vector-checker">
+        <div className="space-y-4">
+          <Title order={3} className="flex items-center space-x-2">
             <Search className="h-5 w-5" />
             <span>Upload Files to Check</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </Title>
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Search className="h-8 w-8 text-emerald-600" />
@@ -127,23 +123,21 @@ export default function VectorChecker() {
               Choose Files to Check
             </ObjectUploader>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Paper>
 
       {analyses.length > 0 && (
-        <Card>
-          <CardHeader>
+        <Paper withBorder shadow="md" p="lg">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <CardTitle>Analysis Results</CardTitle>
+              <Title order={3}>Analysis Results</Title>
               <Button variant="outline" size="sm" onClick={clearResults} data-testid="clear-results">
                 Clear Results
               </Button>
             </div>
-          </CardHeader>
-          <CardContent>
             <div className="space-y-4" data-testid="analysis-results">
               {analyses.map((analysis, index) => (
-                <Card key={index} className="p-4">
+                <Paper key={index} withBorder p="md">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -155,7 +149,7 @@ export default function VectorChecker() {
                           <h4 className="font-medium" data-testid={`file-name-${index}`}>
                             {analysis.name}
                           </h4>
-                          <Badge variant="secondary" data-testid={`file-format-${index}`}>
+                          <Badge variant="light" color="blue" data-testid={`file-format-${index}`}>
                             {analysis.format}
                           </Badge>
                         </div>
@@ -189,18 +183,16 @@ export default function VectorChecker() {
                       </Button>
                     )}
                   </div>
-                </Card>
+                </Paper>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </Paper>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>File Format Guide</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Paper withBorder shadow="md" p="lg">
+        <div className="space-y-4">
+          <Title order={3}>File Format Guide</Title>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="font-semibold text-emerald-600 mb-3 flex items-center">
@@ -210,19 +202,19 @@ export default function VectorChecker() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">SVG</span>
-                  <Badge className="bg-emerald-100 text-emerald-700">Web optimized</Badge>
+                  <Badge variant="light" color="green">Web optimized</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">AI</span>
-                  <Badge className="bg-emerald-100 text-emerald-700">Adobe Illustrator</Badge>
+                  <Badge variant="light" color="green">Adobe Illustrator</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">EPS</span>
-                  <Badge className="bg-emerald-100 text-emerald-700">Print ready</Badge>
+                  <Badge variant="light" color="green">Print ready</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">PDF</span>
-                  <Badge className="bg-emerald-100 text-emerald-700">Universal</Badge>
+                  <Badge variant="light" color="green">Universal</Badge>
                 </div>
               </div>
             </div>
@@ -235,25 +227,25 @@ export default function VectorChecker() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">JPG/JPEG</span>
-                  <Badge className="bg-amber-100 text-amber-700">Photos</Badge>
+                  <Badge variant="light" color="orange">Photos</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">PNG</span>
-                  <Badge className="bg-amber-100 text-amber-700">Transparency</Badge>
+                  <Badge variant="light" color="orange">Transparency</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">GIF</span>
-                  <Badge className="bg-amber-100 text-amber-700">Animation</Badge>
+                  <Badge variant="light" color="orange">Animation</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">TIFF</span>
-                  <Badge className="bg-amber-100 text-amber-700">High quality</Badge>
+                  <Badge variant="light" color="orange">High quality</Badge>
                 </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Paper>
     </div>
   );
 }

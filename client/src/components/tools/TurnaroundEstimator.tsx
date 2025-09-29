@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Paper, Title, TextInput, Button, Select, Badge } from "@mantine/core";
 import { apiRequest } from "@/lib/queryClient";
 import { Clock } from "lucide-react";
 
@@ -40,52 +35,44 @@ export default function TurnaroundEstimator() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" data-testid="turnaround-estimator">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <Paper withBorder shadow="md" p="lg" data-testid="turnaround-estimator">
+        <div className="space-y-4">
+          <Title order={3} className="flex items-center space-x-2">
             <Clock className="h-5 w-5" />
             <span>Project Details</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </Title>
           <div>
-            <Label htmlFor="service">Service Type</Label>
-            <Select value={service} onValueChange={setService}>
-              <SelectTrigger data-testid="service-select">
-                <SelectValue placeholder="Select a service" />
-              </SelectTrigger>
-              <SelectContent>
-                {services.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Select
+              label="Service Type"
+              value={service}
+              onChange={setService}
+              placeholder="Select a service"
+              data={services.map(s => ({ value: s.value, label: s.label }))}
+              data-testid="service-select"
+            />
           </div>
 
           <div>
-            <Label htmlFor="complexity">Project Complexity</Label>
-            <Select value={complexity} onValueChange={setComplexity}>
-              <SelectTrigger data-testid="complexity-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="simple">Simple (basic shapes, minimal detail)</SelectItem>
-                <SelectItem value="medium">Medium (moderate detail, some text)</SelectItem>
-                <SelectItem value="complex">Complex (high detail, gradients, effects)</SelectItem>
-              </SelectContent>
-            </Select>
+            <Select
+              label="Project Complexity"
+              value={complexity}
+              onChange={setComplexity}
+              data={[
+                { value: "simple", label: "Simple (basic shapes, minimal detail)" },
+                { value: "medium", label: "Medium (moderate detail, some text)" },
+                { value: "complex", label: "Complex (high detail, gradients, effects)" }
+              ]}
+              data-testid="complexity-select"
+            />
           </div>
 
           <div>
-            <Label htmlFor="fileCount">Number of Files</Label>
-            <Input
-              id="fileCount"
+            <TextInput
+              label="Number of Files"
               type="number"
-              min="1"
-              max="50"
+              min={1}
+              max={50}
               value={fileCount}
               onChange={(e) => setFileCount(e.target.value)}
               placeholder="How many files to convert?"
@@ -101,14 +88,12 @@ export default function TurnaroundEstimator() {
           >
             {estimateMutation.isPending ? "Calculating..." : "Get Estimate"}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </Paper>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Delivery Estimate</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Paper withBorder shadow="md" p="lg">
+        <div className="space-y-4">
+          <Title order={3}>Delivery Estimate</Title>
           {estimateMutation.data ? (
             <div className="space-y-4" data-testid="estimate-results">
               <div className="text-center">
@@ -145,8 +130,8 @@ export default function TurnaroundEstimator() {
               <p className="text-muted-foreground">Select service details to get an estimate</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Paper>
     </div>
   );
 }

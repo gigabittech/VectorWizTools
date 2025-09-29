@@ -5,9 +5,9 @@ import DPICalculator from "@/components/tools/DPICalculator";
 import TurnaroundEstimator from "@/components/tools/TurnaroundEstimator";
 import VectorChecker from "@/components/tools/VectorChecker";
 import BeforeAfterSlider from "@/components/tools/BeforeAfterSlider";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Paper, Title } from "@mantine/core";
+import { Button } from "@mantine/core";
+import { Tabs } from "@mantine/core";
 import { Calculator, Clock, Search, Eye, Plus } from "lucide-react";
 import { Link } from "wouter";
 
@@ -45,87 +45,84 @@ export default function Tools() {
               </p>
             </div>
             
-            <Link href="/order/new">
-              <Button className="gradient-primary" data-testid="start-new-order">
-                <Plus className="mr-2 h-4 w-4" />
-                Start New Order
-              </Button>
-            </Link>
+            <Button 
+              component={Link}
+              href="/order/new"
+              color="green"
+              data-testid="start-new-order"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Start New Order
+            </Button>
           </div>
         </div>
 
         <Tabs defaultValue="dpi-calculator" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="dpi-calculator" className="flex items-center space-x-2" data-testid="dpi-tab">
+          <Tabs.List className="grid w-full grid-cols-3">
+            <Tabs.Tab value="dpi-calculator" className="flex items-center space-x-2" data-testid="dpi-tab">
               <Calculator className="h-4 w-4" />
               <span>DPI Calculator</span>
-            </TabsTrigger>
-            <TabsTrigger value="turnaround-estimator" className="flex items-center space-x-2" data-testid="turnaround-tab">
+            </Tabs.Tab>
+            <Tabs.Tab value="turnaround-estimator" className="flex items-center space-x-2" data-testid="turnaround-tab">
               <Clock className="h-4 w-4" />
               <span>Turnaround Estimator</span>
-            </TabsTrigger>
-            <TabsTrigger value="vector-checker" className="flex items-center space-x-2" data-testid="vector-checker-tab">
+            </Tabs.Tab>
+            <Tabs.Tab value="vector-checker" className="flex items-center space-x-2" data-testid="vector-checker-tab">
               <Search className="h-4 w-4" />
               <span>Vector Checker</span>
-            </TabsTrigger>
-          </TabsList>
+            </Tabs.Tab>
+          </Tabs.List>
 
-          <TabsContent value="dpi-calculator">
+          <Tabs.Panel value="dpi-calculator">
             <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+              <Paper withBorder shadow="lg" p="xl">
+                <div className="space-y-4">
+                  <Title order={2} className="flex items-center space-x-2">
                     <Calculator className="h-5 w-5 text-blue-600" />
                     <span>DPI Calculator</span>
-                  </CardTitle>
+                  </Title>
                   <p className="text-muted-foreground">
                     Calculate optimal DPI for your print projects and determine if vectorization is needed
                   </p>
-                </CardHeader>
-                <CardContent>
                   <DPICalculator />
-                </CardContent>
-              </Card>
+                </div>
+              </Paper>
             </div>
-          </TabsContent>
+          </Tabs.Panel>
 
-          <TabsContent value="turnaround-estimator">
+          <Tabs.Panel value="turnaround-estimator">
             <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+              <Paper withBorder shadow="lg" p="xl">
+                <div className="space-y-4">
+                  <Title order={2} className="flex items-center space-x-2">
                     <Clock className="h-5 w-5 text-purple-600" />
                     <span>Turnaround Estimator</span>
-                  </CardTitle>
+                  </Title>
                   <p className="text-muted-foreground">
                     Get accurate delivery estimates based on service type, complexity, and current queue status
                   </p>
-                </CardHeader>
-                <CardContent>
                   <TurnaroundEstimator />
-                </CardContent>
-              </Card>
+                </div>
+              </Paper>
             </div>
-          </TabsContent>
+          </Tabs.Panel>
 
-          <TabsContent value="vector-checker">
+          <Tabs.Panel value="vector-checker">
             <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+              <Paper withBorder shadow="lg" p="xl">
+                <div className="space-y-4">
+                  <Title order={2} className="flex items-center space-x-2">
                     <Search className="h-5 w-5 text-emerald-600" />
                     <span>Vector Checker</span>
-                  </CardTitle>
+                  </Title>
                   <p className="text-muted-foreground">
                     Upload your files to instantly verify if they're true vectors or raster images
                   </p>
-                </CardHeader>
-                <CardContent>
                   <VectorChecker />
-                </CardContent>
-              </Card>
+                </div>
+              </Paper>
             </div>
-          </TabsContent>
+          </Tabs.Panel>
         </Tabs>
 
         {/* Before/After Showcase */}
@@ -162,11 +159,9 @@ export default function Tools() {
         </div>
 
         {/* DPI Guidelines Reference */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>DPI Guidelines Reference</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Paper withBorder shadow="lg" p="xl" className="mt-8">
+          <div className="space-y-4">
+            <Title order={2}>DPI Guidelines Reference</Title>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
                 <h3 className="font-semibold text-emerald-700 dark:text-emerald-300 mb-2">300+ DPI</h3>
@@ -187,8 +182,8 @@ export default function Tools() {
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </Paper>
       </main>
     </div>
   );
