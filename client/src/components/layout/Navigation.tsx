@@ -1,13 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
+import { Button, Avatar, Badge, Menu } from "@mantine/core";
 import { useAuth } from "@/hooks/use-auth";
 import { Bell, ChevronDown, LayoutDashboard, ShoppingBag, Wrench, Folder, Crown } from "lucide-react";
 
@@ -54,7 +46,7 @@ export default function Navigation() {
                 <Wrench className="h-4 w-4 text-white" />
               </div>
               <span className="text-xl font-bold text-secondary">VectorWiz</span>
-              <Badge variant="secondary" className="text-xs">{user?.role === "ADMIN" ? "Admin" : "Services"}</Badge>
+              <Badge variant="light" size="xs">{user?.role === "ADMIN" ? "Admin" : "Services"}</Badge>
             </Link>
             
             <div className="hidden md:flex space-x-1">
@@ -84,8 +76,8 @@ export default function Navigation() {
               <>
                 {user.role === "ADMIN" && (
                   <Button 
-                    variant="ghost" 
-                    size="icon" 
+                    variant="subtle" 
+                    size="sm" 
                     className="relative"
                     data-testid="notifications-button"
                   >
@@ -94,13 +86,11 @@ export default function Navigation() {
                   </Button>
                 )}
                 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center space-x-3" data-testid="user-menu-trigger">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                          {getInitials(user?.name || null)}
-                        </AvatarFallback>
+                <Menu shadow="md" width={200}>
+                  <Menu.Target>
+                    <Button variant="subtle" className="flex items-center space-x-3" data-testid="user-menu-trigger">
+                      <Avatar size="sm" color="primary">
+                        {getInitials(user?.name || null)}
                       </Avatar>
                       <div className="hidden md:block text-left">
                         <div className="text-sm font-medium" data-testid="user-name">{user?.name || "User"}</div>
@@ -108,23 +98,23 @@ export default function Navigation() {
                       </div>
                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={logout} data-testid="logout-button">
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Item onClick={logout} data-testid="logout-button">
                       Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    </Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
               </>
             ) : (
               <div className="flex items-center space-x-2">
                 <Link href="/login">
-                  <Button variant="ghost" data-testid="sign-in-button">
+                  <Button variant="subtle" data-testid="sign-in-button">
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/order/new">
-                  <Button className="bg-green-600 hover:bg-green-700" data-testid="order-now-button">
+                  <Button color="green" data-testid="order-now-button">
                     Order Now
                   </Button>
                 </Link>
