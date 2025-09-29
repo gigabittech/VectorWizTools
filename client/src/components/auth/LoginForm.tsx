@@ -44,6 +44,26 @@ export default function LoginForm() {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setIsLoading(true);
+    try {
+      await login("demo@vectorwiz.com", "demo123");
+      toast({
+        title: "Demo login successful!",
+        description: "Welcome to the VectorWiz dashboard.",
+      });
+      setLocation("/dashboard");
+    } catch (error) {
+      toast({
+        title: "Demo login failed",
+        description: "There was an issue with the demo login. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
@@ -96,6 +116,33 @@ export default function LoginForm() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-full" 
+                onClick={handleDemoLogin}
+                disabled={isLoading}
+                data-testid="demo-login-button"
+              >
+                {isLoading ? "Signing in..." : "Demo Login"}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Quick access with demo account (demo@vectorwiz.com)
+              </p>
+            </div>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-muted-foreground text-sm">
