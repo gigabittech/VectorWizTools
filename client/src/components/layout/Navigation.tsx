@@ -15,16 +15,28 @@ export default function Navigation() {
   const { user, logout } = useAuth();
   const [location] = useLocation();
 
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/orders", label: "Orders", icon: ShoppingBag },
+  // Public navigation for guests and general users
+  const publicNavItems = [
+    { href: "/", label: "Home", icon: LayoutDashboard },
+    { href: "/order/new", label: "Create Order", icon: ShoppingBag },
     { href: "/tools", label: "Tools", icon: Wrench },
-    { href: "/files", label: "Files", icon: Folder },
-    ...(user?.role === "ADMIN" ? [{ href: "/admin", label: "Admin", icon: Crown }] : []),
   ];
 
+  // Admin-only navigation items
+  const adminNavItems = [
+    { href: "/admin", label: "Admin", icon: Crown },
+  ];
+
+  // Show different navigation based on user role
+  const navItems = user?.role === "ADMIN" ? adminNavItems : publicNavItems;
+
   const isActive = (href: string) => {
-    return location === href || (href !== "/dashboard" && location.startsWith(href));
+    // For the root path, require exact match to avoid always being active
+    if (href === "/") {
+      return location === "/";
+    }
+    // For other paths, use startsWith for sub-route matching
+    return location === href || location.startsWith(href);
   };
 
   const getInitials = (name: string | null) => {
@@ -37,12 +49,12 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
-            <Link href="/dashboard" className="flex items-center space-x-3" data-testid="logo-link">
+            <Link href={user?.role === "ADMIN" ? "/admin" : "/"} className="flex items-center space-x-3" data-testid="logo-link">
               <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
                 <Wrench className="h-4 w-4 text-white" />
               </div>
               <span className="text-xl font-bold text-secondary">VectorWiz</span>
-              <Badge variant="secondary" className="text-xs">Portal</Badge>
+              <Badge variant="secondary" className="text-xs">{user?.role === "ADMIN" ? "Admin" : "Services"}</Badge>
             </Link>
             
             <div className="hidden md:flex space-x-1">
@@ -68,37 +80,56 @@ export default function Navigation() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="relative"
-              data-testid="notifications-button"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full"></span>
-            </Button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-3" data-testid="user-menu-trigger">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                      {getInitials(user?.name || null)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium" data-testid="user-name">{user?.name || "User"}</div>
-                    <div className="text-xs text-muted-foreground" data-testid="user-email">{user?.email}</div>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={logout} data-testid="logout-button">
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {user ? (
+              <>
+                {user.role === "ADMIN" && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="relative"
+                    data-testid="notifications-button"
+                  >
+                    <Bell className="h-4 w-4" />
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full"></span>
+                  </Button>
+                )}
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-3" data-testid="user-menu-trigger">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                          {getInitials(user?.name || null)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="hidden md:block text-left">
+                        <div className="text-sm font-medium" data-testid="user-name">{user?.name || "User"}</div>
+                        <div className="text-xs text-muted-foreground" data-testid="user-email">{user?.email}</div>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={logout} data-testid="logout-button">
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link href="/login">
+                  <Button variant="ghost" data-testid="sign-in-button">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/order/new">
+                  <Button className="bg-green-600 hover:bg-green-700" data-testid="order-now-button">
+                    Order Now
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -20,7 +20,8 @@ import {
 import { 
   loginSchema, 
   signupSchema, 
-  insertOrderSchema, 
+  insertOrderSchema,
+  guestOrderSchema, 
   insertMessageSchema,
   insertFileSchema,
   insertProofSchema 
@@ -227,6 +228,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await capturePaypalOrder(req, res);
   });
 
+  // Guest PayPal Routes (no authentication required)
+  app.post("/api/paypal/guest/order", async (req, res) => {
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/api/paypal/guest/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
+
   // Order Routes
   app.post("/api/orders", authMiddleware, async (req: AuthRequest, res) => {
     try {
@@ -247,6 +257,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ order });
     } catch (error) {
       console.error("Create order error:", error);
+      res.status(400).json({ error: "Invalid order data" });
+    }
+  });
+
+  // Guest Order Routes (no authentication required)
+  app.post("/api/orders/guest", async (req, res) => {
+    try {
+      const data = guestOrderSchema.parse(req.body);
+      
+      const order = await storage.createOrder({
+        ...data,
+        userId: null, // Guest orders have no userId
+      });
+
+      // Skip activity logging for guest orders (no user ID)
+
+      res.json({ order });
+    } catch (error) {
+      console.error("Create guest order error:", error);
       res.status(400).json({ error: "Invalid order data" });
     }
   });
@@ -283,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/orders/:id", designerMiddleware, async (req: AuthRequest, res) => {
     try {
       const updates = req.body;
-      const existingOrder = await storage.getOrderById(req.params.id);
+      const existingOrder = await storage.getOrder(req.params.id);
       
       if (!existingOrder) {
         return res.status(404).json({ error: "Order not found" });
@@ -295,8 +324,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Order not found" });
       }
 
-      // Log activity for status changes
-      if (updates.status && updates.status !== existingOrder.status) {
+      // Log activity for status changes (only for user orders)
+      if (updates.status && updates.status !== existingOrder.status && order.userId) {
         await ActivityLogger.logOrderUpdated(
           order.userId,
           order.id,
@@ -352,8 +381,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await ActivityLogger.logFileUploaded(
           req.user!.id,
           file.orderId,
-          file.fileName,
-          file.fileKind
+          file.name,
+          file.kind
         );
       }
 
@@ -431,8 +460,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const proof = await storage.createProof(data);
 
       // Get the order to find the client user ID for activity logging
-      const order = await storage.getOrderById(data.orderId);
-      if (order) {
+      const order = await storage.getOrder(data.orderId);
+      if (order && order.userId) {
         await ActivityLogger.logProofUploaded(
           order.userId, // Log activity for the client, not the designer
           data.orderId

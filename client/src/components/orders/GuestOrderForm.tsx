@@ -43,6 +43,9 @@ export default function GuestOrderForm() {
     },
   });
 
+  // Watch form values to trigger re-renders when they change
+  const watchedValues = form.watch(["service", "guestName", "guestEmail"]);
+
   const createOrderMutation = useMutation({
     mutationFn: async (data: GuestOrder) => {
       const response = await apiRequest("POST", "/api/orders/guest", data);
@@ -85,7 +88,7 @@ export default function GuestOrderForm() {
       case "contact":
         return !!(values.guestName && values.guestEmail);
       case "files":
-        return selectedFiles.length > 0;
+        return true; // Files are optional for guest orders
       case "summary":
         return true;
       default:
