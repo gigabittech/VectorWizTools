@@ -23,6 +23,9 @@ export const orderStatusEnum = pgEnum("order_status", [
 ]);
 export const fileKindEnum = pgEnum("file_kind", ["SOURCE", "UPLOAD", "PROOF", "FINAL"]);
 export const activityTypeEnum = pgEnum("activity_type", ["ORDER_CREATED", "ORDER_UPDATED", "PAYMENT_PROCESSED", "FILE_UPLOADED", "PROOF_UPLOADED", "MESSAGE_SENT"]);
+export const complexityTierEnum = pgEnum("complexity_tier", ["SIMPLE", "MEDIUM", "COMPLEX"]);
+export const turnaroundTierEnum = pgEnum("turnaround_tier", ["STANDARD", "RUSH_24HR", "RUSH_12HR"]);
+export const addonTypeEnum = pgEnum("addon_type", ["BACKGROUND_REMOVAL", "COLOR_CHANGE", "SIMPLIFICATION", "EXTRA_FORMATS"]);
 
 // Tables
 export const users = pgTable("users", {
@@ -113,6 +116,58 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const complexityAnalyses = pgTable("complexity_analyses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fileId: varchar("file_id").references(() => files.id, { onDelete: "cascade" }).notNull(),
+  resolutionScore: integer("resolution_score").notNull(),
+  colorScore: integer("color_score").notNull(),
+  detailScore: integer("detail_score").notNull(),
+  backgroundScore: integer("background_score").notNull(),
+  objectCountScore: integer("object_count_score").notNull(),
+  qualityScore: integer("quality_score").notNull(),
+  finalScore: integer("final_score").notNull(),
+  complexityTier: complexityTierEnum("complexity_tier").notNull(),
+  analysisData: json("analysis_data").default(sql`'{}'::json`).notNull(),
+  analyzedAt: timestamp("analyzed_at").defaultNow().notNull(),
+});
+
+export const pricingRules = pgTable("pricing_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceType: serviceTypeEnum("service_type").notNull(),
+  basePrice: integer("base_price").notNull(),
+  complexityMultipliers: json("complexity_multipliers").notNull(),
+  turnaroundMultipliers: json("turnaround_multipliers").notNull(),
+  addonPrices: json("addon_prices").notNull(),
+  active: boolean("active").default(true).notNull(),
+  effectiveDate: timestamp("effective_date").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const orderLineItems = pgTable("order_line_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  fileId: varchar("file_id").references(() => files.id, { onDelete: "cascade" }),
+  serviceType: serviceTypeEnum("service_type").notNull(),
+  complexityTier: complexityTierEnum("complexity_tier"),
+  basePrice: integer("base_price").notNull(),
+  complexityAdjustment: integer("complexity_adjustment").default(0).notNull(),
+  turnaroundFee: integer("turnaround_fee").default(0).notNull(),
+  formatFees: integer("format_fees").default(0).notNull(),
+  addonFees: integer("addon_fees").default(0).notNull(),
+  subtotal: integer("subtotal").notNull(),
+  itemOrder: integer("item_order").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const orderAddons = pgTable("order_addons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderLineItemId: varchar("order_line_item_id").references(() => orderLineItems.id, { onDelete: "cascade" }).notNull(),
+  addonType: addonTypeEnum("addon_type").notNull(),
+  price: integer("price").notNull(),
+  instructions: text("instructions"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -187,6 +242,32 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
   }),
 }));
 
+export const complexityAnalysesRelations = relations(complexityAnalyses, ({ one }) => ({
+  file: one(files, {
+    fields: [complexityAnalyses.fileId],
+    references: [files.id],
+  }),
+}));
+
+export const orderLineItemsRelations = relations(orderLineItems, ({ one, many }) => ({
+  order: one(orders, {
+    fields: [orderLineItems.orderId],
+    references: [orders.id],
+  }),
+  file: one(files, {
+    fields: [orderLineItems.fileId],
+    references: [files.id],
+  }),
+  addons: many(orderAddons),
+}));
+
+export const orderAddonsRelations = relations(orderAddons, ({ one }) => ({
+  lineItem: one(orderLineItems, {
+    fields: [orderAddons.orderLineItemId],
+    references: [orderLineItems.id],
+  }),
+}));
+
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -237,6 +318,26 @@ export const insertActivitySchema = createInsertSchema(activities).omit({
   createdAt: true,
 });
 
+export const insertComplexityAnalysisSchema = createInsertSchema(complexityAnalyses).omit({
+  id: true,
+  analyzedAt: true,
+});
+
+export const insertPricingRuleSchema = createInsertSchema(pricingRules).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertOrderLineItemSchema = createInsertSchema(orderLineItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertOrderAddonSchema = createInsertSchema(orderAddons).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -264,3 +365,11 @@ export type Invoice = typeof invoices.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
 export type SignupData = z.infer<typeof signupSchema>;
 export type GuestOrder = z.infer<typeof guestOrderSchema>;
+export type ComplexityAnalysis = typeof complexityAnalyses.$inferSelect;
+export type InsertComplexityAnalysis = z.infer<typeof insertComplexityAnalysisSchema>;
+export type PricingRule = typeof pricingRules.$inferSelect;
+export type InsertPricingRule = z.infer<typeof insertPricingRuleSchema>;
+export type OrderLineItem = typeof orderLineItems.$inferSelect;
+export type InsertOrderLineItem = z.infer<typeof insertOrderLineItemSchema>;
+export type OrderAddon = typeof orderAddons.$inferSelect;
+export type InsertOrderAddon = z.infer<typeof insertOrderAddonSchema>;
