@@ -31,6 +31,8 @@ import { ObjectPermission } from "./objectAcl";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { randomUUID } from "crypto";
 import { ActivityLogger } from "./activityLogger";
+import { analyzeImageFromBuffer } from "./imageAnalysis";
+import { calculatePricing, calculateBulkPricing, getBasePriceForService } from "./pricingEngine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cookieParser());
@@ -604,6 +606,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get admin activities error:", error);
       res.status(500).json({ error: "Failed to fetch recent activities" });
+    }
+  });
+
+  // Image Analysis Routes
+  app.post("/api/analysis/image", async (req, res) => {
+    try {
+      // Expect base64 encoded image data
+      const { imageData, fileName } = req.body;
+      
+      if (!imageData) {
+        return res.status(400).json({ error: "No image data provided" });
+      }
+
+      // Convert base64 to buffer
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const analysis = await analyzeImageFromBuffer(buffer);
+      
+      res.json({ analysis });
+    } catch (error) {
+      console.error("Image analysis error:", error);
+      res.status(500).json({ error: "Failed to analyze image" });
+    }
+  });
+
+  // Pricing Calculation Routes
+  app.post("/api/pricing/calculate", async (req, res) => {
+    try {
+      const config = req.body;
+      
+      if (!config.serviceType) {
+        return res.status(400).json({ error: "Service type is required" });
+      }
+
+      const pricing = await calculatePricing(config);
+      res.json({ pricing });
+    } catch (error) {
+      console.error("Pricing calculation error:", error);
+      res.status(500).json({ error: "Failed to calculate pricing" });
+    }
+  });
+
+  app.post("/api/pricing/bulk", async (req, res) => {
+    try {
+      const { configs } = req.body;
+      
+      if (!configs || !Array.isArray(configs)) {
+        return res.status(400).json({ error: "Configs array is required" });
+      }
+
+      const result = await calculateBulkPricing(configs);
+      res.json({ result });
+    } catch (error) {
+      console.error("Bulk pricing calculation error:", error);
+      res.status(500).json({ error: "Failed to calculate bulk pricing" });
+    }
+  });
+
+  app.get("/api/pricing/base/:serviceType", async (req, res) => {
+    try {
+      const { serviceType } = req.params;
+      const basePrice = getBasePriceForService(serviceType);
+      res.json({ basePrice });
+    } catch (error) {
+      console.error("Get base price error:", error);
+      res.status(500).json({ error: "Failed to get base price" });
     }
   });
 
