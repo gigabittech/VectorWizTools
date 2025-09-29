@@ -22,6 +22,7 @@ export const orderStatusEnum = pgEnum("order_status", [
   "CANCELED"
 ]);
 export const fileKindEnum = pgEnum("file_kind", ["SOURCE", "UPLOAD", "PROOF", "FINAL"]);
+export const activityTypeEnum = pgEnum("activity_type", ["ORDER_CREATED", "ORDER_UPDATED", "PAYMENT_PROCESSED", "FILE_UPLOADED", "PROOF_UPLOADED", "MESSAGE_SENT"]);
 
 // Tables
 export const users = pgTable("users", {
@@ -95,12 +96,24 @@ export const invoices = pgTable("invoices", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const activities = pgTable("activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }),
+  type: activityTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  metadata: json("metadata").default(sql`'{}'::json`).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   messages: many(messages),
   sessions: many(sessions),
   files: many(files),
+  activities: many(activities),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -157,6 +170,17 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
   }),
 }));
 
+export const activitiesRelations = relations(activities, ({ one }) => ({
+  user: one(users, {
+    fields: [activities.userId],
+    references: [users.id],
+  }),
+  order: one(orders, {
+    fields: [activities.orderId],
+    references: [orders.id],
+  }),
+}));
+
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -188,6 +212,11 @@ export const insertProofSchema = createInsertSchema(proofs).omit({
   createdAt: true,
 });
 
+export const insertActivitySchema = createInsertSchema(activities).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -208,6 +237,8 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Proof = typeof proofs.$inferSelect;
 export type InsertProof = z.infer<typeof insertProofSchema>;
+export type Activity = typeof activities.$inferSelect;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Session = typeof sessions.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;

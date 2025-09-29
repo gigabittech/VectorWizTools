@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { Bell, ChevronDown, LayoutDashboard, ShoppingBag, Wrench, Folder } from "lucide-react";
+import { Bell, ChevronDown, LayoutDashboard, ShoppingBag, Wrench, Folder, Crown } from "lucide-react";
 
 export default function Navigation() {
   const { user, logout } = useAuth();
@@ -20,6 +20,7 @@ export default function Navigation() {
     { href: "/orders", label: "Orders", icon: ShoppingBag },
     { href: "/tools", label: "Tools", icon: Wrench },
     { href: "/files", label: "Files", icon: Folder },
+    ...(user?.role === "ADMIN" ? [{ href: "/admin", label: "Admin", icon: Crown }] : []),
   ];
 
   const isActive = (href: string) => {

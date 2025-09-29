@@ -17,6 +17,7 @@ import Tools from "@/pages/tools";
 import DPICalculator from "@/pages/tools/dpi-calculator";
 import TurnaroundEstimator from "@/pages/tools/turnaround-estimator";
 import VectorChecker from "@/pages/tools/vector-checker";
+import AdminPage from "@/pages/admin";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/tools/dpi-calculator" component={DPICalculator} />
       <Route path="/tools/turnaround-estimator" component={TurnaroundEstimator} />
       <Route path="/tools/vector-checker" component={VectorChecker} />
+      <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
   );

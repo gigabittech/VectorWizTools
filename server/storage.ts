@@ -5,6 +5,7 @@ import {
   messages, 
   proofs, 
   sessions,
+  activities,
   type User, 
   type InsertUser,
   type Order,
@@ -15,6 +16,8 @@ import {
   type InsertMessage,
   type Proof,
   type InsertProof,
+  type Activity,
+  type InsertActivity,
   type Session
 } from "@shared/schema";
 import { db } from "./db";
@@ -32,13 +35,14 @@ export interface IStorage {
   deleteSession(id: string): Promise<void>;
   
   // Orders
-  createOrder(order: InsertOrder): Promise<Order>;
+  createOrder(order: InsertOrder & { userId: string }): Promise<Order>;
   getOrder(id: string): Promise<Order | undefined>;
   getOrdersByUser(userId: string): Promise<Order[]>;
+  getAllOrders(): Promise<Order[]>;
   updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined>;
   
   // Files
-  createFile(file: InsertFile): Promise<File>;
+  createFile(file: InsertFile & { userId: string }): Promise<File>;
   getFile(id: string): Promise<File | undefined>;
   getFilesByOrder(orderId: string): Promise<File[]>;
   getFilesByUser(userId: string): Promise<File[]>;
@@ -51,6 +55,15 @@ export interface IStorage {
   createProof(proof: InsertProof): Promise<Proof>;
   getProofsByOrder(orderId: string): Promise<Proof[]>;
   updateProof(id: string, updates: Partial<Proof>): Promise<Proof | undefined>;
+  
+  // Activities
+  createActivity(activity: InsertActivity): Promise<Activity>;
+  getActivitiesByUser(userId: string, limit?: number): Promise<Activity[]>;
+  getRecentActivities(limit?: number): Promise<Activity[]>;
+  
+  // Admin Analytics
+  getOrderStats(): Promise<{ total: number; byStatus: Record<string, number>; byService: Record<string, number> }>;
+  getUserStats(): Promise<{ total: number; byRole: Record<string, number> }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -92,10 +105,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Orders
-  async createOrder(order: InsertOrder): Promise<Order> {
+  async createOrder(order: InsertOrder & { userId: string }): Promise<Order> {
     const [newOrder] = await db
       .insert(orders)
-      .values(order)
+      .values([order])
       .returning();
     return newOrder;
   }
@@ -113,6 +126,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(orders.createdAt));
   }
 
+  async getAllOrders(): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .orderBy(desc(orders.createdAt));
+  }
+
   async updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined> {
     const [updated] = await db
       .update(orders)
@@ -123,10 +143,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Files
-  async createFile(file: InsertFile): Promise<File> {
+  async createFile(file: InsertFile & { userId: string }): Promise<File> {
     const [newFile] = await db
       .insert(files)
-      .values(file)
+      .values([file])
       .returning();
     return newFile;
   }
@@ -193,6 +213,68 @@ export class DatabaseStorage implements IStorage {
       .where(eq(proofs.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  // Admin Analytics
+  async getOrderStats(): Promise<{ total: number; byStatus: Record<string, number>; byService: Record<string, number> }> {
+    const allOrders = await this.getAllOrders();
+    
+    const stats = {
+      total: allOrders.length,
+      byStatus: {} as Record<string, number>,
+      byService: {} as Record<string, number>
+    };
+
+    allOrders.forEach(order => {
+      // Count by status
+      stats.byStatus[order.status] = (stats.byStatus[order.status] || 0) + 1;
+      
+      // Count by service
+      stats.byService[order.service] = (stats.byService[order.service] || 0) + 1;
+    });
+
+    return stats;
+  }
+
+  async getUserStats(): Promise<{ total: number; byRole: Record<string, number> }> {
+    const allUsers = await db.select().from(users);
+    
+    const stats = {
+      total: allUsers.length,
+      byRole: {} as Record<string, number>
+    };
+
+    allUsers.forEach(user => {
+      stats.byRole[user.role] = (stats.byRole[user.role] || 0) + 1;
+    });
+
+    return stats;
+  }
+
+  // Activities
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const [newActivity] = await db
+      .insert(activities)
+      .values([activity])
+      .returning();
+    return newActivity;
+  }
+
+  async getActivitiesByUser(userId: string, limit: number = 20): Promise<Activity[]> {
+    return await db
+      .select()
+      .from(activities)
+      .where(eq(activities.userId, userId))
+      .orderBy(desc(activities.createdAt))
+      .limit(limit);
+  }
+
+  async getRecentActivities(limit: number = 20): Promise<Activity[]> {
+    return await db
+      .select()
+      .from(activities)
+      .orderBy(desc(activities.createdAt))
+      .limit(limit);
   }
 }
 

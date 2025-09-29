@@ -29,6 +29,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { randomUUID } from "crypto";
+import { ActivityLogger } from "./activityLogger";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cookieParser());
@@ -236,6 +237,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user!.id,
       });
 
+      // Log activity for order creation
+      await ActivityLogger.logOrderCreated(
+        req.user!.id,
+        order.id,
+        order.service
+      );
+
       res.json({ order });
     } catch (error) {
       console.error("Create order error:", error);
@@ -275,10 +283,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/orders/:id", designerMiddleware, async (req: AuthRequest, res) => {
     try {
       const updates = req.body;
+      const existingOrder = await storage.getOrderById(req.params.id);
+      
+      if (!existingOrder) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
       const order = await storage.updateOrder(req.params.id, updates);
       
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
+      }
+
+      // Log activity for status changes
+      if (updates.status && updates.status !== existingOrder.status) {
+        await ActivityLogger.logOrderUpdated(
+          order.userId,
+          order.id,
+          updates.status,
+          existingOrder.status
+        );
       }
 
       res.json({ order });
@@ -323,6 +347,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Log activity for file upload
+      if (file.orderId) {
+        await ActivityLogger.logFileUploaded(
+          req.user!.id,
+          file.orderId,
+          file.fileName,
+          file.fileKind
+        );
+      }
+
       res.json({ file });
     } catch (error) {
       console.error("Create file error:", error);
@@ -352,6 +386,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Broadcast message via WebSocket
       broadcastMessage(data.orderId, message);
+
+      // Log activity for message sent
+      await ActivityLogger.logMessageSent(
+        req.user!.id,
+        data.orderId,
+        data.body
+      );
 
       res.json({ message });
     } catch (error) {
@@ -388,6 +429,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = insertProofSchema.parse(req.body);
       
       const proof = await storage.createProof(data);
+
+      // Get the order to find the client user ID for activity logging
+      const order = await storage.getOrderById(data.orderId);
+      if (order) {
+        await ActivityLogger.logProofUploaded(
+          order.userId, // Log activity for the client, not the designer
+          data.orderId
+        );
+      }
+
       res.json({ proof });
     } catch (error) {
       console.error("Create proof error:", error);
@@ -477,12 +528,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Routes
   app.get("/api/admin/orders", adminMiddleware, async (req: AuthRequest, res) => {
     try {
-      // This would need a different query to get all orders, not user-specific
-      // For now, returning empty array as placeholder
-      res.json({ orders: [] });
+      const orders = await storage.getAllOrders();
+      res.json({ orders });
     } catch (error) {
       console.error("Admin get orders error:", error);
       res.status(500).json({ error: "Failed to fetch orders" });
+    }
+  });
+
+  app.get("/api/admin/analytics/orders", adminMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const stats = await storage.getOrderStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Admin order analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch order analytics" });
+    }
+  });
+
+  app.get("/api/admin/analytics/users", adminMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const stats = await storage.getUserStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Admin user analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch user analytics" });
+    }
+  });
+
+  // Activity Routes
+  app.get("/api/activities", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const activities = await storage.getActivitiesByUser(req.user!.id);
+      res.json({ activities });
+    } catch (error) {
+      console.error("Get activities error:", error);
+      res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
+  app.get("/api/admin/activities", adminMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const activities = await storage.getRecentActivities(limit);
+      res.json({ activities });
+    } catch (error) {
+      console.error("Get admin activities error:", error);
+      res.status(500).json({ error: "Failed to fetch recent activities" });
     }
   });
 
