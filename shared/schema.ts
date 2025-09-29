@@ -169,11 +169,13 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   createdAt: true,
   updatedAt: true,
   timeline: true,
+  userId: true, // Server will add this from authenticated user
 });
 
 export const insertFileSchema = createInsertSchema(files).omit({
   id: true,
   createdAt: true,
+  userId: true, // Server will add this from authenticated user
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({

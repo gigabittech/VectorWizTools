@@ -4,7 +4,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Order } from "@shared/schema";
-import { Image, FileText, Scissors } from "lucide-react";
+import { Image, FileText, Scissors, ShoppingBag } from "lucide-react";
 
 const serviceIcons = {
   IMAGE_TO_VECTOR: Image,

@@ -14,36 +14,51 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const subscriptions = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    ws.current = new WebSocket(wsUrl);
+    const connectWebSocket = () => {
+      try {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        ws.current = new WebSocket(wsUrl);
 
-    ws.current.onopen = () => {
-      setIsConnected(true);
-      // Re-subscribe to any existing subscriptions
-      subscriptions.current.forEach((orderId) => {
-        ws.current?.send(JSON.stringify({ type: 'subscribe', orderId }));
-      });
+        ws.current.onopen = () => {
+          setIsConnected(true);
+          // Re-subscribe to any existing subscriptions
+          subscriptions.current.forEach((orderId) => {
+            ws.current?.send(JSON.stringify({ type: 'subscribe', orderId }));
+          });
+        };
+
+        ws.current.onclose = () => {
+          setIsConnected(false);
+          // Attempt to reconnect after 5 seconds if not manually closed
+          setTimeout(() => {
+            if (ws.current?.readyState === WebSocket.CLOSED) {
+              connectWebSocket();
+            }
+          }, 5000);
+        };
+
+        ws.current.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          setIsConnected(false);
+        };
+      } catch (error) {
+        console.error("Failed to create WebSocket connection:", error);
+        setIsConnected(false);
+        // Retry connection after delay if failed to create
+        setTimeout(() => {
+          connectWebSocket();
+        }, 5000);
+      }
     };
 
-    ws.current.onclose = () => {
-      setIsConnected(false);
-      // Attempt to reconnect after 3 seconds
-      setTimeout(() => {
-        if (ws.current?.readyState === WebSocket.CLOSED) {
-          // Recreate connection
-          ws.current = new WebSocket(wsUrl);
-        }
-      }, 3000);
-    };
-
-    ws.current.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
+    connectWebSocket();
 
     return () => {
-      ws.current?.close();
+      if (ws.current) {
+        ws.current.close();
+      }
     };
   }, []);
 
