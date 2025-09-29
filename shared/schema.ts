@@ -45,7 +45,7 @@ export const sessions = pgTable("sessions", {
 
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // Now nullable for guest orders
   service: serviceTypeEnum("service").notNull(),
   status: orderStatusEnum("status").default("QUEUED").notNull(),
   notes: text("notes"),
@@ -53,6 +53,11 @@ export const orders = pgTable("orders", {
   currency: text("currency").default("USD").notNull(),
   paypalOrderId: text("paypal_order_id"),
   timeline: json("timeline").default(sql`'[]'::json`).notNull(),
+  // Guest contact information (for non-authenticated orders)
+  guestName: text("guest_name"),
+  guestEmail: text("guest_email"),
+  guestPhone: text("guest_phone"),
+  guestCompany: text("guest_company"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -60,7 +65,7 @@ export const orders = pgTable("orders", {
 export const files = pgTable("files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // Now nullable for guest files
   kind: fileKindEnum("kind").notNull(),
   name: text("name").notNull(),
   mime: text("mime").notNull(),
@@ -82,7 +87,8 @@ export const proofs = pgTable("proofs", {
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // Now nullable for guest messages
+  authorName: text("author_name"), // For guest or admin message authors
   body: text("body").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -98,7 +104,7 @@ export const invoices = pgTable("invoices", {
 
 export const activities = pgTable("activities", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // Now nullable for guest activities
   orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }),
   type: activityTypeEnum("type").notNull(),
   title: text("title").notNull(),
@@ -196,6 +202,20 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   userId: true, // Server will add this from authenticated user
 });
 
+// Guest order schema for public order creation
+export const guestOrderSchema = createInsertSchema(orders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  timeline: true,
+  userId: true, // Guest orders don't have userId
+}).extend({
+  guestName: z.string().min(2, "Name is required"),
+  guestEmail: z.string().email("Valid email is required"),
+  guestPhone: z.string().optional(),
+  guestCompany: z.string().optional(),
+});
+
 export const insertFileSchema = createInsertSchema(files).omit({
   id: true,
   createdAt: true,
@@ -243,3 +263,4 @@ export type Session = typeof sessions.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
 export type SignupData = z.infer<typeof signupSchema>;
+export type GuestOrder = z.infer<typeof guestOrderSchema>;
