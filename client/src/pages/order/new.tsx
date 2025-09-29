@@ -36,7 +36,11 @@ export default function NewOrder() {
 
   const handleWizardClose = () => {
     setShowWizard(false);
-    setLocation("/orders");
+    // For authenticated users, go to orders page. For guests, stay on current page
+    if (user) {
+      setLocation("/orders");
+    }
+    // For non-authenticated users, just close the wizard and stay on the page
   };
 
   return (
@@ -45,12 +49,21 @@ export default function NewOrder() {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="new-order-page">
         <div className="mb-8">
-          <Link href="/orders">
-            <Button variant="ghost" className="mb-4" data-testid="back-to-orders">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Orders
-            </Button>
-          </Link>
+          {user ? (
+            <Link href="/orders">
+              <Button variant="ghost" className="mb-4" data-testid="back-to-orders">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Orders
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/">
+              <Button variant="ghost" className="mb-4" data-testid="back-to-home">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+          )}
           
           <div className="text-center max-w-2xl mx-auto">
             <h1 className="text-3xl font-bold mb-4">Create New Order</h1>
