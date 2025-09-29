@@ -12,11 +12,7 @@ export default function VectorCheckerPage() {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      setLocation("/login");
-    }
-  }, [user, isLoading, setLocation]);
+  // Vector checker tool is publicly accessible - no authentication check needed
 
   if (isLoading) {
     return (
@@ -31,9 +27,7 @@ export default function VectorCheckerPage() {
     );
   }
 
-  if (!user) {
-    return null; // Redirecting
-  }
+  // Vector checker works for both authenticated and guest users
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">

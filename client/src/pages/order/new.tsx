@@ -12,18 +12,12 @@ export default function NewOrder() {
   const [, setLocation] = useLocation();
   const [showWizard, setShowWizard] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      setLocation("/login");
-    }
-  }, [user, isLoading, setLocation]);
+  // Page is publicly accessible - no authentication check needed
 
-  // Auto-open wizard when page loads
+  // Auto-open wizard when page loads (works for both authenticated and guest users)
   useEffect(() => {
-    if (user) {
-      setShowWizard(true);
-    }
-  }, [user]);
+    setShowWizard(true);
+  }, []);
 
   if (isLoading) {
     return (
@@ -38,9 +32,7 @@ export default function NewOrder() {
     );
   }
 
-  if (!user) {
-    return null; // Redirecting
-  }
+  // Page works for both authenticated and guest users
 
   const handleWizardClose = () => {
     setShowWizard(false);

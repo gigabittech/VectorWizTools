@@ -15,11 +15,7 @@ export default function Tools() {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      setLocation("/login");
-    }
-  }, [user, isLoading, setLocation]);
+  // Tools page is publicly accessible - no authentication check needed
 
   if (isLoading) {
     return (
@@ -34,9 +30,7 @@ export default function Tools() {
     );
   }
 
-  if (!user) {
-    return null; // Redirecting
-  }
+  // Tools work for both authenticated and guest users
 
   return (
     <div className="bg-gradient-to-br from-background to-muted">
