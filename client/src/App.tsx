@@ -5,6 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "./lib/auth";
 import { WebSocketProvider } from "./lib/websocket";
+import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import { ModalsProvider } from '@mantine/modals';
+import { theme, darkTheme } from './lib/theme';
+import { ColorSchemeProvider, useColorScheme } from './lib/color-scheme';
 import Layout from "@/components/layout/Layout";
 import NotFound from "@/pages/not-found";
 import Homepage from "@/pages/homepage";
@@ -44,18 +49,34 @@ function Router() {
   );
 }
 
+function ThemedApp() {
+  const { colorScheme } = useColorScheme();
+  const currentTheme = colorScheme === 'dark' ? darkTheme : theme;
+
+  return (
+    <MantineProvider theme={currentTheme} forceColorScheme={colorScheme}>
+      <Notifications />
+      <ModalsProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <WebSocketProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Router />
+              </TooltipProvider>
+            </WebSocketProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ModalsProvider>
+    </MantineProvider>
+  );
+}
+
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <WebSocketProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </WebSocketProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ColorSchemeProvider>
+      <ThemedApp />
+    </ColorSchemeProvider>
   );
 }
 
