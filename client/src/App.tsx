@@ -7,6 +7,7 @@ import { AuthProvider } from "./lib/auth";
 import { WebSocketProvider } from "./lib/websocket";
 import Layout from "@/components/layout/Layout";
 import NotFound from "@/pages/not-found";
+import Homepage from "@/pages/homepage";
 import Dashboard from "@/pages/dashboard";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
@@ -24,7 +25,7 @@ function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={Dashboard} />
+        <Route path="/" component={Homepage} />
         <Route path="/login" component={Login} />
         <Route path="/signup" component={Signup} />
         <Route path="/dashboard" component={Dashboard} />
