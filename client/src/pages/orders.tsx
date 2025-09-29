@@ -34,19 +34,19 @@ export default function Orders() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-background to-muted">
+    <div className="bg-gradient-to-br from-background via-muted/30 to-background min-h-screen">
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="orders-page">
-        <div className="flex items-center justify-between mb-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16" data-testid="orders-page">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Your Orders</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3">Your Orders</h1>
+            <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
               Track and manage your vector conversion projects
             </p>
           </div>
           
           <Link href="/order/new">
-            <Button className="gradient-primary" data-testid="new-order-button">
+            <Button className="gradient-primary w-full sm:w-auto px-6 py-3" data-testid="new-order-button">
               <Plus className="mr-2 h-4 w-4" />
               New Order
             </Button>

@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import BeforeAfterSlider from "@/components/tools/BeforeAfterSlider";
 import { Paper, Title, Button, Grid, Text, Badge, Group, Container } from "@mantine/core";
@@ -7,35 +5,17 @@ import { Calculator, Clock, Search, Eye, Plus, Repeat, Palette, HardDrive, Ruler
 import { Link } from "wouter";
 
 export default function Tools() {
-  const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
-
   // Tools page is publicly accessible - no authentication check needed
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-white font-bold">V</span>
-          </div>
-          <p className="text-muted-foreground">Loading tools...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Tools work for both authenticated and guest users
-
   return (
-    <div className="bg-gradient-to-br from-background to-muted">
+    <div className="bg-gradient-to-br from-background to-muted min-h-screen">
       
-      <Container size="xl" py="xl" data-testid="tools-page">
-        <div className="mb-8">
-          <Group justify="space-between" align="flex-start" mb="xl">
-            <div>
-              <Title order={1} size="h1" mb="xs">Professional Vector Tools</Title>
-              <Text size="lg" c="dimmed">
+      <Container size="xl" className="py-6 sm:py-12" data-testid="tools-page">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row justify-between align-start gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="flex-1">
+              <Title order={1} size="h1" mb="xs" className="text-2xl sm:text-3xl lg:text-4xl">Professional Vector Tools</Title>
+              <Text size="md" c="dimmed" className="pr-4 sm:pr-0 text-sm sm:text-base">
                 Free tools to help you prepare and optimize your vector graphics projects
               </Text>
             </div>
@@ -44,75 +24,77 @@ export default function Tools() {
               component={Link}
               href="/order/new"
               color="green"
-              size="lg"
+              size="md"
               leftSection={<Plus size={16} />}
               data-testid="start-new-order"
+              className="w-full sm:w-auto"
             >
-              Start New Order
+              <span className="hidden sm:inline">Start New Order</span>
+              <span className="sm:hidden">New Order</span>
             </Button>
-          </Group>
+          </div>
         </div>
 
         {/* Available Tools Grid */}
-        <div className="mb-16">
-          <Title order={2} mb="xl" ta="center">Professional Vector Tools</Title>
-          <Grid gutter="lg">
+        <div className="mb-12 sm:mb-16">
+          <Title order={2} mb="lg" ta="center" className="text-xl sm:text-2xl lg:text-3xl">Core Vector Tools</Title>
+          <Grid gutter="md">
 
-            <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
-              <Paper withBorder shadow="md" p="xl" className="h-full hover:shadow-lg transition-shadow">
+            <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+              <Paper withBorder shadow="md" className="h-full hover:shadow-lg transition-shadow p-4 sm:p-6">
                 <Group gap="sm" mb="md">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                    <Calculator className="h-6 w-6 text-blue-600" />
+                  <div className="w-10 sm:w-12 h-10 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                    <Calculator className="h-5 sm:h-6 w-5 sm:w-6 text-blue-600" />
                   </div>
-                  <div>
-                    <Title order={3} size="h4">DPI Calculator</Title>
+                  <div className="flex-1">
+                    <Title order={3} size="h4" className="text-base sm:text-lg">DPI Calculator</Title>
                     <Badge variant="light" color="blue" size="sm">Free Tool</Badge>
                   </div>
                 </Group>
-                <Text size="sm" c="dimmed" mb="lg">
+                <Text size="sm" c="dimmed" mb="lg" className="text-xs sm:text-sm">
                   Calculate optimal DPI for print projects and determine if vectorization is needed for professional quality.
                 </Text>
-                <Button component={Link} href="/tools/dpi-calculator" fullWidth color="blue" data-testid="dpi-calculator-link">
+                <Button component={Link} href="/tools/dpi-calculator" fullWidth color="blue" size="sm" data-testid="dpi-calculator-link">
                   Use DPI Calculator
                 </Button>
               </Paper>
             </Grid.Col>
 
-            <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
-              <Paper withBorder shadow="md" p="xl" className="h-full hover:shadow-lg transition-shadow">
+            <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+              <Paper withBorder shadow="md" className="h-full hover:shadow-lg transition-shadow p-4 sm:p-6">
                 <Group gap="sm" mb="md">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-purple-600" />
+                  <div className="w-10 sm:w-12 h-10 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                    <Clock className="h-5 sm:h-6 w-5 sm:w-6 text-purple-600" />
                   </div>
-                  <div>
-                    <Title order={3} size="h4">Turnaround Estimator</Title>
+                  <div className="flex-1">
+                    <Title order={3} size="h4" className="text-base sm:text-lg">Turnaround Estimator</Title>
                     <Badge variant="light" color="purple" size="sm">Instant Results</Badge>
                   </div>
                 </Group>
-                <Text size="sm" c="dimmed" mb="lg">
+                <Text size="sm" c="dimmed" mb="lg" className="text-xs sm:text-sm">
                   Get accurate delivery estimates based on service type, complexity, and current queue status.
                 </Text>
-                <Button component={Link} href="/tools/turnaround-estimator" fullWidth color="purple" data-testid="turnaround-estimator-link">
+                <Button component={Link} href="/tools/turnaround-estimator" fullWidth color="purple" size="sm" data-testid="turnaround-estimator-link">
                   Get Time Estimate
                 </Button>
               </Paper>
             </Grid.Col>
 
-            <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
-              <Paper withBorder shadow="md" p="xl" className="h-full hover:shadow-lg transition-shadow">
+            <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+              <Paper withBorder shadow="md" className="h-full hover:shadow-lg transition-shadow p-4 sm:p-6">
                 <Group gap="sm" mb="md">
-                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
-                    <Search className="h-6 w-6 text-emerald-600" />
+                  <div className="w-10 sm:w-12 h-10 sm:h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                    <Search className="h-5 sm:h-6 w-5 sm:w-6 text-emerald-600" />
                   </div>
-                  <div>
-                    <Title order={3} size="h4">Vector Checker</Title>
+                  <div className="flex-1">
+                    <Title order={3} size="h4" className="text-base sm:text-lg">Vector Checker</Title>
                     <Badge variant="light" color="emerald" size="sm">Upload & Analyze</Badge>
                   </div>
                 </Group>
-                <Text size="sm" c="dimmed" mb="lg">
+                <Text size="sm" c="dimmed" mb="lg" className="text-xs sm:text-sm">
                   Upload files to instantly verify if they're true vectors or raster images and get recommendations.
                 </Text>
-                <Button component={Link} href="/tools/vector-checker" fullWidth color="green" data-testid="vector-checker-link">
+                <Button component={Link} href="/tools/vector-checker" fullWidth color="green" size="sm" data-testid="vector-checker-link">
                   Check File Format
                 </Button>
               </Paper>

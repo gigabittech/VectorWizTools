@@ -35,15 +35,15 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-background to-muted">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="dashboard-main">
+    <div className="bg-gradient-to-br from-background via-muted/30 to-background min-h-screen">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16" data-testid="dashboard-main">
         <WelcomeBanner />
         <QuickStats />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
           <RecentOrders />
           
-          <div className="space-y-6">
+          <div className="space-y-8">
             <QuickActions />
             <RecentActivity />
           </div>
