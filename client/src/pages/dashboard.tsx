@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import Navigation from "@/components/layout/Navigation";
 import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
 import QuickStats from "@/components/dashboard/QuickStats";
 import RecentOrders from "@/components/dashboard/RecentOrders";
@@ -36,9 +35,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
-      
+    <div className="bg-gradient-to-br from-background to-muted">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="dashboard-main">
         <WelcomeBanner />
         <QuickStats />

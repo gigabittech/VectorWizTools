@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "./lib/auth";
 import { WebSocketProvider } from "./lib/websocket";
+import Layout from "@/components/layout/Layout";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Login from "@/pages/login";
@@ -21,22 +22,24 @@ import AdminPage from "@/pages/admin";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/login" component={Login} />
-      <Route path="/signup" component={Signup} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/orders" component={Orders} />
-      <Route path="/orders/:id" component={OrderDetail} />
-      <Route path="/order/new" component={NewOrder} />
-      <Route path="/files" component={Files} />
-      <Route path="/tools" component={Tools} />
-      <Route path="/tools/dpi-calculator" component={DPICalculator} />
-      <Route path="/tools/turnaround-estimator" component={TurnaroundEstimator} />
-      <Route path="/tools/vector-checker" component={VectorChecker} />
-      <Route path="/admin" component={AdminPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <Layout>
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/login" component={Login} />
+        <Route path="/signup" component={Signup} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/orders" component={Orders} />
+        <Route path="/orders/:id" component={OrderDetail} />
+        <Route path="/order/new" component={NewOrder} />
+        <Route path="/files" component={Files} />
+        <Route path="/tools" component={Tools} />
+        <Route path="/tools/dpi-calculator" component={DPICalculator} />
+        <Route path="/tools/turnaround-estimator" component={TurnaroundEstimator} />
+        <Route path="/tools/vector-checker" component={VectorChecker} />
+        <Route path="/admin" component={AdminPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
   );
 }
 

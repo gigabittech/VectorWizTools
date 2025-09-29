@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import Navigation from "@/components/layout/Navigation";
 import OrderList from "@/components/orders/OrderList";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -35,8 +34,7 @@ export default function Orders() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
+    <div className="bg-gradient-to-br from-background to-muted">
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="orders-page">
         <div className="flex items-center justify-between mb-8">
