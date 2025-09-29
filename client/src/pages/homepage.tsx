@@ -104,28 +104,19 @@ export default function Homepage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/order/new">
-                <Button 
-                  size="lg" 
-                  className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-semibold"
-                  data-testid="button-start-order"
-                >
+              <Button asChild size="lg" className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-semibold">
+                <Link href="/order/new" data-testid="button-start-order">
                   Start Your Order
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
               
-              <Link href="/tools">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="border-blue-300 text-white hover:bg-blue-800 px-8 py-4 text-lg"
-                  data-testid="button-free-tools"
-                >
+              <Button asChild variant="outline" size="lg" className="border-blue-300 text-white hover:bg-blue-800 px-8 py-4 text-lg">
+                <Link href="/tools" data-testid="button-free-tools">
                   Free Tools
                   <Zap className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -197,12 +188,12 @@ export default function Homepage() {
                     ))}
                   </ul>
                   
-                  <Link href="/order/new" className="block mt-6">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700" data-testid={`button-order-${index}`}>
+                  <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 mt-6">
+                    <Link href="/order/new" data-testid={`button-order-${index}`}>
                       Order Now
                       <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -250,28 +241,19 @@ export default function Homepage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/order/new">
-              <Button 
-                size="lg" 
-                className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-semibold"
-                data-testid="button-cta-order"
-              >
+            <Button asChild size="lg" className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-semibold">
+              <Link href="/order/new" data-testid="button-cta-order">
                 Start Your Order Now
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             
-            <Link href="/signup">
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg"
-                data-testid="button-cta-signup"
-              >
+            <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg">
+              <Link href="/signup" data-testid="button-cta-signup">
                 Create Account
                 <Users className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
           
           <div className="mt-8 text-sm text-blue-200">
