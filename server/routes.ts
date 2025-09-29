@@ -200,6 +200,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // PayPal Proxy Routes (for PayPalButton component compatibility)
+  app.get("/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/order", authMiddleware, async (req, res) => {
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/order/:orderID/capture", authMiddleware, async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
+
   // PayPal Routes
   app.get("/api/paypal/setup", async (req, res) => {
     await loadPaypalDefault(req, res);
