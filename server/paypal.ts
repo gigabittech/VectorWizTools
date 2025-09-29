@@ -145,9 +145,17 @@ export async function capturePaypalOrder(req: Request, res: Response) {
 }
 
 export async function loadPaypalDefault(req: Request, res: Response) {
-  const clientToken = await getClientToken();
-  res.json({
-    clientToken,
-  });
+  try {
+    const clientToken = await getClientToken();
+    res.json({
+      clientToken,
+    });
+  } catch (error) {
+    console.error("PayPal setup error (likely invalid credentials):", error);
+    res.status(500).json({ 
+      error: "PayPal is currently unavailable. Please try again later or contact support.",
+      clientToken: null 
+    });
+  }
 }
 // <END_EXACT_CODE>

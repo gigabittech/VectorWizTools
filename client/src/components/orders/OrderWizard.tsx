@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import ServiceSelection from "./ServiceSelection";
 import FileUpload from "./FileUpload";
 import OrderDetails from "./OrderDetails";
-import PayPalButton from "@/components/PayPalButton";
+import PayPalWrapper from "@/components/PayPalWrapper";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
@@ -194,7 +194,7 @@ export default function OrderWizard({ open, onClose }: OrderWizardProps) {
               </div>
               
               <div className="max-w-md mx-auto">
-                <PayPalButton
+                <PayPalWrapper
                   amount="45.00"
                   currency="USD"
                   intent="capture"
