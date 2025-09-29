@@ -14,8 +14,12 @@ import {
   OrdersController,
 } from "@paypal/paypal-server-sdk";
 import { Request, Response } from "express";
+import dotenv from "dotenv";
 
 /* PayPal Controllers Setup */
+
+// Ensure environment variables are loaded
+dotenv.config();
 
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET } = process.env;
 
