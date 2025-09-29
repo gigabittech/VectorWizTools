@@ -1,0 +1,397 @@
+Absolutely. Here’s a single, **copy-paste master prompt/spec** you can hand to an AI code generator or a dev team to scaffold the app fast—exactly to your choices:
+
+* Subdirectory app at **/portal**
+* Start with **Ordering**, **Client Portal**, and **Tools**
+* **JWT** authentication (httpOnly cookies)
+* DB: **PostgreSQL (Neon)**
+* Keep WordPress for marketing, same domain
+
+---
+
+# Build Prompt — “VectorWiz Portal” (Next.js full-stack app under `/portal`)
+
+You are building a production-grade full-stack web app that runs under the **/portal** subdirectory of an existing WordPress site (same domain). The app must ship an MVP containing **Ordering**, **Client Portal**, and **Tools** and be search-friendly where appropriate.
+
+## 0) High-level goals
+
+* Preserve all current WP marketing URLs.
+* Serve the app at `https://vectorwiz.com/portal/*`.
+* Server-render SEO-indexable pages for tools (NOT client/account).
+* Clean, human-powered vector-service positioning; collect orders, payments, files; manage proofs/revisions; deliver assets.
+
+## 1) Architecture
+
+* **Routing:**
+
+  * `/*` → WordPress (existing host)
+  * `/portal/*` and `/api/*` → Next.js (Node, Vercel) via **reverse proxy**
+* **Reverse proxy** (choose one):
+
+### Cloudflare (preferred)
+
+* Route: `example.com/portal/*` → Vercel Next.js origin
+* Cache rules: bypass for `/portal/api/*`, static cache for `/portal/_next/static/*`
+* Set `X-Forwarded-Host` so Next.js generates canonical URLs under `/portal`.
+
+### Nginx snippet
+
+```nginx
+location /portal/ {
+  proxy_pass https://NEXT_ORIGIN;  # e.g. Vercel or Node host
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+location /api/ {
+  proxy_pass https://NEXT_ORIGIN;
+}
+```
+
+* **Stack:** Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui
+* **API:** Next.js Route Handlers (REST) + Zod validation
+* **DB:** **PostgreSQL (Neon)** + Prisma
+* **Auth:** JWT (httpOnly cookies + refresh tokens) with RBAC
+* **Payments:** Stripe (Checkout + Invoices)
+* **Storage:** Cloudflare R2 or S3 for uploads; signed URLs; ClamAV scan
+* **Email:** Postmark (transactional)
+* **Observability:** Sentry + basic audit log table
+* **Search/Indexing:** Algolia/Meilisearch (optional; v2)
+
+## 2) Repo structure
+
+```
+apps/portal/
+  app/
+    (public)/tools/
+      dpi-calculator/page.tsx
+      turnaround-estimator/page.tsx
+      vector-checker/page.tsx   # uploads small image, checks vector/raster
+    (account)/
+      layout.tsx                # auth-protected
+      orders/page.tsx
+      orders/[id]/page.tsx
+      files/page.tsx
+      invoices/page.tsx
+      messages/page.tsx
+    (public)/order/
+      page.tsx                  # order wizard (service, files, notes)
+      success/page.tsx
+      cancel/page.tsx
+    sitemap.ts                   # app sitemap (tools only)
+    robots.ts
+    layout.tsx
+    page.tsx                    # /portal landing (SEO-light)
+    api/
+      auth/login/route.ts
+      auth/refresh/route.ts
+      auth/logout/route.ts
+      users/me/route.ts
+      orders/route.ts
+      orders/[id]/route.ts
+      files/presign/route.ts
+      files/webhook/route.ts    # antivirus + post-process
+      payments/checkout/route.ts
+      payments/webhook/route.ts
+      messages/route.ts
+      tools/turnaround/route.ts
+  prisma/schema.prisma
+  prisma/migrations/*
+  src/
+    lib/auth.ts
+    lib/jwt.ts
+    lib/db.ts
+    lib/storage.ts
+    lib/stripe.ts
+    lib/validators.ts
+    components/ui/*
+    components/order/*
+    components/portal/*
+  public/
+  .env.example
+  next.config.js
+  package.json
+  tailwind.config.ts
+```
+
+## 3) Environment variables (.env)
+
+```
+DATABASE_URL="postgresql://USER:PASS@HOST/db?sslmode=require"
+JWT_ACCESS_SECRET="strong-64b"
+JWT_REFRESH_SECRET="strong-64b"
+JWT_ISSUER="vectorwiz-portal"
+COOKIE_DOMAIN=".vectorwiz.com"
+R2_ENDPOINT=""
+R2_BUCKET=""
+R2_ACCESS_KEY_ID=""
+R2_SECRET_ACCESS_KEY=""
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET=""
+POSTMARK_TOKEN=""
+APP_BASE_URL="https://vectorwiz.com/portal"
+WORDPRESS_BASE_URL="https://vectorwiz.com"
+```
+
+## 4) Data model (Prisma)
+
+```prisma
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  hashedPass   String
+  name         String?
+  role         Role     @default(CLIENT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
+  messages     Message[]
+  sessions     Session[]
+}
+
+enum Role { CLIENT ADMIN DESIGNER }
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  refreshJti String  @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  service      ServiceType
+  status       OrderStatus @default(QUEUED)
+  notes        String?
+  priceCents   Int?
+  currency     String  @default("USD")
+  stripeIntent String?
+  files        File[]
+  proofs       Proof[]
+  messages     Message[]
+  timeline     Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum ServiceType {
+  IMAGE_TO_VECTOR
+  LOGO_VECTORIZATION
+  PDF_TO_VECTOR
+  DXF_CUTTER_READY
+  RASTER_TO_VECTOR
+}
+
+enum OrderStatus { QUEUED IN_PROGRESS NEEDS_REVISION WAITING_PAYMENT COMPLETE CANCELED }
+
+model File {
+  id        String   @id @default(cuid())
+  orderId   String?
+  userId    String
+  kind      FileKind
+  name      String
+  mime      String
+  size      Int
+  storageKey String  // s3/r2 key
+  checksum  String?
+  createdAt DateTime @default(now())
+  order     Order?   @relation(fields: [orderId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum FileKind { SOURCE UPLOAD PROOF FINAL }
+
+model Proof {
+  id        String   @id @default(cuid())
+  orderId   String
+  url       String
+  comment   String?
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  orderId   String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  stripeId  String   @unique
+  amountCents Int
+  status    String
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+}
+```
+
+## 5) Auth (JWT, no 3rd-party IdP)
+
+* **Credentials login** (email + password) → issue **access token** (15m) and **refresh token** (30d) via httpOnly, Secure cookies scoped to `.vectorwiz.com` and **path=/portal**.
+* **Refresh** endpoint rotates refresh token (store JTI in `Session`).
+* **Middleware** protects `/portal/(account)/**` and `/portal/api/**` (except auth/file presign/stripe webhooks).
+* **RBAC:** Guard admin routes (`/portal/api/admin/**`) for `ADMIN`; designers can update orders and upload proofs.
+
+## 6) Core features (MVP)
+
+### A) Ordering (public → checkout → account)
+
+* **Order Wizard (/portal/order)**:
+  Steps: Choose service → Upload files (drag-drop to R2/S3 via presigned) → Describe requirements (color matching, formats: AI/EPS/SVG/PDF/DXF) → Get estimated price range → Create order → Pay with Stripe Checkout (or request invoice).
+* **API contracts**
+
+  * `POST /api/orders` → {service, notes, fileKeys[]} → {orderId, status, priceEstimate}
+  * `POST /api/payments/checkout` → {orderId} → {checkoutUrl}
+  * `GET /api/orders/:id` → order details (user-scoped)
+* **Pricing**: return **estimate** (simple heuristic by file count + size + declared complexity). Final price set by admin; if price changes post-review, send payment link.
+
+### B) Client Portal (authenticated)
+
+* **Dashboard**: list orders, statuses, unread messages, invoices, downloads.
+* **Order detail**: timeline, messages (threaded), proofs (approve/request changes), final files.
+* **Files**: show source uploads & final deliverables; download with **signed URLs**.
+* **Invoices**: Stripe invoices + receipts.
+* **Messages**: simple 2-way messaging (email notifications to both sides).
+
+### C) Tools (indexable)
+
+* `/portal/tools/dpi-calculator` — compute print DPI & size; surface “needs vector” result + CTA.
+* `/portal/tools/turnaround-estimator` — ETA based on service & queue.
+* `/portal/tools/vector-checker` — upload small image; if raster, suggest order.
+* **All tool pages are SSR, have canonical URLs, and include JSON-LD (`SoftwareApplication` + `FAQPage` where relevant).**
+
+## 7) Payments
+
+* **Stripe Checkout** session per order; webhooks set order status `WAITING_PAYMENT` → `IN_PROGRESS` when paid; generate **Invoice** record; send Postmark email to customer.
+* Support **draft invoice** flow for admin-priced jobs.
+
+## 8) Storage & file pipeline
+
+* **Uploads**: client requests `POST /api/files/presign` → returns PUT URL + key.
+* After upload completes, client calls `POST /api/files/complete` (or set by webhook) → queue antivirus scan → on success attach file to order & mark `SOURCE/UPLOAD`.
+* Proofs and finals stored with `PROOF`/`FINAL` kinds.
+* Signed GET URLs expire in 5 minutes.
+
+## 9) SEO & indexation rules
+
+* **Indexable**: `/portal/tools/*` and `/portal` landing (light).
+* **Noindex**: `/portal/order`, `/portal/(account)/**`, `/portal/api/**`.
+* `sitemap.ts` should include only tools pages; WP keeps its own sitemaps. Add a merged parent sitemap in WP later.
+* Add schema to tools pages; add `Organization` to `/portal`.
+
+**robots.ts**
+
+```ts
+export default function robots() {
+  return {
+    rules: [
+      { userAgent: '*', allow: ['/portal/tools/'], disallow: ['/portal/api/', '/portal/order', '/portal/account'] },
+    ],
+    sitemap: 'https://vectorwiz.com/portal/sitemap.xml'
+  };
+}
+```
+
+## 10) UI & UX
+
+* **Design system**: Tailwind + shadcn/ui, rounded-2xl cards, clear CTAs.
+* **Before/After** slider component for proofs and marketing inline.
+* **Accessibility**: semantic headings, focus states, labels; keyboard-only flows.
+* **Performance**: image optimization; route-level caching for tools.
+
+## 11) Security
+
+* httpOnly, Secure cookies; SameSite=Lax.
+* CSRF: use double-submit token on POST forms for logged-in pages.
+* Rate-limit `/api/auth/login`, `/api/orders`.
+* Validate all inputs with **Zod**; sanitize filenames; virus scan uploads.
+* Audit log table (who changed what & when on orders).
+
+## 12) Analytics
+
+* GA4 page views on tools; custom events: `order_started`, `order_paid`, `proof_approved`.
+* Server logs to Sentry; add request IDs.
+
+## 13) Example code (brief)
+
+**JWT helpers (lib/jwt.ts)**
+
+```ts
+import jwt from 'jsonwebtoken';
+export const signAccess = (sub: string, role: string) =>
+  jwt.sign({ sub, role }, process.env.JWT_ACCESS_SECRET!, { expiresIn: '15m', issuer: process.env.JWT_ISSUER });
+export const signRefresh = (sub: string, jti: string) =>
+  jwt.sign({ sub, jti }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '30d', issuer: process.env.JWT_ISSUER });
+```
+
+**Presign route (/api/files/presign/route.ts)**
+(Return URL + key; accept list of mime types)
+
+```ts
+export async function POST(req: Request) {
+  const { filename, mime } = await req.json();
+  // create storageKey = `${userId}/${cuid()}-${slug(filename)}`
+  // return { url, fields, key }
+}
+```
+
+**Order create (/api/orders/route.ts)**
+
+```ts
+export async function POST(req: Request) {
+  const input = await req.json(); // { service, notes, fileKeys: string[] }
+  // validate with Zod, create Order, attach File records, calc estimate
+  // return { orderId, status: 'QUEUED', estimate: { min, max } }
+}
+```
+
+**Stripe checkout (/api/payments/checkout/route.ts)**
+
+```ts
+export async function POST(req: Request) {
+  // create checkout session with line item = order estimate or fixed price
+  // return { checkoutUrl }
+}
+```
+
+## 14) Acceptance criteria (MVP)
+
+* Users can create an account, log in, and stay signed in for 30d (refresh flow).
+* Users can create an order with files and notes; pay via Stripe; see order status.
+* Staff (ADMIN/DESIGNER) can update status, upload proofs/finals, message customers.
+* Tools pages render SSR with schema; sitemap lists tools; `robots` disallows account.
+* All files are stored off-app (R2/S3), scanned, and downloadable via signed URLs.
+* Database migrations run on deploy; Neon used in production.
+* Basic tests exist for auth, order creation, webhook handling.
+
+## 15) Backlog (v2+)
+
+* Instant quote calculator with tiered complexity.
+* Partner/agency accounts, referral links.
+* In-portal AI assistant (RAG over docs, FAQs, SOPs).
+* Meilisearch for portal search.
+* Admin queue with SLAs and bulk actions.
+
+---
+
+### Deliverables
+
+1. Next.js app deployed to Vercel; reverse-proxied at `/portal`.
+2. Neon Postgres with Prisma migrations.
+3. Stripe + Postmark wired and tested in sandbox.
+4. Working flows for Ordering, Client Portal, Tools (3 pages), with tests.
+5. Basic docs: env setup, deploy steps, Cloudflare rules, and admin guide.
+
+---
+
+Use this full brief as the **authoritative prompt** to scaffold the project, generate code, and implement the MVP end-to-end.
