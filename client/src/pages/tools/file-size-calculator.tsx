@@ -1,5 +1,4 @@
 import { useAuth } from "@/hooks/use-auth";
-import Navigation from "@/components/layout/Navigation";
 import { useEffect } from "react";
 import FileSizeCalculator from "@/components/tools/FileSizeCalculator";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -110,8 +109,6 @@ export default function FileSizeCalculatorPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
-      
       <Container size="xl" py="xl" data-testid="file-size-calculator-page">
         <div className="mb-8">
           <Link href="/tools">

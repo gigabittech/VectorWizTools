@@ -1,5 +1,4 @@
 import { useAuth } from "@/hooks/use-auth";
-import Navigation from "@/components/layout/Navigation";
 import { useEffect } from "react";
 import FontToVector from "@/components/tools/FontToVector";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -110,7 +109,6 @@ export default function FontToVectorPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
       
       <Container size="xl" py="xl" data-testid="font-to-vector-page">
         <div className="mb-8">

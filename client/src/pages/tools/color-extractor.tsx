@@ -1,5 +1,4 @@
 import { useAuth } from "@/hooks/use-auth";
-import Navigation from "@/components/layout/Navigation";
 import { useEffect } from "react";
 import ColorExtractor from "@/components/tools/ColorExtractor";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge, ColorSwatch } from "@mantine/core";
@@ -117,8 +116,6 @@ export default function ColorExtractorPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
-      
       <Container size="xl" py="xl" data-testid="color-extractor-page">
         <div className="mb-8">
           <Link href="/tools">

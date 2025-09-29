@@ -1,5 +1,4 @@
 import { useAuth } from "@/hooks/use-auth";
-import Navigation from "@/components/layout/Navigation";
 import { useEffect } from "react";
 import VectorSimplifier from "@/components/tools/VectorSimplifier";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -110,7 +109,6 @@ export default function VectorSimplifierPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
       
       <Container size="xl" py="xl" data-testid="vector-simplifier-page">
         <div className="mb-8">

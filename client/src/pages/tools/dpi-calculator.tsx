@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Paper, Title, TextInput, Button, Badge, Container, Group, Stack, Grid, Text, List, Anchor } from "@mantine/core";
-import Navigation from "@/components/layout/Navigation";
 import { Calculator, ArrowLeft, Printer, Monitor, Smartphone, Award, CheckCircle } from "lucide-react";
 import { Link } from "wouter";
 
@@ -52,7 +51,6 @@ export default function DPICalculator() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
       
       <Container size="xl" py="xl">
         <div className="mb-8">

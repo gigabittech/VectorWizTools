@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Paper, Title, Button, Select, TextInput, Badge, Container, Group, Stack, Grid, Text, List, Anchor } from "@mantine/core";
-import Navigation from "@/components/layout/Navigation";
 import { apiRequest } from "@/lib/queryClient";
 import { Clock, ArrowLeft, Calendar, CheckCircle, Zap, Award, FileText, Palette } from "lucide-react";
 import { Link } from "wouter";
@@ -38,7 +37,6 @@ export default function TurnaroundEstimator() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
       
       <Container size="xl" py="xl">
         <div className="mb-8">

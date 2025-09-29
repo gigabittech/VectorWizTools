@@ -1,36 +1,14 @@
-import { useEffect } from "react";
-import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import Navigation from "@/components/layout/Navigation";
 import VectorChecker from "@/components/tools/VectorChecker";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge, Anchor } from "@mantine/core";
 import { ArrowLeft, Search, CheckCircle, XCircle, FileType, Zap, Award, Download, Upload } from "lucide-react";
 import { Link } from "wouter";
 
 export default function VectorCheckerPage() {
-  const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
-
   // Vector checker tool is publicly accessible - no authentication check needed
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-white font-bold">V</span>
-          </div>
-          <p className="text-muted-foreground">Loading vector checker...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Vector checker works for both authenticated and guest users
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <Navigation />
       
       <Container size="xl" py="xl" data-testid="vector-checker-page">
         <div className="mb-8">
