@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import GuestOrderForm from "@/components/orders/GuestOrderForm";
+import EnhancedGuestOrderForm from "@/components/orders/EnhancedGuestOrderForm";
 
 export default function NewOrder() {
   return (
@@ -18,13 +18,13 @@ export default function NewOrder() {
           <div className="text-center max-w-2xl mx-auto mb-8">
             <h1 className="text-3xl font-bold mb-4">Create New Order</h1>
             <p className="text-muted-foreground">
-              Transform your images into perfect vectors with our professional conversion service. 
-              Fill out the form below to get started.
+              Transform your images into perfect vectors with intelligent pricing based on complexity analysis. 
+              Upload your files and get instant estimates.
             </p>
           </div>
         </div>
 
-        <GuestOrderForm />
+        <EnhancedGuestOrderForm />
       </main>
     </div>
   );
