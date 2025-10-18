@@ -1,6 +1,8 @@
-import { useEffect, ReactNode } from "react";
+import { useEffect, ReactNode, useState } from "react";
 import { Link } from "wouter";
 import { ChevronRight, Home } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import QuoteRequestForm from "@/components/QuoteRequestForm";
 import {
   setPageMetadata,
   injectJSONLD,
@@ -28,6 +30,8 @@ export default function ToolLayout({
   keywords = [],
   howToSteps,
 }: ToolLayoutProps) {
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+
   useEffect(() => {
     // Set page metadata using helper function
     setPageMetadata({
@@ -71,8 +75,8 @@ export default function ToolLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Breadcrumbs */}
-      <nav className="bg-white border-b border-gray-200 py-3 px-4 sm:px-6 lg:px-8" data-testid="breadcrumbs">
+      {/* Breadcrumbs with Glassmorphism */}
+      <nav className="backdrop-blur-md bg-white/70 border-b border-white/20 py-3 px-4 sm:px-6 lg:px-8 sticky top-16 z-40" data-testid="breadcrumbs">
         <div className="max-w-7xl mx-auto">
           <ol className="flex items-center space-x-2 text-sm">
             <li>
@@ -115,20 +119,45 @@ export default function ToolLayout({
         </div>
       </main>
 
-      {/* Footer CTA */}
-      <section className="bg-gray-50 border-t border-gray-200 py-8 px-4 sm:px-6 lg:px-8 mt-12">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl font-bold mb-4">Need Professional Vector Conversion?</h2>
-          <p className="text-gray-600 mb-6">
-            Our expert team can handle complex vectorization projects with precision and quality.
-          </p>
-          <Link href="/">
-            <button className="bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white px-8 py-3 rounded-lg font-medium transition-colors" data-testid="cta-button">
+      {/* Footer CTA with Glassmorphism */}
+      <section className="relative mt-12 py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Background with Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#06183C] to-[#20448B]" />
+        
+        {/* Glassmorphism Overlay */}
+        <div className="absolute inset-0 backdrop-blur-sm bg-white/5" />
+        
+        {/* Content */}
+        <div className="relative max-w-4xl mx-auto text-center">
+          <div className="backdrop-blur-lg bg-white/10 border border-white/20 rounded-2xl p-8 shadow-2xl">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">
+              Need Professional Vector Conversion?
+            </h2>
+            <p className="text-gray-200 mb-6 text-lg">
+              Our expert team can handle complex vectorization projects with precision and quality.
+            </p>
+            <button 
+              onClick={() => setQuoteDialogOpen(true)}
+              className="inline-flex items-center px-8 py-3 rounded-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white font-medium transition-all shadow-lg hover:shadow-xl backdrop-blur-sm transform hover:scale-105" 
+              data-testid="cta-button"
+            >
               Request a Quote
             </button>
-          </Link>
+          </div>
         </div>
       </section>
+
+      {/* Quote Request Dialog */}
+      <Dialog open={quoteDialogOpen} onOpenChange={setQuoteDialogOpen}>
+        <DialogContent 
+          className="max-w-3xl max-h-[90vh] overflow-y-auto text-white border-white/20 backdrop-blur-xl shadow-2xl"
+          style={{
+            background: "linear-gradient(75deg, rgba(6, 24, 60, 0.95) 0%, rgba(32, 68, 139, 0.95) 100%)"
+          }}
+        >
+          <QuoteRequestForm />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

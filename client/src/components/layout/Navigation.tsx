@@ -21,8 +21,7 @@ export default function Navigation() {
   return (
     <>
       <nav
-        className="sticky top-0 z-50 shadow-md"
-        style={{ backgroundColor: "#06183C" }}
+        className="sticky top-0 z-50 backdrop-blur-lg bg-[#06183C]/95 border-b border-white/10 shadow-lg"
         data-testid="main-navigation"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,14 +39,14 @@ export default function Navigation() {
               <div className="hidden md:flex space-x-6">
                 <a
                   href="https://vectorwiz.com/"
-                  className="text-white hover:text-gray-300 transition-colors text-sm font-medium"
+                  className="text-white/90 hover:text-white transition-colors text-sm font-medium"
                   data-testid="nav-home"
                 >
                   Home
                 </a>
                 <a
                   href="https://vectorwiz.com/services"
-                  className="text-white hover:text-gray-300 transition-colors text-sm font-medium"
+                  className="text-white/90 hover:text-white transition-colors text-sm font-medium"
                   data-testid="nav-services"
                 >
                   Services
@@ -57,7 +56,7 @@ export default function Navigation() {
                   className={`transition-colors text-sm font-medium ${
                     isActive("/")
                       ? "text-[#0B9F47]"
-                      : "text-white hover:text-gray-300"
+                      : "text-white/90 hover:text-white"
                   }`}
                   data-testid="nav-tools"
                 >
@@ -65,7 +64,7 @@ export default function Navigation() {
                 </Link>
                 <a
                   href="https://vectorwiz.com/contact/"
-                  className="text-white hover:text-gray-300 transition-colors text-sm font-medium"
+                  className="text-white/90 hover:text-white transition-colors text-sm font-medium"
                   data-testid="nav-contact"
                 >
                   Contact
@@ -74,15 +73,15 @@ export default function Navigation() {
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Request Quote Button */}
-              <Button
+              {/* Request Quote Button with Glassmorphism */}
+              <button
                 onClick={() => setQuoteDialogOpen(true)}
-                className="hidden md:flex bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
-                leftSection={<FileText className="h-4 w-4" />}
+                className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white font-medium transition-all shadow-lg hover:shadow-xl backdrop-blur-sm"
                 data-testid="request-quote-button"
               >
+                <FileText className="h-4 w-4" />
                 Request Quote
-              </Button>
+              </button>
 
               {/* Mobile Menu Button */}
               <Button
@@ -163,12 +162,12 @@ export default function Navigation() {
         </Stack>
       </Drawer>
 
-      {/* Quote Request Dialog */}
+      {/* Quote Request Dialog with Glassmorphism */}
       <Dialog open={quoteDialogOpen} onOpenChange={setQuoteDialogOpen}>
         <DialogContent 
-          className="max-w-3xl max-h-[90vh] overflow-y-auto text-white border-none"
+          className="max-w-3xl max-h-[90vh] overflow-y-auto text-white border-white/20 backdrop-blur-xl shadow-2xl"
           style={{
-            background: "linear-gradient(75deg, #06183C 0%, #20448B 100%)"
+            background: "linear-gradient(75deg, rgba(6, 24, 60, 0.95) 0%, rgba(32, 68, 139, 0.95) 100%)"
           }}
         >
           <QuoteRequestForm />
@@ -176,4 +175,26 @@ export default function Navigation() {
       </Dialog>
     </>
   );
+}
+
+// Export the hook for other components to use
+export function useQuoteDialog() {
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  
+  return {
+    openQuoteDialog: () => setQuoteDialogOpen(true),
+    closeQuoteDialog: () => setQuoteDialogOpen(false),
+    QuoteDialog: () => (
+      <Dialog open={quoteDialogOpen} onOpenChange={setQuoteDialogOpen}>
+        <DialogContent 
+          className="max-w-3xl max-h-[90vh] overflow-y-auto text-white border-white/20 backdrop-blur-xl shadow-2xl"
+          style={{
+            background: "linear-gradient(75deg, rgba(6, 24, 60, 0.95) 0%, rgba(32, 68, 139, 0.95) 100%)"
+          }}
+        >
+          <QuoteRequestForm />
+        </DialogContent>
+      </Dialog>
+    ),
+  };
 }
