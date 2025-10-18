@@ -202,9 +202,9 @@ export default function ImageResizer() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Original Dimensions Display */}
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-lg" data-testid="display-original-dimensions">
                 <p className="text-sm font-medium text-gray-700 mb-2">Original Size</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900" data-testid="text-original-size">
                   {originalDimensions.width} × {originalDimensions.height} px
                 </p>
               </div>
@@ -267,7 +267,7 @@ export default function ImageResizer() {
                     <Unlock className="h-5 w-5 text-gray-400" />
                   )}
                   <div>
-                    <Label htmlFor="aspect-ratio" className="cursor-pointer">
+                    <Label htmlFor="aspect-ratio" className="cursor-pointer" data-testid="label-aspect-ratio">
                       Maintain Aspect Ratio
                     </Label>
                     <p className="text-xs text-gray-500">
@@ -324,21 +324,21 @@ export default function ImageResizer() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-white p-3 rounded border">
+                <div className="bg-white p-3 rounded border" data-testid="stat-original">
                   <p className="text-gray-600">Original</p>
-                  <p className="font-semibold">
+                  <p className="font-semibold" data-testid="text-original-dimensions">
                     {originalDimensions?.width} × {originalDimensions?.height} px
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500" data-testid="text-original-filesize">
                     {(files[0].file.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
-                <div className="bg-white p-3 rounded border">
+                <div className="bg-white p-3 rounded border" data-testid="stat-resized">
                   <p className="text-gray-600">Resized</p>
-                  <p className="font-semibold">
+                  <p className="font-semibold" data-testid="text-resized-dimensions">
                     {targetWidth} × {targetHeight} px
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500" data-testid="text-resized-filesize">
                     {(resizedBlob.size / 1024).toFixed(1)} KB
                   </p>
                 </div>

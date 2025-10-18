@@ -150,8 +150,8 @@ export default function ImageCompressor() {
               {/* Quality Slider */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Quality: {quality[0]}%</Label>
-                  <span className="text-sm text-gray-600">
+                  <Label data-testid="label-quality">Quality: {quality[0]}%</Label>
+                  <span className="text-sm text-gray-600" data-testid="text-quality-level">
                     {quality[0] >= 90 ? "Maximum" : quality[0] >= 75 ? "High" : quality[0] >= 60 ? "Medium" : "Low"}
                   </span>
                 </div>
@@ -224,38 +224,38 @@ export default function ImageCompressor() {
             <CardContent className="space-y-4">
               {/* Compression Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-blue-50 p-4 rounded-lg" data-testid="stat-original-size">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <TrendingDown className="h-4 w-4 text-blue-600" />
                     </div>
                     <span className="text-sm font-medium text-blue-900">Original</span>
                   </div>
-                  <p className="text-2xl font-bold text-blue-900">
+                  <p className="text-2xl font-bold text-blue-900" data-testid="text-original-size">
                     {formatBytes(compressionStats.originalSize)}
                   </p>
                 </div>
 
-                <div className="bg-green-50 p-4 rounded-lg">
+                <div className="bg-green-50 p-4 rounded-lg" data-testid="stat-compressed-size">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
                       <Minimize2 className="h-4 w-4 text-green-600" />
                     </div>
                     <span className="text-sm font-medium text-green-900">Compressed</span>
                   </div>
-                  <p className="text-2xl font-bold text-green-900">
+                  <p className="text-2xl font-bold text-green-900" data-testid="text-compressed-size">
                     {formatBytes(compressionStats.compressedSize)}
                   </p>
                 </div>
 
-                <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="bg-purple-50 p-4 rounded-lg" data-testid="stat-saved-percentage">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
                       <CheckCircle2 className="h-4 w-4 text-purple-600" />
                     </div>
                     <span className="text-sm font-medium text-purple-900">Saved</span>
                   </div>
-                  <p className="text-2xl font-bold text-purple-900">
+                  <p className="text-2xl font-bold text-purple-900" data-testid="text-saved-percentage">
                     {compressionStats.savedPercentage.toFixed(1)}%
                   </p>
                 </div>

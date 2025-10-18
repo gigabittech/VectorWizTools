@@ -184,9 +184,9 @@ export default function ImageCropper() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Original Dimensions Display */}
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-lg" data-testid="display-original-dimensions">
                 <p className="text-sm font-medium text-gray-700 mb-2">Original Size</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900" data-testid="text-original-size">
                   {originalDimensions.width} × {originalDimensions.height} px
                 </p>
               </div>
@@ -306,15 +306,15 @@ export default function ImageCropper() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-white p-3 rounded border">
+                <div className="bg-white p-3 rounded border" data-testid="stat-original">
                   <p className="text-gray-600">Original</p>
-                  <p className="font-semibold">
+                  <p className="font-semibold" data-testid="text-original-dimensions">
                     {originalDimensions?.width} × {originalDimensions?.height} px
                   </p>
                 </div>
-                <div className="bg-white p-3 rounded border">
+                <div className="bg-white p-3 rounded border" data-testid="stat-cropped">
                   <p className="text-gray-600">Cropped</p>
-                  <p className="font-semibold">
+                  <p className="font-semibold" data-testid="text-cropped-dimensions">
                     {cropWidth} × {cropHeight} px
                   </p>
                 </div>

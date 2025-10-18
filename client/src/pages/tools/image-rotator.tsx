@@ -242,8 +242,8 @@ export default function ImageRotator() {
               <CardTitle>Result Preview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-gray-50 p-3 rounded border">
-                <p className="text-sm font-medium text-gray-700 mb-2">Operation: {lastOperation}</p>
+              <div className="bg-gray-50 p-3 rounded border" data-testid="display-operation">
+                <p className="text-sm font-medium text-gray-700 mb-2" data-testid="text-last-operation">Operation: {lastOperation}</p>
               </div>
 
               <div className="border rounded-lg p-4 bg-gray-50">

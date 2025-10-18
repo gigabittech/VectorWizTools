@@ -209,7 +209,7 @@ export default function ImageFilter() {
 
               {/* Brightness */}
               <div className="space-y-2">
-                <Label>Brightness: {brightness[0]}%</Label>
+                <Label data-testid="label-brightness">Brightness: {brightness[0]}%</Label>
                 <Slider
                   value={brightness}
                   onValueChange={setBrightness}
@@ -223,7 +223,7 @@ export default function ImageFilter() {
 
               {/* Contrast */}
               <div className="space-y-2">
-                <Label>Contrast: {contrast[0]}%</Label>
+                <Label data-testid="label-contrast">Contrast: {contrast[0]}%</Label>
                 <Slider
                   value={contrast}
                   onValueChange={setContrast}
@@ -237,7 +237,7 @@ export default function ImageFilter() {
 
               {/* Saturation */}
               <div className="space-y-2">
-                <Label>Saturation: {saturation[0]}%</Label>
+                <Label data-testid="label-saturation">Saturation: {saturation[0]}%</Label>
                 <Slider
                   value={saturation}
                   onValueChange={setSaturation}
@@ -251,7 +251,7 @@ export default function ImageFilter() {
 
               {/* Blur */}
               <div className="space-y-2">
-                <Label>Blur: {blur[0]}px</Label>
+                <Label data-testid="label-blur">Blur: {blur[0]}px</Label>
                 <Slider
                   value={blur}
                   onValueChange={setBlur}
