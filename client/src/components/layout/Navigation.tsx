@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import logoImage from "@assets/VectorWiz-logo_1760804742760.png";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -29,10 +30,11 @@ export default function Navigation() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center" data-testid="logo-link">
-                <span className="text-xl font-bold tracking-tight">
-                  <span className="text-white">Vector</span>
-                  <span className="text-[#0B9F47]">Wiz</span>
-                </span>
+                <img
+                  src={logoImage}
+                  alt="VectorWiz"
+                  className="h-8"
+                />
               </Link>
 
               {/* Desktop Navigation */}
@@ -105,10 +107,11 @@ export default function Navigation() {
         >
           <SheetHeader className="border-b border-white/10 pb-4 mb-6">
             <SheetTitle className="flex items-center justify-between">
-              <span className="text-xl font-bold tracking-tight">
-                <span className="text-white">Vector</span>
-                <span className="text-[#0B9F47]">Wiz</span>
-              </span>
+              <img
+                src={logoImage}
+                alt="VectorWiz"
+                className="h-8"
+              />
             </SheetTitle>
           </SheetHeader>
           
