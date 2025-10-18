@@ -1,7 +1,8 @@
 import { useEffect, ReactNode, useState } from "react";
 import { Link } from "wouter";
 import { ChevronRight, Home } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import QuoteRequestForm from "@/components/QuoteRequestForm";
 import {
   setPageMetadata,
@@ -155,6 +156,12 @@ export default function ToolLayout({
             background: "linear-gradient(75deg, rgba(6, 24, 60, 0.95) 0%, rgba(32, 68, 139, 0.95) 100%)"
           }}
         >
+          <VisuallyHidden>
+            <DialogTitle>Request a Quote</DialogTitle>
+            <DialogDescription>
+              Fill out the form to request a custom quote for your vector conversion project
+            </DialogDescription>
+          </VisuallyHidden>
           <QuoteRequestForm />
         </DialogContent>
       </Dialog>
