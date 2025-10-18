@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { insertQuoteRequestSchema } from "@shared/schema";
+import { sendQuoteRequestNotification } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Quote Request Routes
@@ -13,27 +14,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create quote request
       const quoteRequest = await storage.createQuoteRequest(data);
 
-      // Email notifications - Ready for integration
-      // To enable email sending:
-      // 1. Set up an email service (SendGrid, Resend, etc.) using the search_integrations tool
-      // 2. Configure environment variables for the email service
-      // 3. Implement email sending here:
-      //    - Send notification to orders@vectorwiz.com with quote details
-      //    - Send confirmation email to the submitter (quoteRequest.email)
-      // 
-      // Example with SendGrid/Resend:
-      // await sendEmail({
-      //   to: "orders@vectorwiz.com",
-      //   from: "orders@vectorwiz.com",
-      //   subject: `New Quote Request from ${quoteRequest.firstName} ${quoteRequest.lastName}`,
-      //   html: `<p>Project Details: ${quoteRequest.projectDetails}</p>`
-      // });
-      // await sendEmail({
-      //   to: quoteRequest.email,
-      //   from: "orders@vectorwiz.com",
-      //   subject: "Quote Request Received - VectorWiz",
-      //   html: `<p>Thank you for your quote request. We'll get back to you soon!</p>`
-      // });
+      // Send email notifications via Brevo
+      await sendQuoteRequestNotification({
+        firstName: quoteRequest.firstName || '',
+        lastName: quoteRequest.lastName || '',
+        email: quoteRequest.email,
+        projectDetails: quoteRequest.projectDetails,
+        numberOfFiles: quoteRequest.numberOfFiles || '',
+        turnaroundTime: quoteRequest.turnaroundTime || '',
+      });
 
       res.json(quoteRequest);
     } catch (error) {

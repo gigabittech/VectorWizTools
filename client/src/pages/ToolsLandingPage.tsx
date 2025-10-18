@@ -331,9 +331,9 @@ function ToolCard({ tool }: { tool: Tool }) {
             Coming Soon
           </span>
         ) : (
-          <div className="inline-flex items-center text-sm font-medium text-white backdrop-blur-md bg-[#0B9F47]/90 hover:bg-[#0B9F47] border border-[#0B9F47]/40 px-4 py-2 rounded-lg shadow-sm transition-all group-hover:shadow-md">
+          <div className="inline-flex items-center text-xs font-medium text-white backdrop-blur-md bg-[#0B9F47]/90 hover:bg-[#0B9F47] border border-[#0B9F47]/40 px-3 py-1.5 rounded-full shadow-sm transition-all group-hover:shadow-md self-start">
             Try Now
-            <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="h-3.5 w-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
           </div>
         )}
       </div>
