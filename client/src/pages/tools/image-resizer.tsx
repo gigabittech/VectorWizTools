@@ -3,7 +3,6 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import DownloadButton from "@/components/tools/shared/DownloadButton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -175,32 +174,26 @@ export default function ImageResizer() {
     >
       <div className="space-y-6">
         {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Maximize2 className="h-5 w-5 text-[#0B9F47]" />
-              Upload Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FileUploader
-              accept="image/*"
-              maxFiles={1}
-              maxSize={50 * 1024 * 1024}
-              onFilesSelected={handleFilesSelected}
-              multiple={false}
-              allowedTypes={["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"]}
-            />
-          </CardContent>
-        </Card>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="flex items-center gap-2 text-xl font-bold mb-4">
+            <Maximize2 className="h-5 w-5 text-[#0B9F47]" />
+            Upload Image
+          </h2>
+          <FileUploader
+            accept="image/*"
+            maxFiles={1}
+            maxSize={50 * 1024 * 1024}
+            onFilesSelected={handleFilesSelected}
+            multiple={false}
+            allowedTypes={["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"]}
+          />
+        </div>
 
         {/* Dimensions Input */}
         {originalDimensions && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Resize Dimensions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-6">Resize Dimensions</h2>
+            <div className="space-y-6">
               {/* Original Dimensions Display */}
               <div className="bg-gray-50 p-4 rounded-lg" data-testid="display-original-dimensions">
                 <p className="text-sm font-medium text-gray-700 mb-2">Original Size</p>
@@ -293,8 +286,8 @@ export default function ImageResizer() {
               >
                 Resize Image
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Processing Status */}
@@ -309,11 +302,9 @@ export default function ImageResizer() {
 
         {/* Preview and Download */}
         {resizedBlob && resizedPreview && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Resized Image Preview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Resized Image Preview</h2>
+            <div className="space-y-4">
               <div className="border rounded-lg p-4 bg-gray-50">
                 <img
                   src={resizedPreview}
@@ -351,8 +342,8 @@ export default function ImageResizer() {
               >
                 Download Resized Image
               </DownloadButton>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Information */}

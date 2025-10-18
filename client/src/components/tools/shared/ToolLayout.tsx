@@ -75,7 +75,7 @@ export default function ToolLayout({
   }, [title, description, category, keywords, howToSteps]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen" style={{ backgroundColor: '#f5f5f7' }}>
       {/* Breadcrumbs with Glassmorphism */}
       <nav className="backdrop-blur-md bg-white/70 border-b border-white/20 py-3 px-4 sm:px-6 lg:px-8 sticky top-16 z-40" data-testid="breadcrumbs">
         <div className="max-w-7xl mx-auto">
