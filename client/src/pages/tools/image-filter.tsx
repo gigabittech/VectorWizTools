@@ -3,7 +3,6 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import DownloadButton from "@/components/tools/shared/DownloadButton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -152,14 +151,12 @@ export default function ImageFilter() {
     >
       <div className="space-y-6">
         {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wand2 className="h-5 w-5 text-[#0B9F47]" />
-              Upload Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Wand2 className="h-5 w-5 text-[#0B9F47]" />
+            Upload Image
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -168,27 +165,25 @@ export default function ImageFilter() {
               multiple={false}
               allowedTypes={["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"]}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Filter Controls */}
         {files.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Filter Controls</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetFilters}
-                  data-testid="button-reset"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Filter Controls</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetFilters}
+                data-testid="button-reset"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            </div>
+            <div className="space-y-6">
               {/* Filter Presets */}
               <div>
                 <Label className="mb-3 block">Quick Presets</Label>
@@ -304,8 +299,8 @@ export default function ImageFilter() {
               >
                 Apply Filters
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Processing Status */}
@@ -320,11 +315,9 @@ export default function ImageFilter() {
 
         {/* Preview and Download */}
         {filteredBlob && filteredPreview && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Filtered Image Preview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Filtered Image Preview</h2>
+            <div className="space-y-4">
               <div className="border rounded-lg p-4 bg-gray-50">
                 <img
                   src={filteredPreview}
@@ -341,8 +334,8 @@ export default function ImageFilter() {
               >
                 Download Filtered Image
               </DownloadButton>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Information */}

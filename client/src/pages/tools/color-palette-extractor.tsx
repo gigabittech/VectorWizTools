@@ -2,7 +2,6 @@ import { useState } from "react";
 import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -104,14 +103,12 @@ export default function ColorPaletteExtractor() {
     >
       <div className="space-y-6">
         {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5 text-[#0B9F47]" />
-              Upload Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Palette className="h-5 w-5 text-[#0B9F47]" />
+            Upload Image
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -121,16 +118,14 @@ export default function ColorPaletteExtractor() {
               allowedTypes={["image/jpeg", "image/png", "image/webp"]}
               data-testid="file-uploader"
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Settings */}
         {files.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Extraction Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Extraction Settings</h2>
+            <div className="space-y-6">
               {/* Color Count */}
               <div className="space-y-2">
                 <Label data-testid="label-color-count">Number of Colors: {colorCount[0]}</Label>
@@ -158,8 +153,8 @@ export default function ColorPaletteExtractor() {
               >
                 Extract Colors
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Processing Status */}
@@ -174,22 +169,20 @@ export default function ColorPaletteExtractor() {
 
         {/* Color Palette Display */}
         {colors.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Color Palette</CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyAllColors}
-                  data-testid="button-copy-all"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy All
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Color Palette</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyAllColors}
+                data-testid="button-copy-all"
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy All
+              </Button>
+            </div>
+            <div className="space-y-4">
               {/* Image Preview */}
               {files[0].preview && (
                 <div className="border rounded-lg p-4 bg-gray-50">
@@ -282,8 +275,8 @@ export default function ColorPaletteExtractor() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Information */}

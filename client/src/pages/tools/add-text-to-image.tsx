@@ -3,7 +3,6 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import DownloadButton from "@/components/tools/shared/DownloadButton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -271,14 +270,12 @@ export default function AddTextToImage() {
     >
       <div className="space-y-6">
         {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Type className="h-5 w-5 text-[#0B9F47]" />
-              Upload Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Type className="h-5 w-5 text-[#0B9F47]" />
+            Upload Image
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -288,27 +285,25 @@ export default function AddTextToImage() {
               allowedTypes={["image/jpeg", "image/png", "image/webp"]}
               data-testid="file-uploader"
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Text Layers */}
         {files.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Text Layers</CardTitle>
-                <Button
-                  onClick={addTextLayer}
-                  size="sm"
-                  variant="outline"
-                  data-testid="button-add-layer"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Layer
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Text Layers</h2>
+              <Button
+                onClick={addTextLayer}
+                size="sm"
+                variant="outline"
+                data-testid="button-add-layer"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Layer
+              </Button>
+            </div>
+            <div className="space-y-4">
               {/* Layer Selector */}
               <div className="flex gap-2 flex-wrap">
                 {textLayers.map((layer, index) => (
@@ -538,8 +533,8 @@ export default function AddTextToImage() {
               >
                 Apply Text
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Processing Status */}
@@ -554,11 +549,9 @@ export default function AddTextToImage() {
 
         {/* Preview and Download */}
         {processedBlob && processedPreview && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Result</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Result</h2>
+            <div className="space-y-4">
               {/* Preview */}
               <div className="border rounded-lg p-4 bg-gray-50">
                 <p className="text-sm font-medium mb-2" data-testid="label-preview">Preview</p>
@@ -594,8 +587,8 @@ export default function AddTextToImage() {
               >
                 Download Image with Text
               </DownloadButton>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Information */}

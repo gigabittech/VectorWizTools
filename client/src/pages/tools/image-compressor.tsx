@@ -3,7 +3,6 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import DownloadButton from "@/components/tools/shared/DownloadButton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -121,14 +120,12 @@ export default function ImageCompressor() {
     >
       <div className="space-y-6">
         {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Minimize2 className="h-5 w-5 text-[#0B9F47]" />
-              Upload Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Minimize2 className="h-5 w-5 text-[#0B9F47]" />
+            Upload Image
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -137,16 +134,14 @@ export default function ImageCompressor() {
               multiple={false}
               allowedTypes={["image/jpeg", "image/png", "image/webp"]}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Compression Settings */}
         {files.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Compression Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Compression Settings</h2>
+            <div className="space-y-6">
               {/* Quality Slider */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -201,8 +196,8 @@ export default function ImageCompressor() {
               >
                 Compress Image
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Processing Status */}
@@ -217,11 +212,9 @@ export default function ImageCompressor() {
 
         {/* Results and Download */}
         {compressedBlob && compressedPreview && compressionStats && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Compression Results</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Compression Results</h2>
+            <div className="space-y-4">
               {/* Compression Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg" data-testid="stat-original-size">
@@ -280,8 +273,8 @@ export default function ImageCompressor() {
               >
                 Download Compressed Image
               </DownloadButton>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Information */}

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -74,14 +73,12 @@ export default function ImageComparison() {
     >
       <div className="space-y-6">
         {/* File Upload - Image 1 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Combine className="h-5 w-5 text-[#0B9F47]" />
-              Image 1 (Before)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Combine className="h-5 w-5 text-[#0B9F47]" />
+            Image 1 (Before)
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -96,18 +93,16 @@ export default function ImageComparison() {
                 Dimensions: {image1Dims.width} × {image1Dims.height}px
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* File Upload - Image 2 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Combine className="h-5 w-5 text-[#0B9F47]" />
-              Image 2 (After)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Combine className="h-5 w-5 text-[#0B9F47]" />
+            Image 2 (After)
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -122,8 +117,8 @@ export default function ImageComparison() {
                 Dimensions: {image2Dims.width} × {image2Dims.height}px
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Swap Button */}
         {hasImages && (
@@ -140,11 +135,9 @@ export default function ImageComparison() {
 
         {/* Comparison View */}
         {hasImages && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Comparison</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Comparison</h2>
+            <div className="space-y-6">
               {/* View Mode Selection */}
               <div className="space-y-2">
                 <Label data-testid="label-view-mode">View Mode</Label>
@@ -289,8 +282,8 @@ export default function ImageComparison() {
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Information */}

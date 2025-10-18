@@ -2,7 +2,6 @@ import { useState } from "react";
 import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -131,14 +130,12 @@ export default function ImageToBase64() {
     >
       <div className="space-y-6">
         {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Code2 className="h-5 w-5 text-[#0B9F47]" />
-              Upload Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Code2 className="h-5 w-5 text-[#0B9F47]" />
+            Upload Image
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -151,8 +148,8 @@ export default function ImageToBase64() {
             <p className="text-xs text-gray-500 mt-2">
               Maximum file size: 5MB (Base64 encoding increases size by ~33%)
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Processing Status */}
         {status !== "idle" && status !== "success" && (
@@ -167,11 +164,9 @@ export default function ImageToBase64() {
         {base64String && status === "success" && (
           <>
             {/* Output Format Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Output Format</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+              <h2 className="text-xl font-bold mb-4">Output Format</h2>
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="output-format" data-testid="label-format">Format</Label>
                   <Select value={outputFormat} onValueChange={(value: any) => setOutputFormat(value)}>
@@ -206,14 +201,13 @@ export default function ImageToBase64() {
                     <p><strong>Markdown:</strong> Markdown image syntax with Base64 data URL</p>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Base64 Output */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Base64 Output</CardTitle>
+            <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Base64 Output</h2>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -243,8 +237,7 @@ export default function ImageToBase64() {
                     </Button>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <div className="space-y-4">
                 {/* Preview */}
                 {files[0].preview && (
                   <div className="border rounded-lg p-4 bg-gray-50">
@@ -287,8 +280,8 @@ export default function ImageToBase64() {
                     Length: {getFormattedOutput().length.toLocaleString()} characters
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </>
         )}
 

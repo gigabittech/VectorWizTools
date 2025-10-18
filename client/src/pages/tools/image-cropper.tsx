@@ -3,7 +3,6 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import DownloadButton from "@/components/tools/shared/DownloadButton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -157,14 +156,12 @@ export default function ImageCropper() {
     >
       <div className="space-y-6">
         {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Crop className="h-5 w-5 text-[#0B9F47]" />
-              Upload Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Crop className="h-5 w-5 text-[#0B9F47]" />
+            Upload Image
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -173,16 +170,14 @@ export default function ImageCropper() {
               multiple={false}
               allowedTypes={["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"]}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Crop Settings */}
         {originalDimensions && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Crop Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Crop Settings</h2>
+            <div className="space-y-6">
               {/* Original Dimensions Display */}
               <div className="bg-gray-50 p-4 rounded-lg" data-testid="display-original-dimensions">
                 <p className="text-sm font-medium text-gray-700 mb-2">Original Size</p>
@@ -275,8 +270,8 @@ export default function ImageCropper() {
               >
                 Crop Image
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Processing Status */}
@@ -291,11 +286,9 @@ export default function ImageCropper() {
 
         {/* Preview and Download */}
         {croppedBlob && croppedPreview && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Cropped Image Preview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Cropped Image Preview</h2>
+            <div className="space-y-4">
               <div className="border rounded-lg p-4 bg-gray-50">
                 <img
                   src={croppedPreview}
@@ -327,8 +320,8 @@ export default function ImageCropper() {
               >
                 Download Cropped Image
               </DownloadButton>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Information */}

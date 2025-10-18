@@ -3,7 +3,6 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import DownloadButton from "@/components/tools/shared/DownloadButton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { rotateImage, flipImage } from "@/lib/imageProcessing";
@@ -122,14 +121,12 @@ export default function ImageRotator() {
     >
       <div className="space-y-6">
         {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <RotateCw className="h-5 w-5 text-[#0B9F47]" />
-              Upload Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <RotateCw className="h-5 w-5 text-[#0B9F47]" />
+            Upload Image
+          </h2>
+          <div>
             <FileUploader
               accept="image/*"
               maxFiles={1}
@@ -138,16 +135,14 @@ export default function ImageRotator() {
               multiple={false}
               allowedTypes={["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"]}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Operations */}
         {files.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Transform Options</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Transform Options</h2>
+            <div className="space-y-6">
               {/* Rotation Options */}
               <div>
                 <h3 className="text-sm font-medium mb-3">Rotate</h3>
@@ -221,8 +216,8 @@ export default function ImageRotator() {
                   </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Processing Status */}
@@ -237,11 +232,9 @@ export default function ImageRotator() {
 
         {/* Preview and Download */}
         {processedBlob && processedPreview && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Result Preview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-4">Result Preview</h2>
+            <div className="space-y-4">
               <div className="bg-gray-50 p-3 rounded border" data-testid="display-operation">
                 <p className="text-sm font-medium text-gray-700 mb-2" data-testid="text-last-operation">Operation: {lastOperation}</p>
               </div>
@@ -262,8 +255,8 @@ export default function ImageRotator() {
               >
                 Download Image
               </DownloadButton>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Information */}
