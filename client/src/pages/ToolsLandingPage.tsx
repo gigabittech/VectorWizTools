@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Image as ImageIcon, FileText, ArrowRight } from "lucide-react";
+import { Search, Image as ImageIcon, FileText, ArrowRight, Grip } from "lucide-react";
 
 interface Tool {
   name: string;
@@ -200,17 +198,19 @@ export default function ToolsLandingPage() {
             Professional image and PDF tools for all your conversion and editing needs
           </p>
           
-          {/* Search Bar */}
+          {/* Glassmorphism Search Bar */}
           <div className="max-w-2xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              type="text"
-              placeholder="Search tools..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-14 text-lg bg-white text-gray-900"
-              data-testid="search-input"
-            />
+            <div className="relative backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl shadow-lg hover:bg-white/15 transition-all">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70 h-5 w-5" />
+              <Input
+                type="text"
+                placeholder="Search tools..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 h-14 text-lg bg-transparent border-0 text-white placeholder:text-white/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                data-testid="search-input"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -218,67 +218,106 @@ export default function ToolsLandingPage() {
       {/* Tools Section */}
       <section className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <Tabs defaultValue="all" value={activeCategory} onValueChange={(v) => setActiveCategory(v as any)} className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8" data-testid="category-tabs">
-              <TabsTrigger value="all" data-testid="tab-all">All Tools</TabsTrigger>
-              <TabsTrigger value="Image Tools" data-testid="tab-image">
-                <ImageIcon className="h-4 w-4 mr-2" />
-                Image
-              </TabsTrigger>
-              <TabsTrigger value="PDF Tools" data-testid="tab-pdf">
-                <FileText className="h-4 w-4 mr-2" />
-                PDF
-              </TabsTrigger>
-            </TabsList>
+          {/* Glassmorphism Filter Buttons */}
+          <div className="flex items-center justify-center mb-8">
+            <div className="inline-flex items-center gap-2 p-1.5 rounded-full backdrop-blur-md bg-white/60 border border-white/40 shadow-lg" data-testid="category-filters">
+              <button
+                onClick={() => setActiveCategory("all")}
+                className={`
+                  flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
+                  ${activeCategory === "all" 
+                    ? "bg-[#0B9F47] text-white shadow-md" 
+                    : "text-gray-700 hover:bg-white/40"
+                  }
+                `}
+                data-testid="filter-all"
+              >
+                <Grip className="h-4 w-4" />
+                All Tools
+              </button>
+              <button
+                onClick={() => setActiveCategory("Image Tools")}
+                className={`
+                  flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
+                  ${activeCategory === "Image Tools" 
+                    ? "bg-[#0B9F47] text-white shadow-md" 
+                    : "text-gray-700 hover:bg-white/40"
+                  }
+                `}
+                data-testid="filter-image"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Image Tools
+              </button>
+              <button
+                onClick={() => setActiveCategory("PDF Tools")}
+                className={`
+                  flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
+                  ${activeCategory === "PDF Tools" 
+                    ? "bg-[#0B9F47] text-white shadow-md" 
+                    : "text-gray-700 hover:bg-white/40"
+                  }
+                `}
+                data-testid="filter-pdf"
+              >
+                <FileText className="h-4 w-4" />
+                PDF Tools
+              </button>
+            </div>
+          </div>
 
-            <TabsContent value="all" className="space-y-12">
-              {/* Image Tools Section */}
-              {imageToolsFiltered.length > 0 && (
-                <div>
-                  <h2 className="text-3xl font-bold mb-6 flex items-center" data-testid="section-image-tools">
-                    <ImageIcon className="h-8 w-8 mr-3 text-[#0B9F47]" />
-                    Image Tools
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {imageToolsFiltered.map((tool, index) => (
-                      <ToolCard key={index} tool={tool} />
-                    ))}
+          {/* Tools Grid */}
+          <div className="space-y-12">
+            {activeCategory === "all" && (
+              <>
+                {/* Image Tools Section */}
+                {imageToolsFiltered.length > 0 && (
+                  <div>
+                    <h2 className="text-3xl font-bold mb-6 flex items-center" data-testid="section-image-tools">
+                      <ImageIcon className="h-8 w-8 mr-3 text-[#0B9F47]" />
+                      Image Tools
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {imageToolsFiltered.map((tool, index) => (
+                        <ToolCard key={index} tool={tool} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* PDF Tools Section */}
-              {pdfToolsFiltered.length > 0 && (
-                <div>
-                  <h2 className="text-3xl font-bold mb-6 flex items-center" data-testid="section-pdf-tools">
-                    <FileText className="h-8 w-8 mr-3 text-[#0B9F47]" />
-                    PDF Tools
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {pdfToolsFiltered.map((tool, index) => (
-                      <ToolCard key={index} tool={tool} />
-                    ))}
+                {/* PDF Tools Section */}
+                {pdfToolsFiltered.length > 0 && (
+                  <div>
+                    <h2 className="text-3xl font-bold mb-6 flex items-center" data-testid="section-pdf-tools">
+                      <FileText className="h-8 w-8 mr-3 text-[#0B9F47]" />
+                      PDF Tools
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {pdfToolsFiltered.map((tool, index) => (
+                        <ToolCard key={index} tool={tool} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </TabsContent>
+                )}
+              </>
+            )}
 
-            <TabsContent value="Image Tools">
+            {activeCategory === "Image Tools" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {imageToolsFiltered.map((tool, index) => (
                   <ToolCard key={index} tool={tool} />
                 ))}
               </div>
-            </TabsContent>
+            )}
 
-            <TabsContent value="PDF Tools">
+            {activeCategory === "PDF Tools" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {pdfToolsFiltered.map((tool, index) => (
                   <ToolCard key={index} tool={tool} />
                 ))}
               </div>
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
 
           {filteredTools.length === 0 && (
             <div className="text-center py-12" data-testid="no-results">
