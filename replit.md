@@ -91,3 +91,51 @@ Preferred communication style: Simple, everyday language.
 - **jsonwebtoken**: JWT implementation for stateless authentication
 - **bcryptjs**: Password hashing with configurable salt rounds
 - **cookie-parser**: HTTP cookie parsing middleware
+
+## Tools Platform Development (October 2025)
+
+### Tools Architecture
+The VectorWiz Tools Platform provides 100+ free image and PDF tools with professional quality and SEO optimization.
+
+**Foundation Components (Phase 1):**
+- `ToolLayout`: Standardized layout with SEO metadata, structured data (SoftwareApplication schema), breadcrumbs, and HowTo schemas
+- `FileUploader`: Drag-and-drop file upload with validation, preview, and multi-file support
+- `ProcessingIndicator`: Status feedback for processing operations (idle, processing, success, error)
+- `DownloadButton`: Standardized download interface with loading states
+- **SEO Helpers** (`lib/seoHelpers.ts`): generateToolMetadata, generateSoftwareApplicationSchema, generateHowToSchema
+- **Image Processing Library** (`lib/imageProcessing.ts`): Core image manipulation functions
+- **File Utilities** (`lib/fileUtils.ts`): File operations and format detection
+
+**Completed Tools:**
+
+**Phase 2 - Simple High-Value Tools:**
+1. **Image Resizer** (`/tools/image-resizer`): Dimension adjustment with aspect ratio lock, quick presets (Instagram, Facebook, Twitter, HD), real-time preview
+2. **Image Compressor** (`/tools/image-compressor`): Quality slider with compression stats, before/after comparison, format support (JPG, PNG, WebP)
+3. **Image Cropper** (`/tools/image-cropper`): Custom crop dimensions with X/Y positioning, aspect ratio presets (1:1, 4:5, 16:9, 4:3)
+4. **Image Rotator** (`/tools/image-rotator`): 90°/180°/270° rotation, horizontal/vertical flip operations
+
+**Phase 3 - Medium Complexity Tools:**
+5. **Image Filter & Effects** (`/tools/image-filter`): Brightness, contrast, saturation sliders (0-200%), blur effects (0-20px), grayscale/sepia/invert toggles, quick presets (Vintage, B&W, High Contrast, Soft Blur)
+6. **Image Format Converter** (`/tools/format-converter`): Comprehensive format support (PNG, JPG, WebP, GIF, BMP), quality controls for lossy formats, quick conversion presets, format-specific notes
+
+**Design System:**
+- Primary brand color: #06183C (dark navy)
+- CTA color: #0B9F47 (green)
+- Quote request form: Gradient background (linear-gradient(75deg, #06183C 0%, #20448B 100%))
+- All tools include data-testid attributes for automated testing
+- Responsive design with mobile-first approach
+
+**SEO Strategy:**
+- Individual pages for each tool for maximum SEO benefit
+- SoftwareApplication structured data on every tool page
+- HowTo schema with step-by-step instructions
+- Open Graph tags for social sharing
+- Semantic HTML with proper heading hierarchy
+- Keywords and meta descriptions optimized per tool
+
+**Tools Landing Page:**
+- Located at root (`/`) with 100+ tools listed
+- Category filtering (Image Tools, PDF Tools)
+- Search functionality
+- "Coming Soon" badges for tools in development
+- Direct links to completed tools
