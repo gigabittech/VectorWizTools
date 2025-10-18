@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Search, Image as ImageIcon, FileText, ArrowRight, Grip } from "lucide-react";
 
 interface Tool {
@@ -332,8 +331,11 @@ export default function ToolsLandingPage() {
 
 function ToolCard({ tool }: { tool: Tool }) {
   const content = (
-    <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group" data-testid={`tool-card-${tool.name.toLowerCase().replace(/\s+/g, '-')}`}>
-      <CardContent className="p-6 flex flex-col h-full">
+    <div 
+      className="h-full backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:shadow-lg hover:bg-white/80 transition-all cursor-pointer group" 
+      data-testid={`tool-card-${tool.name.toLowerCase().replace(/\s+/g, '-')}`}
+    >
+      <div className="flex flex-col h-full">
         <div className="text-4xl mb-3">{tool.icon}</div>
         <h3 className="font-semibold text-lg mb-2 group-hover:text-[#0B9F47] transition-colors" data-testid="tool-name">
           {tool.name}
@@ -351,8 +353,8 @@ function ToolCard({ tool }: { tool: Tool }) {
             <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   if (tool.route && !tool.comingSoon) {

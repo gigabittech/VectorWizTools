@@ -356,11 +356,9 @@ export default function ImageBorder() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Image Borders & Frames</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Image Borders & Frames</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Add professional borders and frames to your images online. Perfect for:
             </p>
@@ -373,8 +371,8 @@ export default function ImageBorder() {
             <p className="text-sm text-gray-600 mt-4">
               <strong>Pro Tip:</strong> Use light-colored borders with shadow effects for a gallery-style presentation.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

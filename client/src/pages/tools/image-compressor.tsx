@@ -285,11 +285,9 @@ export default function ImageCompressor() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Image Compression</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Image Compression</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Our free online image compressor helps you reduce file sizes while maintaining visual quality.
               Benefits include:
@@ -305,8 +303,8 @@ export default function ImageCompressor() {
               The quality slider lets you balance between file size and image quality. We recommend starting
               with 80-85% quality for the best results. You can always adjust and re-compress if needed.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

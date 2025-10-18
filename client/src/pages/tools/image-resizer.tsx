@@ -356,11 +356,9 @@ export default function ImageResizer() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Image Resizing</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Image Resizing</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Our free online image resizer allows you to quickly change the dimensions of your images
               while maintaining quality. Perfect for:
@@ -375,8 +373,8 @@ export default function ImageResizer() {
               The aspect ratio lock feature helps maintain your image's proportions, preventing distortion.
               Turn it off if you need to fit specific dimensions exactly.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

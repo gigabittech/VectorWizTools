@@ -294,11 +294,9 @@ export default function ImageComparison() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Image Comparison</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Image Comparison</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Compare two images side by side with our free online tool. Perfect for:
             </p>
@@ -317,8 +315,8 @@ export default function ImageComparison() {
             <p className="text-sm text-gray-600 mt-4">
               <strong>Pro Tip:</strong> For best results, use images with identical dimensions. The slider view works best when images are aligned.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

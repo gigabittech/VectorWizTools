@@ -267,11 +267,9 @@ export default function ImageRotator() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Image Rotation & Flipping</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Image Rotation & Flipping</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Our free online image rotator and flipper allows you to quickly transform your images:
             </p>
@@ -284,8 +282,8 @@ export default function ImageRotator() {
               Perfect for fixing incorrectly oriented photos, creating mirror effects, or preparing
               images for specific layouts.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

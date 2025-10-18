@@ -599,11 +599,9 @@ export default function AddTextToImage() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Adding Text to Images</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Adding Text to Images</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Add custom text to your images for free. Perfect for creating:
             </p>
@@ -621,8 +619,8 @@ export default function AddTextToImage() {
               <br />• Use bold fonts for headlines, italic for subtitles
               <br />• Position text at 10-90% for better composition
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

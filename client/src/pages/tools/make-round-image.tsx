@@ -346,11 +346,9 @@ export default function MakeRoundImage() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Circular Images</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Circular Images</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Create perfect circular images online for free. Our tool is ideal for:
             </p>
@@ -369,8 +367,8 @@ export default function MakeRoundImage() {
               <br />• The tool automatically crops to fill the circle (no empty spaces)
               <br />• Output is always PNG format with transparent background
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

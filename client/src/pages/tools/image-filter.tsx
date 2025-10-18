@@ -346,11 +346,9 @@ export default function ImageFilter() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Image Filters</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Image Filters</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Our free online image filter tool lets you enhance and transform your photos with professional effects:
             </p>
@@ -366,8 +364,8 @@ export default function ImageFilter() {
             <p>
               Use the presets for quick effects, or fine-tune individual settings for complete control.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

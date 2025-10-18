@@ -332,11 +332,9 @@ export default function ImageCropper() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Image Cropping</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Image Cropping</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Our free online image cropper lets you trim and cut images to any size. Perfect for:
             </p>
@@ -350,8 +348,8 @@ export default function ImageCropper() {
             <p>
               Use the aspect ratio presets for common sizes, or enter custom dimensions for precise control.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

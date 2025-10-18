@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Upload, X, File, Image as ImageIcon, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -165,11 +164,13 @@ export default function FileUploader({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Upload Area */}
-      <Card
+      {/* Upload Area with Glassmorphism */}
+      <div
         className={cn(
-          "border-2 border-dashed transition-all cursor-pointer",
-          isDragging ? "border-[#0B9F47] bg-green-50" : "border-gray-300 hover:border-gray-400",
+          "backdrop-blur-md bg-white/70 border-2 border-dashed rounded-xl transition-all cursor-pointer p-8",
+          isDragging 
+            ? "border-[#0B9F47] bg-green-50/50 shadow-lg" 
+            : "border-white/40 hover:border-white/60 hover:bg-white/80",
           disabled && "opacity-50 cursor-not-allowed"
         )}
         onDragOver={handleDragOver}
@@ -178,8 +179,8 @@ export default function FileUploader({
         onClick={() => !disabled && fileInputRef.current?.click()}
         data-testid={dataTestId}
       >
-        <div className="p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100/50 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
             <Upload className="h-8 w-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-semibold mb-2">
@@ -206,11 +207,11 @@ export default function FileUploader({
             data-testid="file-input"
           />
         </div>
-      </Card>
+      </div>
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" data-testid="error-message">
+        <div className="backdrop-blur-md bg-red-50/90 border border-red-200/60 text-red-700 px-4 py-3 rounded-lg" data-testid="error-message">
           {error}
         </div>
       )}
@@ -234,7 +235,10 @@ export default function FileUploader({
 
           <div className="space-y-2" data-testid="file-list">
             {files.map((uploadedFile) => (
-              <Card key={uploadedFile.id} className="p-3">
+              <div 
+                key={uploadedFile.id} 
+                className="backdrop-blur-md bg-white/70 border border-white/40 rounded-lg p-3 hover:bg-white/80 transition-all"
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
                     {uploadedFile.preview ? (
@@ -244,7 +248,7 @@ export default function FileUploader({
                         className="h-12 w-12 object-cover rounded"
                       />
                     ) : (
-                      <div className="h-12 w-12 bg-gray-100 rounded flex items-center justify-center">
+                      <div className="h-12 w-12 bg-gray-100/50 backdrop-blur-sm rounded flex items-center justify-center">
                         {getFileIcon(uploadedFile.file)}
                       </div>
                     )}
@@ -269,7 +273,7 @@ export default function FileUploader({
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </div>

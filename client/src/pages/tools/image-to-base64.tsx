@@ -293,11 +293,9 @@ export default function ImageToBase64() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Base64 Image Encoding</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Base64 Image Encoding</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Convert images to Base64 strings for embedding directly in HTML, CSS, or JavaScript. Perfect for:
             </p>
@@ -318,8 +316,8 @@ export default function ImageToBase64() {
             <p className="text-sm text-gray-600 mt-4">
               <strong>Note:</strong> Base64 encoding increases file size by about 33%. Use for small images or when embedding is necessary.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

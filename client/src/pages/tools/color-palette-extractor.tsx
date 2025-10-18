@@ -287,11 +287,9 @@ export default function ColorPaletteExtractor() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Color Palette Extraction</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Color Palette Extraction</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Extract dominant colors from any image to create beautiful color palettes. Perfect for:
             </p>
@@ -304,8 +302,8 @@ export default function ColorPaletteExtractor() {
             <p className="text-sm text-gray-600 mt-4">
               <strong>Pro Tip:</strong> Use high-quality images with distinct colors for best results. The tool analyzes the most frequently occurring colors in your image.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

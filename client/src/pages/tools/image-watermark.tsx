@@ -520,11 +520,9 @@ export default function ImageWatermark() {
         )}
 
         {/* Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Image Watermarks</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+          <h2 className="text-xl font-bold mb-4">About Image Watermarks</h2>
+          <div className="prose prose-sm max-w-none">
             <p>
               Protect your images with professional text or image watermarks. Our free online watermark tool supports both:
             </p>
@@ -541,8 +539,8 @@ export default function ImageWatermark() {
               <br />• For logos, use PNG or SVG files with transparent backgrounds
               <br />• Center placement with rotation works well for "Draft" or "Confidential" watermarks
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );
