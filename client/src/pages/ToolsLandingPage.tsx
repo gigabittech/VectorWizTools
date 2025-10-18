@@ -28,6 +28,7 @@ const imageTools: Tool[] = [
   { name: "Profile Photo Maker", description: "Create professional profile photos", category: "Image Tools", icon: "👤", comingSoon: true },
   { name: "PNG to JPG", description: "Convert PNG images to JPG format", category: "Image Tools", route: "/tools/format-converter", icon: "🔄" },
   { name: "Blur Background Tool", description: "Blur image backgrounds", category: "Image Tools", icon: "🌫️", comingSoon: true },
+  { name: "Image Filter & Effects", description: "Apply filters like grayscale, sepia, brightness", category: "Image Tools", route: "/tools/image-filter", icon: "✨" },
   { name: "WebP to JPG", description: "Convert WebP images to JPG", category: "Image Tools", route: "/tools/format-converter", icon: "🔄" },
   { name: "Colorize Photo", description: "Add color to black & white photos", category: "Image Tools", icon: "🎨", comingSoon: true },
   { name: "Combine Images", description: "Merge multiple images together", category: "Image Tools", icon: "➕", comingSoon: true },

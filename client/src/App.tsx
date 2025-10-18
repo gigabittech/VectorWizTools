@@ -26,6 +26,7 @@ import ImageResizer from "@/pages/tools/image-resizer";
 import ImageCompressor from "@/pages/tools/image-compressor";
 import ImageCropper from "@/pages/tools/image-cropper";
 import ImageRotator from "@/pages/tools/image-rotator";
+import ImageFilter from "@/pages/tools/image-filter";
 
 function Router() {
   return (
@@ -47,6 +48,7 @@ function Router() {
         <Route path="/tools/image-compressor" component={ImageCompressor} />
         <Route path="/tools/image-cropper" component={ImageCropper} />
         <Route path="/tools/image-rotator" component={ImageRotator} />
+        <Route path="/tools/image-filter" component={ImageFilter} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

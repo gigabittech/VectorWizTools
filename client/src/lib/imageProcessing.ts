@@ -127,9 +127,16 @@ export async function cropImage(file: File, options: CropOptions): Promise<Blob>
   });
 }
 
+export type SupportedImageFormat = 
+  | 'image/jpeg'
+  | 'image/png'
+  | 'image/webp'
+  | 'image/bmp'
+  | 'image/gif';
+
 export async function convertImageFormat(
   file: File,
-  targetFormat: 'image/jpeg' | 'image/png' | 'image/webp',
+  targetFormat: SupportedImageFormat,
   quality: number = 0.92
 ): Promise<Blob> {
   const img = await loadImage(file);
@@ -143,8 +150,8 @@ export async function convertImageFormat(
   canvas.width = img.width;
   canvas.height = img.height;
 
-  // For JPEG, fill with white background
-  if (targetFormat === 'image/jpeg') {
+  // For JPEG and BMP, fill with white background (no transparency)
+  if (targetFormat === 'image/jpeg' || targetFormat === 'image/bmp') {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
@@ -331,4 +338,75 @@ export function calculateNewDimensions(
   }
 
   return { width: currentWidth, height: currentHeight };
+}
+
+export interface FilterOptions {
+  brightness?: number; // 0-200, 100 = normal
+  contrast?: number; // 0-200, 100 = normal
+  saturation?: number; // 0-200, 100 = normal
+  blur?: number; // 0-20 pixels
+  grayscale?: boolean;
+  sepia?: boolean;
+  invert?: boolean;
+}
+
+export async function applyFilters(file: File, filters: FilterOptions): Promise<Blob> {
+  const img = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  // Build filter string
+  const filterParts: string[] = [];
+  
+  if (filters.brightness !== undefined && filters.brightness !== 100) {
+    filterParts.push(`brightness(${filters.brightness}%)`);
+  }
+  
+  if (filters.contrast !== undefined && filters.contrast !== 100) {
+    filterParts.push(`contrast(${filters.contrast}%)`);
+  }
+  
+  if (filters.saturation !== undefined && filters.saturation !== 100) {
+    filterParts.push(`saturate(${filters.saturation}%)`);
+  }
+  
+  if (filters.blur !== undefined && filters.blur > 0) {
+    filterParts.push(`blur(${filters.blur}px)`);
+  }
+  
+  if (filters.grayscale) {
+    filterParts.push('grayscale(100%)');
+  }
+  
+  if (filters.sepia) {
+    filterParts.push('sepia(100%)');
+  }
+  
+  if (filters.invert) {
+    filterParts.push('invert(100%)');
+  }
+
+  ctx.filter = filterParts.join(' ');
+  ctx.drawImage(img, 0, 0);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      file.type,
+      0.92
+    );
+  });
 }
