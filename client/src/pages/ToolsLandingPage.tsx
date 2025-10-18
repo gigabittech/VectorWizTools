@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Input } from "@/components/ui/input";
-import { Search, Image as ImageIcon, FileText, ArrowRight, Grip } from "lucide-react";
+import { Image as ImageIcon, FileText, ArrowRight } from "lucide-react";
 
 interface Tool {
   name: string;
@@ -193,29 +192,14 @@ export default function ToolsLandingPage() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="page-title">
             Free Online Tools
           </h1>
-          <p className="text-xl text-gray-200 mb-8" data-testid="page-subtitle">
+          <p className="text-xl text-gray-200" data-testid="page-subtitle">
             Professional image and PDF tools for all your conversion and editing needs
           </p>
-          
-          {/* Glassmorphism Search Bar */}
-          <div className="max-w-2xl mx-auto relative">
-            <div className="relative backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl shadow-lg hover:bg-white/15 transition-all">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70 h-5 w-5" />
-              <Input
-                type="text"
-                placeholder="Search tools..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-14 text-lg bg-transparent border-0 text-white placeholder:text-white/60 focus-visible:ring-0 focus-visible:ring-offset-0"
-                data-testid="search-input"
-              />
-            </div>
-          </div>
         </div>
       </section>
 
       {/* Tools Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
+      <section className="py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f5f7' }}>
         <div className="max-w-7xl mx-auto">
           {/* Glassmorphism Filter Buttons */}
           <div className="flex items-center justify-center mb-8">
@@ -231,7 +215,6 @@ export default function ToolsLandingPage() {
                 `}
                 data-testid="filter-all"
               >
-                <Grip className="h-4 w-4" />
                 All Tools
               </button>
               <button

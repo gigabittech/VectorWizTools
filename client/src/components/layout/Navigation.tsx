@@ -32,7 +32,7 @@ export default function Navigation() {
                 <img
                   src="https://vectorwiz.com/wp-content/uploads/2023/02/VectorWiz-New-Logo-04.svg"
                   alt="VectorWiz"
-                  className="h-10"
+                  style={{ height: '26px' }}
                 />
               </Link>
 
