@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import VectorChecker from "@/components/tools/VectorChecker";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge, Anchor } from "@mantine/core";
 import { ArrowLeft, Search, CheckCircle, XCircle, FileType, Zap, Award, Download, Upload } from "lucide-react";

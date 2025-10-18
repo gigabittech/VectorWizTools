@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import PrintSizeCalculator from "@/components/tools/PrintSizeCalculator";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -6,7 +5,6 @@ import { ArrowLeft, Ruler, Printer, CheckCircle, Award, Zap, Camera, FileText } 
 import { Link } from "wouter";
 
 export default function PrintSizeCalculatorPage() {
-  const { isLoading } = useAuth();
 
   useEffect(() => {
     // Set SEO metadata

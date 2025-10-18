@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import ColorExtractor from "@/components/tools/ColorExtractor";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge, ColorSwatch } from "@mantine/core";
@@ -6,7 +5,6 @@ import { ArrowLeft, Palette, Eye, CheckCircle, Award, Zap, Download, Paintbrush,
 import { Link } from "wouter";
 
 export default function ColorExtractorPage() {
-  const { isLoading } = useAuth();
 
   useEffect(() => {
     // Set SEO metadata

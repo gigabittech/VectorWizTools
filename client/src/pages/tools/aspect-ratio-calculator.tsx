@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import AspectRatioCalculator from "@/components/tools/AspectRatioCalculator";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -6,7 +5,6 @@ import { ArrowLeft, Maximize, Monitor, Smartphone, Camera, CheckCircle, Award, G
 import { Link } from "wouter";
 
 export default function AspectRatioCalculatorPage() {
-  const { isLoading } = useAuth();
 
   useEffect(() => {
     // Set SEO metadata

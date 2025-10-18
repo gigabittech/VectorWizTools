@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import FileSizeCalculator from "@/components/tools/FileSizeCalculator";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -6,7 +5,6 @@ import { ArrowLeft, HardDrive, Calculator, CheckCircle, Award, Zap, Monitor, Pri
 import { Link } from "wouter";
 
 export default function FileSizeCalculatorPage() {
-  const { isLoading } = useAuth();
 
   useEffect(() => {
     // Set SEO metadata

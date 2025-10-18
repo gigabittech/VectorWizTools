@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import VectorSimplifier from "@/components/tools/VectorSimplifier";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -6,7 +5,6 @@ import { ArrowLeft, Zap, Settings, CheckCircle, Award, Globe, FileText, Download
 import { Link } from "wouter";
 
 export default function VectorSimplifierPage() {
-  const { isLoading } = useAuth();
 
   useEffect(() => {
     // Set SEO metadata

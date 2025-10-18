@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import FormatConverter from "@/components/tools/FormatConverter";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge, Anchor } from "@mantine/core";
@@ -6,7 +5,6 @@ import { ArrowLeft, FileImage, Repeat, CheckCircle, Award, Zap, Download, Upload
 import { Link } from "wouter";
 
 export default function FormatConverterPage() {
-  const { isLoading } = useAuth();
 
   useEffect(() => {
     // Set SEO metadata

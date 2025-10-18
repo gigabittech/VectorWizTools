@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import FontToVector from "@/components/tools/FontToVector";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -6,7 +5,6 @@ import { ArrowLeft, Type, FileText, CheckCircle, Award, Zap, Palette, Download }
 import { Link } from "wouter";
 
 export default function FontToVectorPage() {
-  const { isLoading } = useAuth();
 
   useEffect(() => {
     // Set SEO metadata

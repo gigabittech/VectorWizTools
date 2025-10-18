@@ -1,9 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Paper, Title, Button, Badge } from "@mantine/core";
-import { ObjectUploader } from "@/components/ObjectUploader";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CheckCircle, XCircle, FileText } from "lucide-react";
-import type { UploadResult } from "@uppy/core";
+import { Search, CheckCircle, XCircle, FileText, Upload } from "lucide-react";
 
 interface FileAnalysis {
   name: string;
@@ -59,34 +57,31 @@ export default function VectorChecker() {
     };
   };
 
-  const handleGetUploadParameters = async () => {
-    // Mock upload parameters for demonstration
-    return {
-      method: "PUT" as const,
-      url: "https://example.com/upload",
-    };
-  };
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
     setIsAnalyzing(true);
     
     // Simulate analysis delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    if (result.successful && result.successful.length > 0) {
-      const newAnalyses = result.successful.map((file) => 
-        analyzeFile(file.name || "unknown")
-      );
-      
-      setAnalyses(prev => [...prev, ...newAnalyses]);
-      
-      toast({
-        title: "Analysis Complete",
-        description: `Analyzed ${newAnalyses.length} file(s)`,
-      });
-    }
+    const newAnalyses = Array.from(files).map((file) => analyzeFile(file.name));
+    setAnalyses(prev => [...prev, ...newAnalyses]);
+    
+    toast({
+      title: "Analysis Complete",
+      description: `Analyzed ${files.length} file(s)`,
+    });
     
     setIsAnalyzing(false);
+    
+    // Reset input
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   const clearResults = () => {
@@ -112,16 +107,24 @@ export default function VectorChecker() {
               Upload your files to instantly check if they're vector or raster images
             </p>
             
-            <ObjectUploader
-              maxNumberOfFiles={5}
-              maxFileSize={10 * 1024 * 1024} // 10MB
-              onGetUploadParameters={handleGetUploadParameters}
-              onComplete={handleUploadComplete}
-              buttonClassName="gradient-primary text-white"
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.svg,.ai,.eps,.pdf"
+              onChange={handleFileSelect}
+              className="hidden"
+              data-testid="file-input"
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
+              disabled={isAnalyzing}
+              data-testid="upload-button"
             >
-              <Search className="mr-2 h-4 w-4" />
+              <Upload className="mr-2 h-4 w-4" />
               Choose Files to Check
-            </ObjectUploader>
+            </Button>
           </div>
         </div>
       </Paper>

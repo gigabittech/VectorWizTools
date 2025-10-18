@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import LogoDimensions from "@/components/tools/LogoDimensions";
 import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
@@ -6,7 +5,6 @@ import { ArrowLeft, Monitor, Smartphone, FileText, CheckCircle, Award, Zap, Shar
 import { Link } from "wouter";
 
 export default function LogoDimensionsPage() {
-  const { isLoading } = useAuth();
 
   useEffect(() => {
     // Set SEO metadata
