@@ -118,6 +118,13 @@ The VectorWiz Tools Platform provides 100+ free image and PDF tools with profess
 5. **Image Filter & Effects** (`/tools/image-filter`): Brightness, contrast, saturation sliders (0-200%), blur effects (0-20px), grayscale/sepia/invert toggles, quick presets (Vintage, B&W, High Contrast, Soft Blur)
 6. **Image Format Converter** (`/tools/format-converter`): Comprehensive format support (PNG, JPG, WebP, GIF, BMP), quality controls for lossy formats, quick conversion presets, format-specific notes
 
+**Phase 4 - Advanced Tools:**
+7. **Image Watermark Tool** (`/tools/image-watermark`): Text watermarks with position control (top-left, top-right, center, bottom-left, bottom-right), customizable font size/family, color picker, opacity slider (10-100%), rotation control (-90° to 90°), quick presets (Copyright, Watermark, Draft)
+8. **Image Border/Frame Tool** (`/tools/image-border`): Custom borders with width control (1-100px), color picker with presets, inner padding adjustment, shadow effects with blur control, quick presets (Classic White, Bold Black, Gallery Frame, Modern Minimal)
+9. **Color Palette Extractor** (`/tools/color-palette-extractor`): Extract 3-10 dominant colors from images, display hex and RGB values, one-click copy to clipboard, palette preview bar, export formats (CSS array, Tailwind colors), interactive color swatches
+10. **Image to Base64 Converter** (`/tools/image-to-base64`): Convert images to Base64 strings, multiple output formats (Plain, Data URL, CSS, HTML, Markdown), copy to clipboard, download as text file, file size comparison stats
+11. **Image Comparison Tool** (`/tools/image-comparison`): Side-by-side comparison mode, interactive slider view with smooth transitions, dimension comparison, file size stats, swap images functionality, perfect for before/after showcases
+
 **Design System:**
 - Primary brand color: #06183C (dark navy)
 - CTA color: #0B9F47 (green)

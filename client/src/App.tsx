@@ -27,6 +27,11 @@ import ImageCompressor from "@/pages/tools/image-compressor";
 import ImageCropper from "@/pages/tools/image-cropper";
 import ImageRotator from "@/pages/tools/image-rotator";
 import ImageFilter from "@/pages/tools/image-filter";
+import ImageWatermark from "@/pages/tools/image-watermark";
+import ImageBorder from "@/pages/tools/image-border";
+import ColorPaletteExtractor from "@/pages/tools/color-palette-extractor";
+import ImageToBase64 from "@/pages/tools/image-to-base64";
+import ImageComparison from "@/pages/tools/image-comparison";
 
 function Router() {
   return (
@@ -49,6 +54,11 @@ function Router() {
         <Route path="/tools/image-cropper" component={ImageCropper} />
         <Route path="/tools/image-rotator" component={ImageRotator} />
         <Route path="/tools/image-filter" component={ImageFilter} />
+        <Route path="/tools/image-watermark" component={ImageWatermark} />
+        <Route path="/tools/image-border" component={ImageBorder} />
+        <Route path="/tools/color-palette-extractor" component={ColorPaletteExtractor} />
+        <Route path="/tools/image-to-base64" component={ImageToBase64} />
+        <Route path="/tools/image-comparison" component={ImageComparison} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

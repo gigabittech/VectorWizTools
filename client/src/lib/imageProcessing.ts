@@ -410,3 +410,307 @@ export async function applyFilters(file: File, filters: FilterOptions): Promise<
     );
   });
 }
+
+export interface WatermarkOptions {
+  text: string;
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+  opacity?: number; // 0-1
+  rotation?: number; // degrees
+  padding?: number; // pixels from edge
+}
+
+export interface ImageWatermarkOptions {
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+  opacity?: number; // 0-1
+  scale?: number; // 0-1, percentage of main image size
+  padding?: number; // pixels from edge
+}
+
+export async function addTextWatermark(
+  file: File,
+  options: WatermarkOptions
+): Promise<Blob> {
+  const img = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  // Draw original image
+  ctx.drawImage(img, 0, 0);
+
+  // Configure watermark
+  const {
+    text,
+    position,
+    fontSize = Math.max(20, img.width / 30),
+    fontFamily = 'Arial',
+    color = '#FFFFFF',
+    opacity = 0.5,
+    rotation = 0,
+    padding = 20,
+  } = options;
+
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  const textMetrics = ctx.measureText(text);
+  const textWidth = textMetrics.width;
+  const textHeight = fontSize;
+
+  // Calculate position
+  let x = 0;
+  let y = 0;
+
+  switch (position) {
+    case 'top-left':
+      x = padding;
+      y = padding + textHeight;
+      break;
+    case 'top-right':
+      x = canvas.width - textWidth - padding;
+      y = padding + textHeight;
+      break;
+    case 'bottom-left':
+      x = padding;
+      y = canvas.height - padding;
+      break;
+    case 'bottom-right':
+      x = canvas.width - textWidth - padding;
+      y = canvas.height - padding;
+      break;
+    case 'center':
+      x = (canvas.width - textWidth) / 2;
+      y = (canvas.height + textHeight) / 2;
+      break;
+  }
+
+  // Apply rotation if specified
+  if (rotation !== 0) {
+    ctx.save();
+    ctx.translate(x + textWidth / 2, y - textHeight / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.translate(-(x + textWidth / 2), -(y - textHeight / 2));
+  }
+
+  // Draw watermark
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = color;
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  ctx.fillText(text, x, y);
+
+  if (rotation !== 0) {
+    ctx.restore();
+  }
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      file.type,
+      0.92
+    );
+  });
+}
+
+export async function addImageWatermark(
+  file: File,
+  watermarkFile: File,
+  options: ImageWatermarkOptions
+): Promise<Blob> {
+  const img = await loadImage(file);
+  const watermarkImg = await loadImage(watermarkFile);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  // Draw original image
+  ctx.drawImage(img, 0, 0);
+
+  // Configure watermark
+  const {
+    position,
+    opacity = 0.5,
+    scale = 0.2,
+    padding = 20,
+  } = options;
+
+  // Calculate watermark size
+  const watermarkWidth = Math.min(img.width * scale, watermarkImg.width);
+  const watermarkHeight = (watermarkWidth / watermarkImg.width) * watermarkImg.height;
+
+  // Calculate position
+  let x = 0;
+  let y = 0;
+
+  switch (position) {
+    case 'top-left':
+      x = padding;
+      y = padding;
+      break;
+    case 'top-right':
+      x = canvas.width - watermarkWidth - padding;
+      y = padding;
+      break;
+    case 'bottom-left':
+      x = padding;
+      y = canvas.height - watermarkHeight - padding;
+      break;
+    case 'bottom-right':
+      x = canvas.width - watermarkWidth - padding;
+      y = canvas.height - watermarkHeight - padding;
+      break;
+    case 'center':
+      x = (canvas.width - watermarkWidth) / 2;
+      y = (canvas.height - watermarkHeight) / 2;
+      break;
+  }
+
+  // Draw watermark with opacity
+  ctx.globalAlpha = opacity;
+  ctx.drawImage(watermarkImg, x, y, watermarkWidth, watermarkHeight);
+  ctx.globalAlpha = 1.0;
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      file.type,
+      0.92
+    );
+  });
+}
+
+export interface BorderOptions {
+  width: number; // pixels
+  color: string;
+  padding?: number; // inner padding
+  shadowBlur?: number;
+  shadowColor?: string;
+}
+
+export async function addBorder(
+  file: File,
+  options: BorderOptions
+): Promise<Blob> {
+  const img = await loadImage(file);
+  const {
+    width: borderWidth,
+    color,
+    padding = 0,
+    shadowBlur = 0,
+    shadowColor = '#000000',
+  } = options;
+
+  const totalPadding = borderWidth + padding;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+
+  canvas.width = img.width + (totalPadding * 2);
+  canvas.height = img.height + (totalPadding * 2);
+
+  // Fill background with border color
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Add shadow if specified
+  if (shadowBlur > 0) {
+    ctx.shadowBlur = shadowBlur;
+    ctx.shadowColor = shadowColor;
+  }
+
+  // Draw image with padding
+  ctx.drawImage(img, totalPadding, totalPadding);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      file.type,
+      0.92
+    );
+  });
+}
+
+export async function extractColors(file: File, colorCount: number = 5): Promise<string[]> {
+  const img = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+
+  // Resize to smaller size for faster processing
+  const maxSize = 200;
+  const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+  canvas.width = img.width * scale;
+  canvas.height = img.height * scale;
+
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = imageData.data;
+  const colorMap = new Map<string, number>();
+
+  // Sample pixels (every 10th pixel for performance)
+  for (let i = 0; i < pixels.length; i += 40) {
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+    const a = pixels[i + 3];
+
+    // Skip transparent pixels
+    if (a < 128) continue;
+
+    // Quantize colors to reduce variation
+    const qr = Math.round(r / 10) * 10;
+    const qg = Math.round(g / 10) * 10;
+    const qb = Math.round(b / 10) * 10;
+
+    const colorKey = `${qr},${qg},${qb}`;
+    colorMap.set(colorKey, (colorMap.get(colorKey) || 0) + 1);
+  }
+
+  // Sort by frequency and get top colors
+  const sortedColors = Array.from(colorMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, colorCount)
+    .map(([color]) => {
+      const [r, g, b] = color.split(',').map(Number);
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    });
+
+  return sortedColors;
+}

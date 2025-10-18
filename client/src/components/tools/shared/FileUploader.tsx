@@ -19,6 +19,7 @@ interface FileUploaderProps {
   className?: string;
   allowedTypes?: string[];
   disabled?: boolean;
+  "data-testid"?: string;
 }
 
 export default function FileUploader({
@@ -30,6 +31,7 @@ export default function FileUploader({
   className,
   allowedTypes = [],
   disabled = false,
+  "data-testid": dataTestId = "file-upload-area",
 }: FileUploaderProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -174,7 +176,7 @@ export default function FileUploader({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !disabled && fileInputRef.current?.click()}
-        data-testid="file-upload-area"
+        data-testid={dataTestId}
       >
         <div className="p-8 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
