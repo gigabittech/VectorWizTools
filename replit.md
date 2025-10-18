@@ -119,11 +119,15 @@ The VectorWiz Tools Platform provides 100+ free image and PDF tools with profess
 6. **Image Format Converter** (`/tools/format-converter`): Comprehensive format support (PNG, JPG, WebP, GIF, BMP), quality controls for lossy formats, quick conversion presets, format-specific notes
 
 **Phase 4 - Advanced Tools:**
-7. **Image Watermark Tool** (`/tools/image-watermark`): Text watermarks with position control (top-left, top-right, center, bottom-left, bottom-right), customizable font size/family, color picker, opacity slider (10-100%), rotation control (-90° to 90°), quick presets (Copyright, Watermark, Draft)
+7. **Image Watermark Tool** (`/tools/image-watermark`): Text AND image watermarks with position control, customizable font/color/opacity/rotation for text mode, logo upload with scale control for image mode, dual-mode support with shared position/opacity controls
 8. **Image Border/Frame Tool** (`/tools/image-border`): Custom borders with width control (1-100px), color picker with presets, inner padding adjustment, shadow effects with blur control, quick presets (Classic White, Bold Black, Gallery Frame, Modern Minimal)
 9. **Color Palette Extractor** (`/tools/color-palette-extractor`): Extract 3-10 dominant colors from images, display hex and RGB values, one-click copy to clipboard, palette preview bar, export formats (CSS array, Tailwind colors), interactive color swatches
 10. **Image to Base64 Converter** (`/tools/image-to-base64`): Convert images to Base64 strings, multiple output formats (Plain, Data URL, CSS, HTML, Markdown), copy to clipboard, download as text file, file size comparison stats
 11. **Image Comparison Tool** (`/tools/image-comparison`): Side-by-side comparison mode, interactive slider view with smooth transitions, dimension comparison, file size stats, swap images functionality, perfect for before/after showcases
+
+**Phase 5 - Additional High-Value Tools:**
+12. **Add Text to Image** (`/tools/add-text-to-image`): Multiple text layer support with add/remove, full text customization (font, size, color, position X/Y, alignment), text styling (bold, italic), background with opacity control, quick presets (Bold Title, Subtitle, Caption), perfect for memes and social media graphics
+13. **Make Round Image** (`/tools/make-round-image`): Create circular profile pictures with transparent backgrounds, customizable output size (100-2000px), optional border with color/width controls, size presets (400px, 800px, 1200px), auto-crops to fill circle, always outputs PNG format
 
 **Design System:**
 - Primary brand color: #06183C (dark navy)

@@ -32,6 +32,8 @@ import ImageBorder from "@/pages/tools/image-border";
 import ColorPaletteExtractor from "@/pages/tools/color-palette-extractor";
 import ImageToBase64 from "@/pages/tools/image-to-base64";
 import ImageComparison from "@/pages/tools/image-comparison";
+import AddTextToImage from "@/pages/tools/add-text-to-image";
+import MakeRoundImage from "@/pages/tools/make-round-image";
 
 function Router() {
   return (
@@ -59,6 +61,8 @@ function Router() {
         <Route path="/tools/color-palette-extractor" component={ColorPaletteExtractor} />
         <Route path="/tools/image-to-base64" component={ImageToBase64} />
         <Route path="/tools/image-comparison" component={ImageComparison} />
+        <Route path="/tools/add-text-to-image" component={AddTextToImage} />
+        <Route path="/tools/make-round-image" component={MakeRoundImage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
