@@ -29,11 +29,10 @@ export default function Navigation() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center" data-testid="logo-link">
-                <img
-                  src="https://vectorwiz.com/wp-content/uploads/2023/02/VectorWiz-New-Logo-04.svg"
-                  alt="VectorWiz"
-                  style={{ height: '26px' }}
-                />
+                <span className="text-xl font-bold tracking-tight">
+                  <span className="text-white">Vector</span>
+                  <span className="text-[#0B9F47]">Wiz</span>
+                </span>
               </Link>
 
               {/* Desktop Navigation */}
@@ -106,11 +105,10 @@ export default function Navigation() {
         >
           <SheetHeader className="border-b border-white/10 pb-4 mb-6">
             <SheetTitle className="flex items-center justify-between">
-              <img
-                src="https://vectorwiz.com/wp-content/uploads/2023/02/VectorWiz-New-Logo-04.svg"
-                alt="VectorWiz"
-                className="h-8"
-              />
+              <span className="text-xl font-bold tracking-tight">
+                <span className="text-white">Vector</span>
+                <span className="text-[#0B9F47]">Wiz</span>
+              </span>
             </SheetTitle>
           </SheetHeader>
           
