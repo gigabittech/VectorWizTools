@@ -327,11 +327,11 @@ function ToolCard({ tool }: { tool: Tool }) {
           {tool.description}
         </p>
         {tool.comingSoon ? (
-          <span className="inline-flex items-center text-xs font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-full self-start" data-testid="coming-soon-badge">
+          <span className="inline-flex items-center text-xs font-medium text-amber-700 backdrop-blur-md bg-amber-100/60 border border-amber-200/40 px-3 py-1.5 rounded-full self-start shadow-sm" data-testid="coming-soon-badge">
             Coming Soon
           </span>
         ) : (
-          <div className="flex items-center text-[#0B9F47] text-sm font-medium group-hover:underline">
+          <div className="inline-flex items-center text-sm font-medium text-white backdrop-blur-md bg-[#0B9F47]/90 hover:bg-[#0B9F47] border border-[#0B9F47]/40 px-4 py-2 rounded-lg shadow-sm transition-all group-hover:shadow-md">
             Try Now
             <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
           </div>
