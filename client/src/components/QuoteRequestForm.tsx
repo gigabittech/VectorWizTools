@@ -56,11 +56,11 @@ export default function QuoteRequestForm() {
   if (isSubmitted) {
     return (
       <div className="max-w-2xl mx-auto p-8 text-center" data-testid="quote-success">
-        <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="h-8 w-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Thank You!</h2>
-        <p className="text-muted-foreground mb-6">
+        <h2 className="text-2xl font-bold mb-2 text-white">Thank You!</h2>
+        <p className="text-gray-200 mb-6">
           Your quote request has been submitted successfully. We'll review your project and get back to you within 24 hours.
         </p>
         <Button
@@ -77,8 +77,8 @@ export default function QuoteRequestForm() {
   return (
     <div className="max-w-2xl mx-auto p-6" data-testid="quote-request-form">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">Request a Quote</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-2xl font-bold mb-2 text-white">Request a Quote</h2>
+        <p className="text-gray-200">
           Fill out the form below and we'll get back to you with a custom quote for your project.
         </p>
       </div>
@@ -86,8 +86,8 @@ export default function QuoteRequestForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">
-              First Name <span className="text-red-500">*</span>
+            <Label htmlFor="firstName" className="text-white">
+              First Name <span className="text-red-300">*</span>
             </Label>
             <Input
               id="firstName"
@@ -101,8 +101,8 @@ export default function QuoteRequestForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="lastName">
-              Last Name <span className="text-red-500">*</span>
+            <Label htmlFor="lastName" className="text-white">
+              Last Name <span className="text-red-300">*</span>
             </Label>
             <Input
               id="lastName"
@@ -117,8 +117,8 @@ export default function QuoteRequestForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">
-            Email Address <span className="text-red-500">*</span>
+          <Label htmlFor="email" className="text-white">
+            Email Address <span className="text-red-300">*</span>
           </Label>
           <Input
             id="email"
@@ -133,8 +133,8 @@ export default function QuoteRequestForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="projectDetails">
-            Project Details & Notes <span className="text-red-500">*</span>
+          <Label htmlFor="projectDetails" className="text-white">
+            Project Details & Notes <span className="text-red-300">*</span>
           </Label>
           <Textarea
             id="projectDetails"
@@ -150,7 +150,7 @@ export default function QuoteRequestForm() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="numberOfFiles">Number of Files/Images (Optional)</Label>
+            <Label htmlFor="numberOfFiles" className="text-white">Number of Files/Images (Optional)</Label>
             <Input
               id="numberOfFiles"
               data-testid="input-number-of-files"
@@ -160,7 +160,7 @@ export default function QuoteRequestForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="turnaroundTime">Turnaround Time (Optional)</Label>
+            <Label htmlFor="turnaroundTime" className="text-white">Turnaround Time (Optional)</Label>
             <Input
               id="turnaroundTime"
               data-testid="input-turnaround-time"
@@ -171,12 +171,12 @@ export default function QuoteRequestForm() {
         </div>
 
         <div className="space-y-2">
-          <Label>File Uploads (Optional)</Label>
-          <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
-            <p className="text-sm text-muted-foreground mb-2">
+          <Label className="text-white">File Uploads (Optional)</Label>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+            <p className="text-sm text-gray-200 mb-2">
               After submitting this form, we'll send you an email with instructions for uploading your files securely.
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-300">
               Or mention in the project details if you'll send files via email.
             </p>
           </div>

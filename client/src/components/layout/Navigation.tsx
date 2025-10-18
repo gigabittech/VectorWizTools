@@ -52,17 +52,10 @@ export default function Navigation() {
                 >
                   Services
                 </a>
-                <a
-                  href="https://vectorwiz.com/contact/"
-                  className="text-white hover:text-gray-300 transition-colors text-sm font-medium"
-                  data-testid="nav-contact"
-                >
-                  Contact
-                </a>
                 <Link
-                  href="/tools"
+                  href="/"
                   className={`transition-colors text-sm font-medium ${
-                    isActive("/tools")
+                    isActive("/")
                       ? "text-[#0B9F47]"
                       : "text-white hover:text-gray-300"
                   }`}
@@ -70,6 +63,13 @@ export default function Navigation() {
                 >
                   Tools
                 </Link>
+                <a
+                  href="https://vectorwiz.com/contact/"
+                  className="text-white hover:text-gray-300 transition-colors text-sm font-medium"
+                  data-testid="nav-contact"
+                >
+                  Contact
+                </a>
               </div>
             </div>
 
@@ -130,16 +130,9 @@ export default function Navigation() {
           >
             Services
           </a>
-          <a
-            href="https://vectorwiz.com/contact/"
-            className="block px-4 py-2 text-foreground hover:bg-muted rounded transition-colors"
-            data-testid="mobile-nav-contact"
-          >
-            Contact
-          </a>
-          <Link href="/tools" onClick={close}>
+          <Link href="/" onClick={close}>
             <Button
-              variant={isActive("/tools") ? "filled" : "subtle"}
+              variant={isActive("/") ? "filled" : "subtle"}
               fullWidth
               justify="flex-start"
               data-testid="mobile-nav-tools"
@@ -147,6 +140,13 @@ export default function Navigation() {
               Tools
             </Button>
           </Link>
+          <a
+            href="https://vectorwiz.com/contact/"
+            className="block px-4 py-2 text-foreground hover:bg-muted rounded transition-colors"
+            data-testid="mobile-nav-contact"
+          >
+            Contact
+          </a>
 
           <Button
             onClick={() => {
@@ -165,7 +165,12 @@ export default function Navigation() {
 
       {/* Quote Request Dialog */}
       <Dialog open={quoteDialogOpen} onOpenChange={setQuoteDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent 
+          className="max-w-3xl max-h-[90vh] overflow-y-auto text-white border-none"
+          style={{
+            background: "linear-gradient(75deg, #06183C 0%, #20448B 100%)"
+          }}
+        >
           <QuoteRequestForm />
         </DialogContent>
       </Dialog>

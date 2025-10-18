@@ -10,8 +10,7 @@ import { theme, darkTheme } from './lib/theme';
 import { ColorSchemeProvider, useColorScheme } from './lib/color-scheme';
 import Layout from "@/components/layout/Layout";
 import NotFound from "@/pages/not-found";
-import Homepage from "@/pages/homepage";
-import Tools from "@/pages/tools";
+import ToolsLandingPage from "@/pages/ToolsLandingPage";
 import DPICalculator from "@/pages/tools/dpi-calculator";
 import TurnaroundEstimator from "@/pages/tools/turnaround-estimator";
 import VectorChecker from "@/pages/tools/vector-checker";
@@ -28,8 +27,7 @@ function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={Homepage} />
-        <Route path="/tools" component={Tools} />
+        <Route path="/" component={ToolsLandingPage} />
         <Route path="/tools/dpi-calculator" component={DPICalculator} />
         <Route path="/tools/turnaround-estimator" component={TurnaroundEstimator} />
         <Route path="/tools/vector-checker" component={VectorChecker} />
