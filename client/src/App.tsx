@@ -22,6 +22,10 @@ import LogoDimensions from "@/pages/tools/logo-dimensions";
 import VectorSimplifier from "@/pages/tools/vector-simplifier";
 import AspectRatioCalculator from "@/pages/tools/aspect-ratio-calculator";
 import FontToVector from "@/pages/tools/font-to-vector";
+import ImageResizer from "@/pages/tools/image-resizer";
+import ImageCompressor from "@/pages/tools/image-compressor";
+import ImageCropper from "@/pages/tools/image-cropper";
+import ImageRotator from "@/pages/tools/image-rotator";
 
 function Router() {
   return (
@@ -39,6 +43,10 @@ function Router() {
         <Route path="/tools/vector-simplifier" component={VectorSimplifier} />
         <Route path="/tools/aspect-ratio-calculator" component={AspectRatioCalculator} />
         <Route path="/tools/font-to-vector" component={FontToVector} />
+        <Route path="/tools/image-resizer" component={ImageResizer} />
+        <Route path="/tools/image-compressor" component={ImageCompressor} />
+        <Route path="/tools/image-cropper" component={ImageCropper} />
+        <Route path="/tools/image-rotator" component={ImageRotator} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
