@@ -1,379 +1,320 @@
-import { useEffect } from "react";
-import FormatConverter from "@/components/tools/FormatConverter";
-import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge, Anchor } from "@mantine/core";
-import { ArrowLeft, FileImage, Repeat, CheckCircle, Award, Zap, Download, Upload, Globe, Printer } from "lucide-react";
-import { Link } from "wouter";
+import { useState } from "react";
+import ToolLayout from "@/components/tools/shared/ToolLayout";
+import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
+import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
+import DownloadButton from "@/components/tools/shared/DownloadButton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { convertImageFormat, SupportedImageFormat } from "@/lib/imageProcessing";
+import { downloadFile } from "@/lib/fileUtils";
+import { RefreshCw } from "lucide-react";
 
-export default function FormatConverterPage() {
+export default function FormatConverter() {
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [status, setStatus] = useState<ProcessingStatus>("idle");
+  const [targetFormat, setTargetFormat] = useState<SupportedImageFormat>("image/png");
+  const [quality, setQuality] = useState([92]);
+  const [convertedBlob, setConvertedBlob] = useState<Blob | null>(null);
+  const [convertedPreview, setConvertedPreview] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    // Set SEO metadata
-    document.title = "Free Image Format Converter Tool | Convert SVG, PNG, JPG, WebP | VectorWiz";
-    
-    // Meta description
-    const metaDescription = document.querySelector('meta[name="description"]') || document.createElement('meta');
-    metaDescription.setAttribute('name', 'description');
-    metaDescription.setAttribute('content', 'Convert between SVG, PNG, JPG, WebP, PDF, and EPS formats instantly. Professional quality image format conversion tool for web graphics, print materials, and vector illustrations.');
-    if (!document.querySelector('meta[name="description"]')) {
-      document.head.appendChild(metaDescription);
+  const formatOptions: { value: SupportedImageFormat; label: string; extension: string }[] = [
+    { value: "image/png", label: "PNG", extension: "png" },
+    { value: "image/jpeg", label: "JPEG", extension: "jpg" },
+    { value: "image/webp", label: "WebP", extension: "webp" },
+    { value: "image/bmp", label: "BMP", extension: "bmp" },
+    { value: "image/gif", label: "GIF", extension: "gif" },
+  ];
+
+  const handleFilesSelected = (uploadedFiles: UploadedFile[]) => {
+    setFiles(uploadedFiles);
+    setConvertedBlob(null);
+    setConvertedPreview(null);
+  };
+
+  const handleConvert = async () => {
+    if (files.length === 0) {
+      toast({
+        title: "No File",
+        description: "Please upload an image first",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Open Graph tags
-    const ogTitle = document.querySelector('meta[property="og:title"]') || document.createElement('meta');
-    ogTitle.setAttribute('property', 'og:title');
-    ogTitle.setAttribute('content', 'Free Image Format Converter Tool | Convert SVG, PNG, JPG, WebP');
-    if (!document.querySelector('meta[property="og:title"]')) {
-      document.head.appendChild(ogTitle);
+    setStatus("processing");
+
+    try {
+      const qualityValue = quality[0] / 100;
+      const blob = await convertImageFormat(files[0].file, targetFormat, qualityValue);
+      
+      setConvertedBlob(blob);
+      const previewUrl = URL.createObjectURL(blob);
+      setConvertedPreview(previewUrl);
+      
+      setStatus("success");
+      
+      const formatName = formatOptions.find(f => f.value === targetFormat)?.label || "image";
+      toast({
+        title: "Success!",
+        description: `Image converted to ${formatName}`,
+      });
+    } catch (error) {
+      setStatus("error");
+      toast({
+        title: "Conversion Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
     }
+  };
 
-    const ogDescription = document.querySelector('meta[property="og:description"]') || document.createElement('meta');
-    ogDescription.setAttribute('property', 'og:description');
-    ogDescription.setAttribute('content', 'Convert between SVG, PNG, JPG, WebP, PDF, and EPS formats instantly with professional quality results.');
-    if (!document.querySelector('meta[property="og:description"]')) {
-      document.head.appendChild(ogDescription);
-    }
+  const handleDownload = () => {
+    if (!convertedBlob || files.length === 0) return;
 
-    // Structured Data for SEO - Always update for current tool
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Image Format Converter",
-      "description": "Convert between SVG, PNG, JPG, WebP, PDF, and EPS formats instantly with professional quality",
-      "url": "https://vectorwiz.com/tools/format-converter",
-      "applicationCategory": "DesignApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      }
-    };
+    const originalName = files[0].file.name;
+    const baseName = originalName.replace(/\.[^/.]+$/, '');
+    const targetExt = formatOptions.find(f => f.value === targetFormat)?.extension || 'png';
+    const newFilename = `${baseName}.${targetExt}`;
 
-    // Remove existing tool-specific structured data and add new one
-    const existingScript = document.getElementById('tool-structured-data');
-    if (existingScript) {
-      existingScript.remove();
-    }
-    
-    const scriptTag = document.createElement('script');
-    scriptTag.type = 'application/ld+json';
-    scriptTag.id = 'tool-structured-data';
-    scriptTag.textContent = JSON.stringify(structuredData);
-    document.head.appendChild(scriptTag);
+    downloadFile(convertedBlob, newFilename);
+  };
 
-    // Additional Open Graph tags
-    const ogType = document.querySelector('meta[property="og:type"]') || document.createElement('meta');
-    ogType.setAttribute('property', 'og:type');
-    ogType.setAttribute('content', 'website');
-    if (!document.querySelector('meta[property="og:type"]')) {
-      document.head.appendChild(ogType);
-    }
+  const quickConversions = [
+    { from: "PNG", to: "image/jpeg", label: "PNG → JPG" },
+    { from: "JPG", to: "image/png", label: "JPG → PNG" },
+    { from: "Any", to: "image/webp", label: "Any → WebP" },
+  ];
 
-    const ogImage = document.querySelector('meta[property="og:image"]') || document.createElement('meta');
-    ogImage.setAttribute('property', 'og:image');
-    ogImage.setAttribute('content', 'https://vectorwiz.com/og-format-converter.png');
-    if (!document.querySelector('meta[property="og:image"]')) {
-      document.head.appendChild(ogImage);
-    }
-
-    const ogUrl = document.querySelector('meta[property="og:url"]') || document.createElement('meta');
-    ogUrl.setAttribute('property', 'og:url');
-    ogUrl.setAttribute('content', 'https://vectorwiz.com/tools/format-converter');
-    if (!document.querySelector('meta[property="og:url"]')) {
-      document.head.appendChild(ogUrl);
-    }
-
-    // Canonical URL
-    const canonical = document.querySelector('link[rel="canonical"]') || document.createElement('link');
-    canonical.setAttribute('rel', 'canonical');
-    canonical.setAttribute('href', 'https://vectorwiz.com/tools/format-converter');
-    if (!document.querySelector('link[rel="canonical"]')) {
-      document.head.appendChild(canonical);
-    }
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-white font-bold">V</span>
-          </div>
-          <Text c="dimmed">Loading format converter...</Text>
-        </div>
-      </div>
-    );
-  }
+  const needsQuality = targetFormat === "image/jpeg" || targetFormat === "image/webp";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      
-      <Container size="xl" py="xl" data-testid="format-converter-page">
-        <div className="mb-8">
-          <Link href="/tools">
-            <Button variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />} mb="md" data-testid="back-to-tools">
-              Back to Tools
-            </Button>
-          </Link>
-          
-          <Group align="flex-start" gap="lg" mb="xl">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-              <Repeat className="h-8 w-8 text-blue-600" />
-            </div>
-            <div>
-              <Title order={1} size="h1" mb="xs">Free Image Format Converter Tool</Title>
-              <Text size="lg" c="dimmed" mb="md">
-                Convert between SVG, PNG, JPG, WebP, PDF, and EPS formats instantly. Professional quality conversion 
-                for web graphics, print materials, and vector illustrations.
-              </Text>
-              <Group gap="xs">
-                <Badge variant="light" color="blue">Multiple Formats</Badge>
-                <Badge variant="light" color="green">Instant Conversion</Badge>
-                <Badge variant="light" color="purple">Professional Quality</Badge>
-              </Group>
-            </div>
-          </Group>
-        </div>
+    <ToolLayout
+      title="Image Format Converter"
+      description="Convert images between formats online for free. Transform PNG, JPG, WebP, GIF, and BMP files instantly. Perfect for web optimization and compatibility."
+      category="Image Tools"
+      keywords={["convert image", "png to jpg", "jpg to png", "webp converter", "image format", "convert to webp"]}
+      howToSteps={[
+        { name: "Upload Image", text: "Click or drag and drop your image file" },
+        { name: "Choose Format", text: "Select the target format you want to convert to" },
+        { name: "Adjust Quality", text: "Set quality level for lossy formats (JPG, WebP)" },
+        { name: "Convert", text: "Click Convert and download your new image" },
+      ]}
+    >
+      <div className="space-y-6">
+        {/* File Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-[#0B9F47]" />
+              Upload Image
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FileUploader
+              accept="image/*"
+              maxFiles={1}
+              maxSize={50 * 1024 * 1024}
+              onFilesSelected={handleFilesSelected}
+              multiple={false}
+              allowedTypes={["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/tiff"]}
+            />
+          </CardContent>
+        </Card>
 
-        <FormatConverter />
+        {/* Conversion Settings */}
+        {files.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Conversion Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Source Format Display */}
+              <div className="bg-blue-50 p-4 rounded-lg" data-testid="source-format">
+                <p className="text-sm font-medium text-blue-900 mb-1">Source Format</p>
+                <p className="text-lg font-bold text-blue-700">
+                  {files[0].file.type.split('/')[1]?.toUpperCase() || "Unknown"}
+                </p>
+              </div>
 
-        {/* Comprehensive Format Guide */}
-        <Paper withBorder shadow="md" p="xl" mt="xl">
-          <Title order={2} mb="lg" ta="center">Complete Image Format Conversion Guide</Title>
-          <Text ta="center" c="dimmed" mb="xl" maw={600} mx="auto">
-            Understanding when and how to convert between different image formats can dramatically improve 
-            your web performance, print quality, and design workflow efficiency.
-          </Text>
-          <Grid gutter="xl">
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Paper p="lg" className="bg-green-50 dark:bg-green-950/20 h-full">
-                <Group gap="sm" mb="md">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                  <Title order={3} c="green">Vector Formats (Scalable)</Title>
-                </Group>
-                <Text size="sm" mb="lg">
-                  Mathematical-based graphics that maintain quality at any size. Perfect for logos, icons, and illustrations.
-                </Text>
-                <Stack gap="md">
-                  <div>
-                    <Group gap="xs" mb="xs">
-                      <Badge variant="light" color="green" size="sm">SVG</Badge>
-                      <Text size="sm" fw={500}>Scalable Vector Graphics</Text>
-                    </Group>
-                    <Text size="xs" c="dimmed">Best for: Web icons, logos, simple illustrations</Text>
-                  </div>
-                  <div>
-                    <Group gap="xs" mb="xs">
-                      <Badge variant="light" color="green" size="sm">PDF</Badge>
-                      <Text size="sm" fw={500}>Portable Document Format</Text>
-                    </Group>
-                    <Text size="xs" c="dimmed">Best for: Print documents, professional presentations</Text>
-                  </div>
-                  <div>
-                    <Group gap="xs" mb="xs">
-                      <Badge variant="light" color="green" size="sm">EPS</Badge>
-                      <Text size="sm" fw={500}>Encapsulated PostScript</Text>
-                    </Group>
-                    <Text size="xs" c="dimmed">Best for: Professional printing, design workflows</Text>
-                  </div>
-                </Stack>
-              </Paper>
-            </Grid.Col>
-            
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Paper p="lg" className="bg-blue-50 dark:bg-blue-950/20 h-full">
-                <Group gap="sm" mb="md">
-                  <FileImage className="h-6 w-6 text-blue-600" />
-                  <Title order={3} c="blue">Raster Formats (Pixel-Based)</Title>
-                </Group>
-                <Text size="sm" mb="lg">
-                  Pixel-grid based images ideal for photographs and complex color gradients with millions of colors.
-                </Text>
-                <Stack gap="md">
-                  <div>
-                    <Group gap="xs" mb="xs">
-                      <Badge variant="light" color="blue" size="sm">PNG</Badge>
-                      <Text size="sm" fw={500}>Portable Network Graphics</Text>
-                    </Group>
-                    <Text size="xs" c="dimmed">Best for: Logos with transparency, web graphics</Text>
-                  </div>
-                  <div>
-                    <Group gap="xs" mb="xs">
-                      <Badge variant="light" color="blue" size="sm">JPG</Badge>
-                      <Text size="sm" fw={500}>Joint Photographic Experts Group</Text>
-                    </Group>
-                    <Text size="xs" c="dimmed">Best for: Photographs, complex images, web optimization</Text>
-                  </div>
-                  <div>
-                    <Group gap="xs" mb="xs">
-                      <Badge variant="light" color="blue" size="sm">WebP</Badge>
-                      <Text size="sm" fw={500}>Modern Web Format</Text>
-                    </Group>
-                    <Text size="xs" c="dimmed">Best for: Modern web applications, faster loading</Text>
-                  </div>
-                </Stack>
-              </Paper>
-            </Grid.Col>
-          </Grid>
-        </Paper>
+              {/* Quick Conversion Buttons */}
+              <div>
+                <Label className="mb-3 block">Quick Conversions</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {quickConversions.map((conv) => (
+                    <Button
+                      key={conv.label}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTargetFormat(conv.to as SupportedImageFormat)}
+                      data-testid={`preset-${conv.label.toLowerCase().replace(/\s+/g, '-').replace(/→/g, 'to')}`}
+                    >
+                      {conv.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
-        {/* Conversion Best Practices */}
-        <Paper withBorder shadow="md" p="xl" mt="xl">
-          <Title order={2} mb="lg">Format Conversion Best Practices</Title>
-          <Grid gutter="xl">
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="lg" className="bg-blue-50 dark:bg-blue-950/20 h-full">
-                <Group gap="sm" mb="md">
-                  <Globe className="h-5 w-5 text-blue-600" />
-                  <Title order={3} c="blue">Web Optimization</Title>
-                </Group>
-                <List size="sm" spacing="sm">
-                  <List.Item>SVG for icons and logos (infinite scaling)</List.Item>
-                  <List.Item>WebP for modern browsers (superior compression)</List.Item>
-                  <List.Item>PNG for images requiring transparency</List.Item>
-                  <List.Item>JPG for photographs (smaller file sizes)</List.Item>
-                </List>
-              </Paper>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="lg" className="bg-green-50 dark:bg-green-950/20 h-full">
-                <Group gap="sm" mb="md">
-                  <Printer className="h-5 w-5 text-green-600" />
-                  <Title order={3} c="green">Print Production</Title>
-                </Group>
-                <List size="sm" spacing="sm">
-                  <List.Item>PDF for multi-page documents and presentations</List.Item>
-                  <List.Item>EPS for professional design workflows</List.Item>
-                  <List.Item>High-resolution PNG for detailed graphics</List.Item>
-                  <List.Item>Vector formats for scalable print materials</List.Item>
-                </List>
-              </Paper>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="lg" className="bg-purple-50 dark:bg-purple-950/20 h-full">
-                <Group gap="sm" mb="md">
-                  <Award className="h-5 w-5 text-purple-600" />
-                  <Title order={3} c="purple">Quality Preservation</Title>
-                </Group>
-                <List size="sm" spacing="sm">
-                  <List.Item>Always keep original vector files when possible</List.Item>
-                  <List.Item>Use high quality settings for final outputs</List.Item>
-                  <List.Item>Consider lossy vs lossless compression needs</List.Item>
-                  <List.Item>Test converted files in intended applications</List.Item>
-                </List>
-              </Paper>
-            </Grid.Col>
-          </Grid>
-        </Paper>
+              {/* Target Format Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="format">Convert To</Label>
+                <Select value={targetFormat} onValueChange={(value) => setTargetFormat(value as SupportedImageFormat)}>
+                  <SelectTrigger id="format" data-testid="select-format">
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formatOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value} data-testid={`format-${option.label.toLowerCase()}`}>
+                        {option.label} (.{option.extension})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        {/* Common Conversion Scenarios */}
-        <Paper withBorder shadow="md" p="xl" mt="xl">
-          <Title order={2} mb="lg">Common Conversion Scenarios & Solutions</Title>
-          <Grid gutter="lg">
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Title order={3} mb="md" c="blue">Design to Web Workflow</Title>
-              <Stack gap="md">
-                <Paper p="md" className="bg-gray-50 dark:bg-gray-800">
-                  <Text fw={500} size="sm" mb="xs">Logo for Website</Text>
-                  <Text size="xs" c="dimmed">AI/EPS → SVG (scalable) + PNG (fallback)</Text>
-                </Paper>
-                <Paper p="md" className="bg-gray-50 dark:bg-gray-800">
-                  <Text fw={500} size="sm" mb="xs">Product Photos</Text>
-                  <Text size="xs" c="dimmed">RAW/TIFF → JPG (compressed) + WebP (modern)</Text>
-                </Paper>
-                <Paper p="md" className="bg-gray-50 dark:bg-gray-800">
-                  <Text fw={500} size="sm" mb="xs">UI Icons</Text>
-                  <Text size="xs" c="dimmed">Sketch/Figma → SVG (icons) + PNG (sprites)</Text>
-                </Paper>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Title order={3} mb="md" c="green">Print Production Workflow</Title>
-              <Stack gap="md">
-                <Paper p="md" className="bg-gray-50 dark:bg-gray-800">
-                  <Text fw={500} size="sm" mb="xs">Business Cards</Text>
-                  <Text size="xs" c="dimmed">SVG/AI → PDF (print-ready) + EPS (backup)</Text>
-                </Paper>
-                <Paper p="md" className="bg-gray-50 dark:bg-gray-800">
-                  <Text fw={500} size="sm" mb="xs">Large Format Banners</Text>
-                  <Text size="xs" c="dimmed">Vector → PDF (scalable) + High-res PNG</Text>
-                </Paper>
-                <Paper p="md" className="bg-gray-50 dark:bg-gray-800">
-                  <Text fw={500} size="sm" mb="xs">Brochures & Catalogs</Text>
-                  <Text size="xs" c="dimmed">InDesign → PDF (final) + JPG (web preview)</Text>
-                </Paper>
-              </Stack>
-            </Grid.Col>
-          </Grid>
-        </Paper>
+              {/* Quality Slider (for lossy formats) */}
+              {needsQuality && (
+                <div className="space-y-2">
+                  <Label>Quality: {quality[0]}%</Label>
+                  <Slider
+                    value={quality}
+                    onValueChange={setQuality}
+                    min={10}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                    data-testid="slider-quality"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Higher quality = better image but larger file size
+                  </p>
+                </div>
+              )}
 
-        {/* Professional Services */}
-        <Paper withBorder shadow="md" p="xl" mt="xl">
-          <Title order={2} mb="lg">Need Professional Vector Conversion?</Title>
-          <Grid gutter="xl">
-            <Grid.Col span={{ base: 12, md: 8 }}>
-              <Text size="lg" mb="md">
-                While our format converter handles standard conversions, some projects require professional attention:
-              </Text>
-              <List spacing="sm" size="sm" icon={<CheckCircle size={16} className="text-green-500" />}>
-                <List.Item>Converting complex raster logos to perfect vector graphics</List.Item>
-                <List.Item>Color-matching and brand consistency across formats</List.Item>
-                <List.Item>Technical drawings and CAD file conversions</List.Item>
-                <List.Item>Large batch processing with quality control</List.Item>
-                <List.Item>Custom optimization for specific use cases</List.Item>
-              </List>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Stack gap="md">
-                <Button component={Link} href="/order/new" size="lg" color="green" fullWidth data-testid="professional-conversion-cta">
-                  Get Professional Conversion
-                </Button>
-                <Button component={Link} href="/tools/vector-checker" variant="outline" size="lg" fullWidth>
-                  Check File Format First
-                </Button>
-              </Stack>
-            </Grid.Col>
-          </Grid>
-        </Paper>
+              {/* Format Information */}
+              <div className="bg-gray-50 p-4 rounded-lg text-sm">
+                <p className="font-medium mb-2">Format Notes:</p>
+                <ul className="space-y-1 text-gray-700">
+                  {targetFormat === "image/png" && (
+                    <li>• PNG: Lossless, supports transparency, larger file size</li>
+                  )}
+                  {targetFormat === "image/jpeg" && (
+                    <li>• JPEG: Lossy compression, no transparency, smaller file size</li>
+                  )}
+                  {targetFormat === "image/webp" && (
+                    <li>• WebP: Modern format, great compression, supports transparency</li>
+                  )}
+                  {targetFormat === "image/bmp" && (
+                    <li>• BMP: Uncompressed, no transparency, very large file size</li>
+                  )}
+                  {targetFormat === "image/gif" && (
+                    <li>• GIF: Limited colors (256), supports animation and transparency</li>
+                  )}
+                </ul>
+              </div>
 
-        {/* Technical Information */}
-        <Paper withBorder shadow="md" p="xl" mt="xl">
-          <Title order={2} mb="lg">Technical Specifications & Limits</Title>
-          <Grid gutter="lg">
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Title order={3} mb="md">Supported Input Formats</Title>
-              <Group gap="xs" mb="md">
-                <Badge variant="light" color="green">SVG</Badge>
-                <Badge variant="light" color="green">AI</Badge>
-                <Badge variant="light" color="green">EPS</Badge>
-                <Badge variant="light" color="green">PDF</Badge>
-                <Badge variant="light" color="blue">PNG</Badge>
-                <Badge variant="light" color="blue">JPG</Badge>
-                <Badge variant="light" color="blue">WebP</Badge>
-                <Badge variant="light" color="blue">GIF</Badge>
-              </Group>
-              <Text size="sm" c="dimmed">Maximum file size: 50MB per file</Text>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Title order={3} mb="md">Quality Settings</Title>
-              <Stack gap="xs">
-                <Group justify="space-between">
-                  <Text size="sm">High Quality</Text>
-                  <Text size="xs" c="dimmed">95-100% (Print Ready)</Text>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm">Medium Quality</Text>
-                  <Text size="xs" c="dimmed">75-85% (Web Optimized)</Text>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm">Low Quality</Text>
-                  <Text size="xs" c="dimmed">50-65% (Smallest Size)</Text>
-                </Group>
-              </Stack>
-            </Grid.Col>
-          </Grid>
-        </Paper>
-      </Container>
-    </div>
+              {/* Convert Button */}
+              <Button
+                onClick={handleConvert}
+                className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
+                size="lg"
+                disabled={status === "processing"}
+                data-testid="button-convert"
+              >
+                Convert Image
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Processing Status */}
+        {status !== "idle" && (
+          <ProcessingIndicator
+            status={status}
+            message="Converting your image..."
+            successMessage="Image converted successfully!"
+            errorMessage="Failed to convert image. Please try again."
+          />
+        )}
+
+        {/* Preview and Download */}
+        {convertedBlob && convertedPreview && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Converted Image</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Conversion Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-900 mb-1">Original</p>
+                  <p className="font-semibold text-blue-700">
+                    {files[0].file.type.split('/')[1]?.toUpperCase()}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {(files[0].file.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-900 mb-1">Converted</p>
+                  <p className="font-semibold text-green-700">
+                    {formatOptions.find(f => f.value === targetFormat)?.label}
+                  </p>
+                  <p className="text-xs text-green-600">
+                    {(convertedBlob.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <p className="text-sm font-medium mb-2">Preview</p>
+                <img
+                  src={convertedPreview}
+                  alt="Converted preview"
+                  className="max-w-full h-auto mx-auto"
+                  data-testid="preview-image"
+                />
+              </div>
+
+              {/* Download Button */}
+              <DownloadButton
+                onClick={handleDownload}
+                className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
+                size="lg"
+              >
+                Download Converted Image
+              </DownloadButton>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>About Image Format Conversion</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none">
+            <p>
+              Our free online image format converter supports all major image formats:
+            </p>
+            <ul>
+              <li><strong>PNG to JPG:</strong> Convert PNG to smaller JPG files (loses transparency)</li>
+              <li><strong>JPG to PNG:</strong> Convert JPG to PNG for transparency support</li>
+              <li><strong>WebP:</strong> Convert to modern WebP format for better compression</li>
+              <li><strong>GIF:</strong> Convert to GIF for animations and limited color palettes</li>
+              <li><strong>BMP:</strong> Convert to/from uncompressed BMP format</li>
+            </ul>
+            <p>
+              Use this tool to optimize images for web, ensure compatibility, or prepare files for specific platforms.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </ToolLayout>
   );
 }
