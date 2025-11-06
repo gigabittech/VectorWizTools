@@ -34,6 +34,11 @@ import ImageToBase64 from "@/pages/tools/image-to-base64";
 import ImageComparison from "@/pages/tools/image-comparison";
 import AddTextToImage from "@/pages/tools/add-text-to-image";
 import MakeRoundImage from "@/pages/tools/make-round-image";
+import AIImageGenerator from "@/pages/tools/ai-image-generator";
+import RemoveBackgroundTool from "@/pages/tools/remove-background";
+import PDFToJPG from "@/pages/tools/pdf-to-jpg";
+import ImageUpscale from "@/pages/tools/image-upscale";
+import RemoveWatermark from "@/pages/tools/remove-watermark";
 
 function Router() {
   return (
@@ -63,6 +68,11 @@ function Router() {
         <Route path="/tools/image-comparison" component={ImageComparison} />
         <Route path="/tools/add-text-to-image" component={AddTextToImage} />
         <Route path="/tools/make-round-image" component={MakeRoundImage} />
+        <Route path="/tools/ai-image-generator" component={AIImageGenerator} />
+        <Route path="/tools/remove-background" component={RemoveBackgroundTool} />
+        <Route path="/tools/pdf-to-jpg" component={PDFToJPG} />
+        <Route path="/tools/image-upscale" component={ImageUpscale} />
+        <Route path="/tools/remove-watermark" component={RemoveWatermark} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

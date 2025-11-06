@@ -714,3 +714,250 @@ export async function extractColors(file: File, colorCount: number = 5): Promise
 
   return sortedColors;
 }
+
+export interface UpscaleOptions {
+  factor: number; // 2, 3, 4, etc.
+  quality?: number; // 0-1 for lossy formats
+}
+
+export async function upscaleImage(
+  file: File,
+  options: UpscaleOptions
+): Promise<Blob> {
+  const img = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+
+  const { factor, quality = 0.95 } = options;
+
+  // Calculate new dimensions
+  const newWidth = Math.round(img.width * factor);
+  const newHeight = Math.round(img.height * factor);
+
+  // Check for reasonable limits (max 8192px on any side)
+  const maxDimension = 8192;
+  if (newWidth > maxDimension || newHeight > maxDimension) {
+    throw new Error(`Upscaled image would exceed maximum dimension of ${maxDimension}px. Please use a smaller scale factor.`);
+  }
+
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+
+  // Enable high-quality image smoothing for better upscaling
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // Draw the image scaled up
+  ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+  // Determine output format (preserve original format, default to PNG for transparency)
+  const outputType = file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp'
+    ? file.type
+    : 'image/png';
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      outputType,
+      quality
+    );
+  });
+}
+
+export interface WatermarkRemovalOptions {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  blendRadius?: number; // How far to look for source pixels (default: 20)
+}
+
+export async function removeWatermark(
+  file: File,
+  options: WatermarkRemovalOptions
+): Promise<Blob> {
+  const img = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  // Draw original image
+  ctx.drawImage(img, 0, 0);
+
+  const { x, y, width, height, blendRadius = 40 } = options;
+
+  // Get image data
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  // Create a copy for reading original pixels (never modified)
+  const originalData = new Uint8ClampedArray(data);
+
+  // Process all pixels in the watermark area
+  for (let py = y; py < y + height; py++) {
+    for (let px = x; px < x + width; px++) {
+      if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+
+      const idx = (py * canvas.width + px) * 4;
+
+      // Find nearby pixels OUTSIDE the watermark area
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0;
+      let totalWeight = 0;
+
+      // Sample pixels around the current pixel
+      for (let dy = -blendRadius; dy <= blendRadius; dy++) {
+        for (let dx = -blendRadius; dx <= blendRadius; dx++) {
+          const sampleX = px + dx;
+          const sampleY = py + dy;
+
+          // Skip if outside image bounds
+          if (sampleX < 0 || sampleX >= canvas.width || sampleY < 0 || sampleY >= canvas.height) continue;
+
+          // CRITICAL: Only use pixels OUTSIDE the watermark area
+          const isInsideWatermark = sampleX >= x && sampleX < x + width && sampleY >= y && sampleY < y + height;
+          if (isInsideWatermark) continue;
+
+          // Calculate distance
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > blendRadius) continue;
+
+          // Weight: closer pixels have more influence, prefer pixels just outside watermark
+          const distToWatermarkEdge = Math.min(
+            Math.abs(sampleX - x),
+            Math.abs(sampleX - (x + width)),
+            Math.abs(sampleY - y),
+            Math.abs(sampleY - (y + height))
+          );
+          
+          // Higher weight for pixels closer to watermark edge (just outside)
+          const edgeWeight = distToWatermarkEdge < 5 ? 3 : 1;
+          const distanceWeight = 1 / (1 + dist * 0.1);
+          const weight = edgeWeight * distanceWeight;
+
+          const sampleIdx = (sampleY * canvas.width + sampleX) * 4;
+          rSum += originalData[sampleIdx] * weight;
+          gSum += originalData[sampleIdx + 1] * weight;
+          bSum += originalData[sampleIdx + 2] * weight;
+          aSum += originalData[sampleIdx + 3] * weight;
+          totalWeight += weight;
+        }
+      }
+
+      // Apply the new pixel value
+      if (totalWeight > 0) {
+        data[idx] = Math.round(rSum / totalWeight);
+        data[idx + 1] = Math.round(gSum / totalWeight);
+        data[idx + 2] = Math.round(bSum / totalWeight);
+        data[idx + 3] = Math.round(aSum / totalWeight);
+      } else {
+        // Fallback: use nearest pixel outside watermark
+        let found = false;
+        for (let radius = 1; radius <= blendRadius * 2 && !found; radius++) {
+          for (let dy = -radius; dy <= radius && !found; dy++) {
+            for (let dx = -radius; dx <= radius && !found; dx++) {
+              const sampleX = px + dx;
+              const sampleY = py + dy;
+              if (sampleX < 0 || sampleX >= canvas.width || sampleY < 0 || sampleY >= canvas.height) continue;
+              
+              const isInsideWatermark = sampleX >= x && sampleX < x + width && sampleY >= y && sampleY < y + height;
+              if (isInsideWatermark) continue;
+              
+              const sampleIdx = (sampleY * canvas.width + sampleX) * 4;
+              data[idx] = originalData[sampleIdx];
+              data[idx + 1] = originalData[sampleIdx + 1];
+              data[idx + 2] = originalData[sampleIdx + 2];
+              data[idx + 3] = originalData[sampleIdx + 3];
+              found = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Put the modified image data back
+  ctx.putImageData(imageData, 0, 0);
+
+  // Second pass: refine the result using the inpainted pixels
+  const refinedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const refinedData = refinedImageData.data;
+
+  for (let py = y; py < y + height; py++) {
+    for (let px = x; px < x + width; px++) {
+      if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+
+      const idx = (py * canvas.width + px) * 4;
+
+      // Blend with surrounding pixels (now including already-inpainted ones)
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0;
+      let totalWeight = 0;
+
+      for (let dy = -20; dy <= 20; dy++) {
+        for (let dx = -20; dx <= 20; dx++) {
+          const sampleX = px + dx;
+          const sampleY = py + dy;
+
+          if (sampleX < 0 || sampleX >= canvas.width || sampleY < 0 || sampleY >= canvas.height) continue;
+
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 20) continue;
+
+          // Prefer pixels outside watermark, but also use nearby inpainted pixels
+          const isInsideWatermark = sampleX >= x && sampleX < x + width && sampleY >= y && sampleY < y + height;
+          const weight = isInsideWatermark ? (1 / (1 + dist * 0.5)) : (1 / (1 + dist * 0.1)) * 2;
+
+          const sampleIdx = (sampleY * canvas.width + sampleX) * 4;
+          rSum += refinedData[sampleIdx] * weight;
+          gSum += refinedData[sampleIdx + 1] * weight;
+          bSum += refinedData[sampleIdx + 2] * weight;
+          aSum += refinedData[sampleIdx + 3] * weight;
+          totalWeight += weight;
+        }
+      }
+
+      if (totalWeight > 0) {
+        refinedData[idx] = Math.round(rSum / totalWeight);
+        refinedData[idx + 1] = Math.round(gSum / totalWeight);
+        refinedData[idx + 2] = Math.round(bSum / totalWeight);
+        refinedData[idx + 3] = Math.round(aSum / totalWeight);
+      }
+    }
+  }
+
+  ctx.putImageData(refinedImageData, 0, 0);
+
+  // Determine output format
+  const outputType = file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp'
+    ? file.type
+    : 'image/png';
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      outputType,
+      0.95
+    );
+  });
+}

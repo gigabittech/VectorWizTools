@@ -12,11 +12,10 @@ interface Tool {
 }
 
 const imageTools: Tool[] = [
-  { name: "AI Image Generator", description: "Create AI generated images", category: "Image Tools", icon: "🎨", comingSoon: true },
-  { name: "Remove Background", description: "Remove background from an image", category: "Image Tools", icon: "🖼️", comingSoon: true },
-  { name: "PDF to JPG", description: "Convert PDF pages to JPG images", category: "Image Tools", icon: "📄", comingSoon: true },
-  { name: "Upscale Image", description: "Increase image resolution and quality", category: "Image Tools", icon: "⬆️", comingSoon: true },
-  { name: "Remove Watermark", description: "Remove watermarks from photos", category: "Image Tools", icon: "💧", comingSoon: true },
+  { name: "AI Image Generator", description: "Create AI generated images", category: "Image Tools", route: "/tools/ai-image-generator", icon: "🎨" },
+  { name: "Remove Background", description: "Remove background from an image", category: "Image Tools", route: "/tools/remove-background", icon: "🖼️" },
+  { name: "Upscale Image", description: "Increase image resolution and quality", category: "Image Tools", route: "/tools/image-upscale", icon: "⬆️" },
+  { name: "Remove Watermark", description: "Remove watermarks from photos", category: "Image Tools", route: "/tools/remove-watermark", icon: "💧" },
   { name: "Image To Text", description: "Extract text from images (OCR)", category: "Image Tools", icon: "📝", comingSoon: true },
   { name: "Compress Image Size", description: "Reduce image file size", category: "Image Tools", route: "/tools/image-compressor", icon: "🗜️" },
   { name: "Resize Image Dimensions", description: "Change image width and height", category: "Image Tools", route: "/tools/image-resizer", icon: "📐" },
@@ -75,7 +74,7 @@ const imageTools: Tool[] = [
 const pdfTools: Tool[] = [
   { name: "Merge PDF", description: "Merge 2 or more PDF files into a single PDF file", category: "PDF Tools", icon: "🔗", comingSoon: true },
   { name: "Edit PDF", description: "Free PDF Editor", category: "PDF Tools", icon: "✏️", comingSoon: true },
-  { name: "PDF to JPG", description: "Convert PDF to JPG and download each page as an image", category: "PDF Tools", icon: "🖼️", comingSoon: true },
+  { name: "PDF to JPG", description: "Convert each PDF page to high‑quality JPG in your browser", category: "PDF Tools", route: "/tools/pdf-to-jpg", icon: "🖼️" },
   { name: "JPG to PDF", description: "Convert JPG images and receive as a PDF", category: "PDF Tools", icon: "📄", comingSoon: true },
   { name: "Compress PDF", description: "Lessen the file size of a PDF file", category: "PDF Tools", icon: "🗜️", comingSoon: true },
   { name: "Split PDF", description: "Split into one or multiple PDF files", category: "PDF Tools", icon: "✂️", comingSoon: true },
@@ -215,7 +214,7 @@ export default function ToolsLandingPage() {
                 `}
                 data-testid="filter-all"
               >
-                All Tools
+                All Tools ({allTools.length})
               </button>
               <button
                 onClick={() => setActiveCategory("Image Tools")}
@@ -229,7 +228,7 @@ export default function ToolsLandingPage() {
                 data-testid="filter-image"
               >
                 <ImageIcon className="h-4 w-4" />
-                Image Tools
+                Image Tools ({imageTools.length})
               </button>
               <button
                 onClick={() => setActiveCategory("PDF Tools")}
@@ -243,7 +242,7 @@ export default function ToolsLandingPage() {
                 data-testid="filter-pdf"
               >
                 <FileText className="h-4 w-4" />
-                PDF Tools
+                PDF Tools ({pdfTools.length})
               </button>
             </div>
           </div>
