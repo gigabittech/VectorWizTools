@@ -34,6 +34,70 @@ import ImageToBase64 from "@/pages/tools/image-to-base64";
 import ImageComparison from "@/pages/tools/image-comparison";
 import AddTextToImage from "@/pages/tools/add-text-to-image";
 import MakeRoundImage from "@/pages/tools/make-round-image";
+import AIImageGenerator from "@/pages/tools/ai-image-generator";
+import RemoveBackgroundTool from "@/pages/tools/remove-background";
+import PDFToJPG from "@/pages/tools/pdf-to-jpg";
+import ImageUpscale from "@/pages/tools/image-upscale";
+import RemoveWatermark from "@/pages/tools/remove-watermark";
+import ImageToText from "@/pages/tools/image-to-text";
+import RemoveObjects from "@/pages/tools/remove-objects";
+import ProfilePhotoMaker from "@/pages/tools/profile-photo-maker";
+import BlurBackground from "@/pages/tools/blur-background";
+import ColorizePhoto from "@/pages/tools/colorize-photo";
+import CombineImages from "@/pages/tools/combine-images";
+import MakeBackgroundTransparent from "@/pages/tools/make-background-transparent";
+import FileToSVG from "@/pages/tools/file-to-svg";
+import TranslateImage from "@/pages/tools/translate-image";
+import PostableImage from "@/pages/tools/postable-image";
+import CollageMaker from "@/pages/tools/collage-maker";
+import ChartMaker from "@/pages/tools/chart-maker";
+import ImageSplitter from "@/pages/tools/image-splitter";
+import MergePDF from "@/pages/tools/merge-pdf";
+import SplitPDF from "@/pages/tools/split-pdf";
+import JPGToPDF from "@/pages/tools/jpg-to-pdf";
+import CompressPDF from "@/pages/tools/compress-pdf";
+import ProtectPDF from "@/pages/tools/protect-pdf";
+import RotatePDF from "@/pages/tools/rotate-pdf";
+import EditPDF from "@/pages/tools/edit-pdf";
+import PDFToWord from "@/pages/tools/pdf-to-word";
+import ChangeBackground from "@/pages/tools/change-background";
+import WordToPDF from "@/pages/tools/word-to-pdf";
+import UnlockPDF from "@/pages/tools/unlock-pdf";
+import PDFToExcel from "@/pages/tools/pdf-to-excel";
+import PDFToPowerpoint from "@/pages/tools/pdf-to-powerpoint";
+import PNGToPDF from "@/pages/tools/png-to-pdf";
+import EPUBToPDF from "@/pages/tools/epub-to-pdf";
+import CropPDF from "@/pages/tools/crop-pdf";
+import PDFTranslator from "@/pages/tools/pdf-translator";
+import PowerpointToPDF from "@/pages/tools/powerpoint-to-pdf";
+import PDFToEPUB from "@/pages/tools/pdf-to-epub";
+import PDFToPNG from "@/pages/tools/pdf-to-png";
+import DeletePDFPages from "@/pages/tools/delete-pdf-pages";
+import URLToPDF from "@/pages/tools/url-to-pdf";
+import RearrangePDF from "@/pages/tools/rearrange-pdf";
+import ExtractImagesPDF from "@/pages/tools/extract-images-pdf";
+import ESignPDF from "@/pages/tools/esign-pdf";
+import CreatePDF from "@/pages/tools/create-pdf";
+import PDFWatermarkRemover from "@/pages/tools/pdf-watermark-remover";
+import PDFToCSV from "@/pages/tools/pdf-to-csv";
+import AddPageNumbersPDF from "@/pages/tools/add-page-numbers-pdf";
+import AddWatermarkPDF from "@/pages/tools/add-watermark-pdf";
+import ImagesToPDF from "@/pages/tools/images-to-pdf";
+import HEICToPDF from "@/pages/tools/heic-to-pdf";
+import AddTextPDF from "@/pages/tools/add-text-pdf";
+import AnnotatePDF from "@/pages/tools/annotate-pdf";
+import TIFFToPDF from "@/pages/tools/tiff-to-pdf";
+import MOBIToPDF from "@/pages/tools/mobi-to-pdf";
+import PDFToMOBI from "@/pages/tools/pdf-to-mobi";
+import PDFToTIFF from "@/pages/tools/pdf-to-tiff";
+import AZW3ToPDF from "@/pages/tools/azw3-to-pdf";
+import WEBPToPDF from "@/pages/tools/webp-to-pdf";
+import PDFToAZW3 from "@/pages/tools/pdf-to-azw3";
+import MSOutlookToPDF from "@/pages/tools/ms-outlook-to-pdf";
+import PDFToText from "@/pages/tools/pdf-to-text";
+import GIFToPDF from "@/pages/tools/gif-to-pdf";
+import ExtractTextPDF from "@/pages/tools/extract-text-pdf";
+import EPSToPDF from "@/pages/tools/eps-to-pdf";
 
 function Router() {
   return (
@@ -63,6 +127,70 @@ function Router() {
         <Route path="/tools/image-comparison" component={ImageComparison} />
         <Route path="/tools/add-text-to-image" component={AddTextToImage} />
         <Route path="/tools/make-round-image" component={MakeRoundImage} />
+        <Route path="/tools/ai-image-generator" component={AIImageGenerator} />
+        <Route path="/tools/remove-background" component={RemoveBackgroundTool} />
+        <Route path="/tools/pdf-to-jpg" component={PDFToJPG} />
+        <Route path="/tools/image-upscale" component={ImageUpscale} />
+        <Route path="/tools/remove-watermark" component={RemoveWatermark} />
+        <Route path="/tools/image-to-text" component={ImageToText} />
+        <Route path="/tools/remove-objects" component={RemoveObjects} />
+        <Route path="/tools/profile-photo-maker" component={ProfilePhotoMaker} />
+        <Route path="/tools/blur-background" component={BlurBackground} />
+        <Route path="/tools/colorize-photo" component={ColorizePhoto} />
+        <Route path="/tools/combine-images" component={CombineImages} />
+        <Route path="/tools/make-background-transparent" component={MakeBackgroundTransparent} />
+        <Route path="/tools/file-to-svg" component={FileToSVG} />
+        <Route path="/tools/translate-image" component={TranslateImage} />
+        <Route path="/tools/postable-image" component={PostableImage} />
+        <Route path="/tools/collage-maker" component={CollageMaker} />
+        <Route path="/tools/chart-maker" component={ChartMaker} />
+        <Route path="/tools/image-splitter" component={ImageSplitter} />
+        <Route path="/tools/merge-pdf" component={MergePDF} />
+        <Route path="/tools/split-pdf" component={SplitPDF} />
+        <Route path="/tools/jpg-to-pdf" component={JPGToPDF} />
+        <Route path="/tools/compress-pdf" component={CompressPDF} />
+        <Route path="/tools/protect-pdf" component={ProtectPDF} />
+        <Route path="/tools/rotate-pdf" component={RotatePDF} />
+        <Route path="/tools/edit-pdf" component={EditPDF} />
+        <Route path="/tools/pdf-to-word" component={PDFToWord} />
+        <Route path="/tools/change-background" component={ChangeBackground} />
+        <Route path="/tools/word-to-pdf" component={WordToPDF} />
+        <Route path="/tools/unlock-pdf" component={UnlockPDF} />
+        <Route path="/tools/pdf-to-excel" component={PDFToExcel} />
+        <Route path="/tools/pdf-to-powerpoint" component={PDFToPowerpoint} />
+        <Route path="/tools/png-to-pdf" component={PNGToPDF} />
+        <Route path="/tools/epub-to-pdf" component={EPUBToPDF} />
+        <Route path="/tools/crop-pdf" component={CropPDF} />
+        <Route path="/tools/pdf-translator" component={PDFTranslator} />
+        <Route path="/tools/powerpoint-to-pdf" component={PowerpointToPDF} />
+        <Route path="/tools/pdf-to-epub" component={PDFToEPUB} />
+        <Route path="/tools/pdf-to-png" component={PDFToPNG} />
+        <Route path="/tools/delete-pdf-pages" component={DeletePDFPages} />
+        <Route path="/tools/url-to-pdf" component={URLToPDF} />
+        <Route path="/tools/rearrange-pdf" component={RearrangePDF} />
+        <Route path="/tools/extract-images-pdf" component={ExtractImagesPDF} />
+        <Route path="/tools/esign-pdf" component={ESignPDF} />
+        <Route path="/tools/create-pdf" component={CreatePDF} />
+        <Route path="/tools/pdf-watermark-remover" component={PDFWatermarkRemover} />
+        <Route path="/tools/pdf-to-csv" component={PDFToCSV} />
+        <Route path="/tools/add-page-numbers-pdf" component={AddPageNumbersPDF} />
+        <Route path="/tools/add-watermark-pdf" component={AddWatermarkPDF} />
+        <Route path="/tools/images-to-pdf" component={ImagesToPDF} />
+        <Route path="/tools/heic-to-pdf" component={HEICToPDF} />
+        <Route path="/tools/add-text-pdf" component={AddTextPDF} />
+        <Route path="/tools/annotate-pdf" component={AnnotatePDF} />
+        <Route path="/tools/tiff-to-pdf" component={TIFFToPDF} />
+        <Route path="/tools/mobi-to-pdf" component={MOBIToPDF} />
+        <Route path="/tools/pdf-to-mobi" component={PDFToMOBI} />
+        <Route path="/tools/pdf-to-tiff" component={PDFToTIFF} />
+        <Route path="/tools/azw3-to-pdf" component={AZW3ToPDF} />
+        <Route path="/tools/webp-to-pdf" component={WEBPToPDF} />
+        <Route path="/tools/pdf-to-azw3" component={PDFToAZW3} />
+        <Route path="/tools/ms-outlook-to-pdf" component={MSOutlookToPDF} />
+        <Route path="/tools/pdf-to-text" component={PDFToText} />
+        <Route path="/tools/gif-to-pdf" component={GIFToPDF} />
+        <Route path="/tools/extract-text-pdf" component={ExtractTextPDF} />
+        <Route path="/tools/eps-to-pdf" component={EPSToPDF} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

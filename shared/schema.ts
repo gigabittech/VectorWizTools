@@ -29,6 +29,33 @@ export const insertQuoteRequestSchema = createInsertSchema(quoteRequests).omit({
   turnaroundTime: z.string().optional(),
 });
 
+// AI Image Generations table
+export const aiImageGenerations = pgTable("ai_image_generations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  prompt: text("prompt").notNull(),
+  model: varchar("model").notNull(), // "dall-e-3", "dall-e-2", "stable-diffusion"
+  size: varchar("size"), // "1024x1024", etc.
+  quality: varchar("quality"), // "standard", "hd"
+  style: varchar("style"), // "vivid", "natural"
+  imageUrl: text("image_url").notNull(),
+  provider: varchar("provider").notNull(), // "openai", "stability-ai", "replicate"
+  costCents: integer("cost_cents"), // Cost in cents for tracking
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Schemas for AI Image Generations
+export const insertAIImageGenerationSchema = createInsertSchema(aiImageGenerations).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  prompt: z.string().min(10, "Prompt must be at least 10 characters"),
+  model: z.enum(["dall-e-3", "dall-e-2", "stable-diffusion"]),
+  imageUrl: z.string().url("Valid image URL is required"),
+  provider: z.enum(["openai", "stability-ai", "replicate"]),
+});
+
 // Types
 export type QuoteRequest = typeof quoteRequests.$inferSelect;
 export type InsertQuoteRequest = z.infer<typeof insertQuoteRequestSchema>;
+export type AIImageGeneration = typeof aiImageGenerations.$inferSelect;
+export type InsertAIImageGeneration = z.infer<typeof insertAIImageGenerationSchema>;
