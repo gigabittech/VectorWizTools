@@ -6,6 +6,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Smooth scrolling for the entire page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Smooth transitions for all elements */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 :root {
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(217, 32%, 17%);
@@ -132,12 +142,49 @@
   }
   
   .card-hover {
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .card-hover:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
     box-shadow: 0 10px 25px hsl(0, 0%, 0%, 0.1);
+  }
+
+  /* Smooth page transitions */
+  .page-transition {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Smooth fade-in for content */
+  .fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  /* Smooth scale animation */
+  .scale-in {
+    animation: scaleIn 0.4s ease-out;
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
   
   .before-after-slider {

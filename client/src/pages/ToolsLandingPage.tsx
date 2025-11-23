@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Image as ImageIcon, FileText, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface Tool {
   name: string;
@@ -183,25 +184,90 @@ export default function ToolsLandingPage() {
   const imageToolsFiltered = filteredTools.filter(t => t.category === "Image Tools");
   const pdfToolsFiltered = filteredTools.filter(t => t.category === "PDF Tools");
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut",
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  const heroVariants = {
+    hidden: { opacity: 0, y: -30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  useEffect(() => {
+    // Smooth scroll to top on page load
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <motion.div
+      className="min-h-screen bg-gradient-to-b from-gray-50 to-white"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       {/* Hero Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#06183C] to-[#20448B] text-white">
+      <motion.section
+        className="py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#06183C] to-[#20448B] text-white"
+        variants={heroVariants}
+      >
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="page-title">
+          <motion.h1
+            className="text-4xl md:text-5xl font-bold mb-4"
+            data-testid="page-title"
+            variants={itemVariants}
+          >
             Free Online Tools
-          </h1>
-          <p className="text-xl text-gray-200" data-testid="page-subtitle">
+          </motion.h1>
+          <motion.p
+            className="text-xl text-gray-200"
+            data-testid="page-subtitle"
+            variants={itemVariants}
+          >
             Professional image and PDF tools for all your conversion and editing needs
-          </p>
+          </motion.p>
         </div>
-      </section>
+      </motion.section>
 
       {/* Tools Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f5f7' }}>
+      <motion.section
+        className="py-12 px-4 sm:px-6 lg:px-8"
+        style={{ backgroundColor: '#f5f5f7' }}
+        variants={itemVariants}
+      >
         <div className="max-w-7xl mx-auto">
           {/* Glassmorphism Filter Buttons */}
-          <div className="flex items-center justify-center mb-8">
+          <motion.div
+            className="flex items-center justify-center mb-8"
+            variants={itemVariants}
+          >
             <div className="inline-flex items-center gap-2 p-1.5 rounded-full backdrop-blur-md bg-white/60 border border-white/40 shadow-lg" data-testid="category-filters">
               <button
                 onClick={() => setActiveCategory("all")}
@@ -245,40 +311,71 @@ export default function ToolsLandingPage() {
                 PDF Tools ({pdfTools.length})
               </button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Tools Grid */}
-          <div className="space-y-12">
+          <motion.div
+            className="space-y-12"
+            variants={containerVariants}
+          >
             {activeCategory === "all" && (
               <>
                 {/* Image Tools Section */}
                 {imageToolsFiltered.length > 0 && (
-                  <div>
-                    <h2 className="text-3xl font-bold mb-6 flex items-center" data-testid="section-image-tools">
+                  <motion.div variants={itemVariants}>
+                    <motion.h2
+                      className="text-3xl font-bold mb-6 flex items-center"
+                      data-testid="section-image-tools"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
                       <ImageIcon className="h-8 w-8 mr-3 text-[#0B9F47]" />
                       Image Tools
-                    </h2>
+                    </motion.h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {imageToolsFiltered.map((tool, index) => (
-                        <ToolCard key={index} tool={tool} />
+                        <motion.div
+                          key={index}
+                          variants={itemVariants}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3, delay: index * 0.03 }}
+                        >
+                          <ToolCard tool={tool} />
+                        </motion.div>
                       ))}
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* PDF Tools Section */}
                 {pdfToolsFiltered.length > 0 && (
-                  <div>
-                    <h2 className="text-3xl font-bold mb-6 flex items-center" data-testid="section-pdf-tools">
+                  <motion.div variants={itemVariants}>
+                    <motion.h2
+                      className="text-3xl font-bold mb-6 flex items-center"
+                      data-testid="section-pdf-tools"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                    >
                       <FileText className="h-8 w-8 mr-3 text-[#0B9F47]" />
                       PDF Tools
-                    </h2>
+                    </motion.h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {pdfToolsFiltered.map((tool, index) => (
-                        <ToolCard key={index} tool={tool} />
+                        <motion.div
+                          key={index}
+                          variants={itemVariants}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3, delay: index * 0.03 }}
+                        >
+                          <ToolCard tool={tool} />
+                        </motion.div>
                       ))}
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </>
             )}
@@ -286,7 +383,14 @@ export default function ToolsLandingPage() {
             {activeCategory === "Image Tools" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {imageToolsFiltered.map((tool, index) => (
-                  <ToolCard key={index} tool={tool} />
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: index * 0.03 }}
+                  >
+                    <ToolCard tool={tool} />
+                  </motion.div>
                 ))}
               </div>
             )}
@@ -294,28 +398,43 @@ export default function ToolsLandingPage() {
             {activeCategory === "PDF Tools" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {pdfToolsFiltered.map((tool, index) => (
-                  <ToolCard key={index} tool={tool} />
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: index * 0.03 }}
+                  >
+                    <ToolCard tool={tool} />
+                  </motion.div>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
 
           {filteredTools.length === 0 && (
-            <div className="text-center py-12" data-testid="no-results">
+            <motion.div
+              className="text-center py-12"
+              data-testid="no-results"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+            >
               <p className="text-gray-500 text-lg">No tools found matching your search.</p>
-            </div>
+            </motion.div>
           )}
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 
 function ToolCard({ tool }: { tool: Tool }) {
   const content = (
-    <div 
-      className="h-full backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:shadow-lg hover:bg-white/80 transition-all cursor-pointer group" 
+    <motion.div
+      className="h-full backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer group"
       data-testid={`tool-card-${tool.name.toLowerCase().replace(/\s+/g, '-')}`}
+      whileHover={{ y: -4, scale: 1.02 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
     >
       <div className="flex flex-col h-full">
         <div className="text-4xl mb-3">{tool.icon}</div>
@@ -336,7 +455,7 @@ function ToolCard({ tool }: { tool: Tool }) {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 
   if (tool.route && !tool.comingSoon) {
