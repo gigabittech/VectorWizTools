@@ -9,13 +9,13 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { downloadFile } from "@/lib/fileUtils";
-import { 
-  Sparkles, 
-  Download, 
-  RefreshCw, 
-  Image as ImageIcon, 
-  Wand2, 
-  Settings, 
+import {
+  Sparkles,
+  Download,
+  RefreshCw,
+  Image as ImageIcon,
+  Wand2,
+  Settings,
   ArrowLeft,
   Zap,
   CheckCircle2,
@@ -95,8 +95,9 @@ export default function AIImageGenerator() {
       const data = await response.json();
 
       if (data.imageUrl) {
+        console.log('get image url', data.imageUrl)
         setGeneratedImage(data.imageUrl);
-        
+
         try {
           const imageResponse = await fetch(data.imageUrl);
           if (imageResponse.ok) {
@@ -110,9 +111,9 @@ export default function AIImageGenerator() {
           console.warn("Image fetch error (likely CORS):", fetchError);
           setImageBlob(null);
         }
-        
+
         setStatus("success");
-        
+
         toast({
           title: "Image Generated Successfully!",
           description: "Your AI-generated image is ready to download",
@@ -120,7 +121,7 @@ export default function AIImageGenerator() {
       } else if (data.images && data.images.length > 0) {
         const firstImage = data.images[0];
         setGeneratedImage(firstImage.url);
-        
+
         try {
           const imageResponse = await fetch(firstImage.url);
           if (imageResponse.ok) {
@@ -133,7 +134,7 @@ export default function AIImageGenerator() {
           console.warn("Image fetch error:", fetchError);
           setImageBlob(null);
         }
-        
+
         setStatus("success");
       } else {
         throw new Error("No image received from server");
@@ -141,13 +142,13 @@ export default function AIImageGenerator() {
     } catch (error: any) {
       console.error("Image generation error:", error);
       setStatus("error");
-      
+
       // Parse error message to show user-friendly message
       let errorMessage = "Failed to generate image. Please try again.";
       let errorTitle = "Generation Failed";
-      
+
       const errorText = error.message || error.response || String(error);
-      
+
       // Handle specific error types
       if (errorText.includes("Rate limit exceeded") || errorText.includes("rate limit")) {
         errorTitle = "Rate Limit Exceeded";
@@ -183,7 +184,7 @@ export default function AIImageGenerator() {
         // Use the error message if it's clean (not JSON or status code)
         errorMessage = errorText;
       }
-      
+
       toast({
         title: errorTitle,
         description: errorMessage,
@@ -234,8 +235,8 @@ export default function AIImageGenerator() {
         <Container size="xl" py="xl">
           <div className="mb-6">
             <Link href="/tools">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="text-white/90 hover:text-white hover:bg-white/10 mb-6"
               >
                 <ArrowLeft size={16} className="mr-2" />
@@ -243,7 +244,7 @@ export default function AIImageGenerator() {
               </Button>
             </Link>
           </div>
-          
+
           <Group align="flex-start" gap="xl" wrap="nowrap">
             <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg" style={{ backgroundColor: '#489c51' }}>
               <Sparkles className="h-10 w-10 text-white" />
@@ -253,32 +254,32 @@ export default function AIImageGenerator() {
                 AI Image Generator
               </Title>
               <Text size="lg" className="text-white/90 mb-4 max-w-2xl">
-                Transform your ideas into stunning visuals with cutting-edge AI technology. 
+                Transform your ideas into stunning visuals with cutting-edge AI technology.
                 Create professional-quality images from simple text descriptions.
               </Text>
               <Group gap="xs" mt="md">
-                <Badge 
-                  size="lg" 
-                  variant="light" 
-                  className="text-white border-white/30" 
+                <Badge
+                  size="lg"
+                  variant="light"
+                  className="text-white border-white/30"
                   style={{ backgroundColor: 'rgba(72, 156, 81, 0.3)' }}
                   leftSection={<Zap className="h-3.5 w-3.5" />}
                 >
                   AI Powered
                 </Badge>
-                <Badge 
-                  size="lg" 
-                  variant="light" 
-                  className="text-white border-white/30" 
+                <Badge
+                  size="lg"
+                  variant="light"
+                  className="text-white border-white/30"
                   style={{ backgroundColor: 'rgba(72, 156, 81, 0.3)' }}
                   leftSection={<CheckCircle2 className="h-3.5 w-3.5" />}
                 >
                   High Quality
                 </Badge>
-                <Badge 
-                  size="lg" 
-                  variant="light" 
-                  className="text-white border-white/30" 
+                <Badge
+                  size="lg"
+                  variant="light"
+                  className="text-white border-white/30"
                   style={{ backgroundColor: 'rgba(72, 156, 81, 0.3)' }}
                   leftSection={<Sparkles className="h-3.5 w-3.5" />}
                 >
@@ -294,10 +295,10 @@ export default function AIImageGenerator() {
         <Grid gutter="xl">
           {/* Left Column - Form */}
           <Grid.Col span={{ base: 12, lg: 6 }}>
-            <Paper 
-              withBorder 
-              shadow="lg" 
-              p="xl" 
+            <Paper
+              withBorder
+              shadow="lg"
+              p="xl"
               className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             >
               <div className="flex items-center gap-3 mb-6">
@@ -306,7 +307,7 @@ export default function AIImageGenerator() {
                 </div>
                 <Title order={2} size="h3">Generate Image</Title>
               </div>
-              
+
               <Stack gap="lg">
                 {/* Prompt Input */}
                 <div className="space-y-3">
@@ -346,9 +347,9 @@ export default function AIImageGenerator() {
                     </SelectTrigger>
                     <SelectContent className="z-[100] min-w-[var(--radix-select-trigger-width)]">
                       {modelOptions.map((option) => (
-                        <SelectItem 
-                          key={option.value} 
-                          value={option.value} 
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
                           className="py-3"
                           textValue={option.label}
                         >
@@ -501,8 +502,8 @@ export default function AIImageGenerator() {
                 </Button>
 
                 {status === "error" && (
-                  <Alert 
-                    color="red" 
+                  <Alert
+                    color="red"
                     title="Generation Failed"
                     icon={<Info className="h-4 w-4" />}
                     className="border-red-200 dark:border-red-800"
@@ -514,10 +515,10 @@ export default function AIImageGenerator() {
             </Paper>
 
             {/* Tips Section */}
-            <Paper 
-              withBorder 
-              shadow="lg" 
-              p="xl" 
+            <Paper
+              withBorder
+              shadow="lg"
+              p="xl"
               mt="xl"
               className="border-slate-200 dark:border-slate-700"
               style={{ backgroundColor: 'rgba(72, 156, 81, 0.05)' }}
@@ -563,9 +564,9 @@ export default function AIImageGenerator() {
 
           {/* Right Column - Preview */}
           <Grid.Col span={{ base: 12, lg: 6 }}>
-            <Paper 
-              withBorder 
-              shadow="lg" 
+            <Paper
+              withBorder
+              shadow="lg"
               p="xl"
               className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             >
@@ -621,7 +622,7 @@ export default function AIImageGenerator() {
                       </Badge>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       onClick={handleDownload}
@@ -645,7 +646,7 @@ export default function AIImageGenerator() {
                     </Button>
                   </div>
 
-                  <Alert 
+                  <Alert
                     title="Success!"
                     icon={<CheckCircle2 className="h-4 w-4" />}
                     className="border-slate-200 dark:border-slate-700"
