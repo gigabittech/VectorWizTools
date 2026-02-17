@@ -50,13 +50,13 @@ export default function FormatConverter() {
     try {
       const qualityValue = quality[0] / 100;
       const blob = await convertImageFormat(files[0].file, targetFormat, qualityValue);
-      
+
       setConvertedBlob(blob);
       const previewUrl = URL.createObjectURL(blob);
       setConvertedPreview(previewUrl);
-      
+
       setStatus("success");
-      
+
       const formatName = formatOptions.find(f => f.value === targetFormat)?.label || "image";
       toast({
         title: "Success!",
