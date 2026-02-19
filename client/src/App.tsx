@@ -98,6 +98,7 @@ import PDFToText from "@/pages/tools/pdf-to-text";
 import GIFToPDF from "@/pages/tools/gif-to-pdf";
 import ExtractTextPDF from "@/pages/tools/extract-text-pdf";
 import EPSToPDF from "@/pages/tools/eps-to-pdf";
+import PNGtoJPG from "./pages/tools/png-to-jpg";
 
 function Router() {
   return (
@@ -108,6 +109,7 @@ function Router() {
         <Route path="/tools/turnaround-estimator" component={TurnaroundEstimator} />
         <Route path="/tools/vector-checker" component={VectorChecker} />
         <Route path="/tools/format-converter" component={FormatConverter} />
+        <Route path="/tools/png-to-jpg" component={PNGtoJPG} />
         <Route path="/tools/color-extractor" component={ColorExtractor} />
         <Route path="/tools/file-size-calculator" component={FileSizeCalculator} />
         <Route path="/tools/print-size-calculator" component={PrintSizeCalculator} />
