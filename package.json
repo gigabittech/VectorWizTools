@@ -72,6 +72,7 @@
     "express-session": "^1.18.1",
     "fabric": "^6.9.0",
     "framer-motion": "^11.13.1",
+    "heic2any": "^0.0.4",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.2",

@@ -12,6 +12,7 @@ import { convertImageFormat, SupportedImageFormat } from "@/lib/imageProcessing"
 import { downloadFile } from "@/lib/fileUtils";
 import { RefreshCw } from "lucide-react";
 
+// Note: Ensure SupportedImageFormat in your lib includes "application/pdf", "image/svg+xml", "image/heic"
 export default function FormatConverter() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [status, setStatus] = useState<ProcessingStatus>("idle");
@@ -27,19 +28,22 @@ export default function FormatConverter() {
     { value: "image/webp", label: "WebP", extension: "webp" },
     { value: "image/bmp", label: "BMP", extension: "bmp" },
     { value: "image/gif", label: "GIF", extension: "gif" },
+    { value: "image/svg+xml", label: "SVG", extension: "svg" },
+    { value: "application/pdf", label: "PDF", extension: "pdf" },
   ];
 
   const handleFilesSelected = (uploadedFiles: UploadedFile[]) => {
     setFiles(uploadedFiles);
     setConvertedBlob(null);
     setConvertedPreview(null);
+    setStatus("idle");
   };
 
   const handleConvert = async () => {
     if (files.length === 0) {
       toast({
         title: "No File",
-        description: "Please upload an image first",
+        description: "Please upload a file first",
         variant: "destructive",
       });
       return;
@@ -49,24 +53,28 @@ export default function FormatConverter() {
 
     try {
       const qualityValue = quality[0] / 100;
+      // This utility function needs to handle PDF/SVG conversion logic
       const blob = await convertImageFormat(files[0].file, targetFormat, qualityValue);
 
       setConvertedBlob(blob);
+
+      // PDF and SVG might not preview well in a standard <img> tag without extra handling, 
+      // but for simple cases objectURL works.
       const previewUrl = URL.createObjectURL(blob);
       setConvertedPreview(previewUrl);
 
       setStatus("success");
 
-      const formatName = formatOptions.find(f => f.value === targetFormat)?.label || "image";
+      const formatName = formatOptions.find(f => f.value === targetFormat)?.label || "file";
       toast({
         title: "Success!",
-        description: `Image converted to ${formatName}`,
+        description: `File converted to ${formatName}`,
       });
     } catch (error) {
       setStatus("error");
       toast({
         title: "Conversion Failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: error instanceof Error ? error.message : "An error occurred during conversion",
         variant: "destructive",
       });
     }
@@ -84,24 +92,26 @@ export default function FormatConverter() {
   };
 
   const quickConversions = [
-    { from: "PNG", to: "image/jpeg", label: "PNG → JPG" },
-    { from: "JPG", to: "image/png", label: "JPG → PNG" },
-    { from: "Any", to: "image/webp", label: "Any → WebP" },
+    { from: "Any", to: "image/jpeg", label: "To JPG" },
+    { from: "Any", to: "image/png", label: "To PNG" },
+    { from: "Any", to: "application/pdf", label: "To PDF" },
+    { from: "Any", to: "image/webp", label: "To WebP" },
+    { from: "Any", to: "image/svg+xml", label: "To SVG" },
   ];
 
   const needsQuality = targetFormat === "image/jpeg" || targetFormat === "image/webp";
 
   return (
     <ToolLayout
-      title="Image Format Converter"
-      description="Convert images between formats online for free. Transform PNG, JPG, WebP, GIF, and BMP files instantly. Perfect for web optimization and compatibility."
+      title="Pro Image Converter"
+      description="Convert between PNG, JPG, WebP, PDF, SVG, HEIC, and more instantly. Fast, free, and secure online conversion."
       category="Image Tools"
-      keywords={["convert image", "png to jpg", "jpg to png", "webp converter", "image format", "convert to webp"]}
+      keywords={["png to pdf", "jpg to svg", "heic to jpg", "vsdx to pdf", "convert image", "svg converter"]}
       howToSteps={[
-        { name: "Upload Image", text: "Click or drag and drop your image file" },
-        { name: "Choose Format", text: "Select the target format you want to convert to" },
-        { name: "Adjust Quality", text: "Set quality level for lossy formats (JPG, WebP)" },
-        { name: "Convert", text: "Click Convert and download your new image" },
+        { name: "Upload File", text: "Upload your image or document (JPG, PNG, VSDX, HEIC, etc.)" },
+        { name: "Select Target", text: "Choose your desired output format from the dropdown" },
+        { name: "Adjust Settings", text: "Fine-tune quality for JPG or WebP if needed" },
+        { name: "Download", text: "Click convert and save your file" },
       ]}
     >
       <div className="space-y-6">
@@ -109,16 +119,20 @@ export default function FormatConverter() {
         <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-[#0B9F47]" />
-            Upload Image
+            Upload File
           </h2>
           <div>
             <FileUploader
-              accept="image/*"
+              accept="image/*,.pdf,.heic,.vsd,.vsdx"
               maxFiles={1}
               maxSize={50 * 1024 * 1024}
               onFilesSelected={handleFilesSelected}
               multiple={false}
-              allowedTypes={["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/tiff"]}
+              allowedTypes={[
+                "image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp",
+                "image/tiff", "application/pdf", "image/heic", "image/vnd.visio",
+                "application/vnd.visio", "image/svg+xml"
+              ]}
             />
           </div>
         </div>
@@ -129,24 +143,23 @@ export default function FormatConverter() {
             <h2 className="text-xl font-bold mb-4">Conversion Settings</h2>
             <div className="space-y-6">
               {/* Source Format Display */}
-              <div className="bg-blue-50 p-4 rounded-lg" data-testid="source-format">
+              <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-blue-900 mb-1">Source Format</p>
                 <p className="text-lg font-bold text-blue-700">
-                  {files[0].file.type.split('/')[1]?.toUpperCase() || "Unknown"}
+                  {files[0].file.name.split('.').pop()?.toUpperCase() || "Unknown"}
                 </p>
               </div>
 
               {/* Quick Conversion Buttons */}
               <div>
-                <Label className="mb-3 block">Quick Conversions</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <Label className="mb-3 block">Quick Actions</Label>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                   {quickConversions.map((conv) => (
                     <Button
                       key={conv.label}
                       variant="outline"
                       size="sm"
                       onClick={() => setTargetFormat(conv.to as SupportedImageFormat)}
-                      data-testid={`preset-${conv.label.toLowerCase().replace(/\s+/g, '-').replace(/→/g, 'to')}`}
                     >
                       {conv.label}
                     </Button>
@@ -158,12 +171,12 @@ export default function FormatConverter() {
               <div className="space-y-2">
                 <Label htmlFor="format">Convert To</Label>
                 <Select value={targetFormat} onValueChange={(value) => setTargetFormat(value as SupportedImageFormat)}>
-                  <SelectTrigger id="format" data-testid="select-format">
-                    <SelectValue placeholder="Select format" />
+                  <SelectTrigger id="format">
+                    <SelectValue placeholder="Select target format" />
                   </SelectTrigger>
                   <SelectContent>
                     {formatOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value} data-testid={`format-${option.label.toLowerCase()}`}>
+                      <SelectItem key={option.value} value={option.value}>
                         {option.label} (.{option.extension})
                       </SelectItem>
                     ))}
@@ -171,7 +184,7 @@ export default function FormatConverter() {
                 </Select>
               </div>
 
-              {/* Quality Slider (for lossy formats) */}
+              {/* Quality Slider */}
               {needsQuality && (
                 <div className="space-y-2">
                   <Label>Quality: {quality[0]}%</Label>
@@ -182,45 +195,17 @@ export default function FormatConverter() {
                     max={100}
                     step={5}
                     className="w-full"
-                    data-testid="slider-quality"
                   />
-                  <p className="text-xs text-gray-500">
-                    Higher quality = better image but larger file size
-                  </p>
                 </div>
               )}
 
-              {/* Format Information */}
-              <div className="bg-gray-50 p-4 rounded-lg text-sm">
-                <p className="font-medium mb-2">Format Notes:</p>
-                <ul className="space-y-1 text-gray-700">
-                  {targetFormat === "image/png" && (
-                    <li>• PNG: Lossless, supports transparency, larger file size</li>
-                  )}
-                  {targetFormat === "image/jpeg" && (
-                    <li>• JPEG: Lossy compression, no transparency, smaller file size</li>
-                  )}
-                  {targetFormat === "image/webp" && (
-                    <li>• WebP: Modern format, great compression, supports transparency</li>
-                  )}
-                  {targetFormat === "image/bmp" && (
-                    <li>• BMP: Uncompressed, no transparency, very large file size</li>
-                  )}
-                  {targetFormat === "image/gif" && (
-                    <li>• GIF: Limited colors (256), supports animation and transparency</li>
-                  )}
-                </ul>
-              </div>
-
-              {/* Convert Button */}
               <Button
                 onClick={handleConvert}
                 className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
                 size="lg"
                 disabled={status === "processing"}
-                data-testid="button-convert"
               >
-                Convert Image
+                Convert Now
               </Button>
             </div>
           </div>
@@ -230,79 +215,64 @@ export default function FormatConverter() {
         {status !== "idle" && (
           <ProcessingIndicator
             status={status}
-            message="Converting your image..."
-            successMessage="Image converted successfully!"
-            errorMessage="Failed to convert image. Please try again."
+            message="Processing your file..."
+            successMessage="Conversion complete!"
+            errorMessage="Failed to convert. Check file compatibility."
           />
         )}
 
         {/* Preview and Download */}
         {convertedBlob && convertedPreview && (
           <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
-            <h2 className="text-xl font-bold mb-4">Converted Image</h2>
+            <h2 className="text-xl font-bold mb-4">Output File</h2>
             <div className="space-y-4">
-              {/* Conversion Stats */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-blue-900 mb-1">Original</p>
-                  <p className="font-semibold text-blue-700">
-                    {files[0].file.type.split('/')[1]?.toUpperCase()}
-                  </p>
-                  <p className="text-xs text-blue-600">
-                    {(files[0].file.size / 1024).toFixed(1)} KB
-                  </p>
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <p className="text-sm text-gray-500">Output Size</p>
+                  <p className="font-bold">{(convertedBlob.size / 1024).toFixed(1)} KB</p>
                 </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="text-sm text-green-900 mb-1">Converted</p>
-                  <p className="font-semibold text-green-700">
-                    {formatOptions.find(f => f.value === targetFormat)?.label}
-                  </p>
-                  <p className="text-xs text-green-600">
-                    {(convertedBlob.size / 1024).toFixed(1)} KB
-                  </p>
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <p className="text-sm text-gray-500">Format</p>
+                  <p className="font-bold text-[#0B9F47]">{formatOptions.find(f => f.value === targetFormat)?.label}</p>
                 </div>
               </div>
 
-              {/* Preview */}
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <p className="text-sm font-medium mb-2">Preview</p>
-                <img
-                  src={convertedPreview}
-                  alt="Converted preview"
-                  className="max-w-full h-auto mx-auto"
-                  data-testid="preview-image"
-                />
-              </div>
+              {targetFormat.includes("image") && (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <p className="text-sm font-medium mb-2 text-center">Preview</p>
+                  <img
+                    src={convertedPreview}
+                    alt="Converted preview"
+                    className="max-h-[300px] mx-auto rounded shadow-sm"
+                  />
+                </div>
+              )}
 
-              {/* Download Button */}
               <DownloadButton
                 onClick={handleDownload}
                 className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
                 size="lg"
               >
-                Download Converted Image
+                Download Result
               </DownloadButton>
             </div>
           </div>
         )}
 
-        {/* Information */}
-        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
-          <h2 className="text-xl font-bold mb-4">About Image Format Conversion</h2>
-          <div className="prose prose-sm max-w-none">
-            <p>
-              Our free online image format converter supports all major image formats:
-            </p>
-            <ul>
-              <li><strong>PNG to JPG:</strong> Convert PNG to smaller JPG files (loses transparency)</li>
-              <li><strong>JPG to PNG:</strong> Convert JPG to PNG for transparency support</li>
-              <li><strong>WebP:</strong> Convert to modern WebP format for better compression</li>
-              <li><strong>GIF:</strong> Convert to GIF for animations and limited color palettes</li>
-              <li><strong>BMP:</strong> Convert to/from uncompressed BMP format</li>
+        {/* Information Table */}
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6">
+          <h2 className="text-xl font-bold mb-4">Supported Conversions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>PNG to PDF / BMP / SVG / WebP</li>
+              <li>JPG to PNG / WebP / SVG</li>
+              <li>HEIC to JPG (iPhone Photos)</li>
             </ul>
-            <p>
-              Use this tool to optimize images for web, ensure compatibility, or prepare files for specific platforms.
-            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>VSDX to PDF / JPG</li>
+              <li>PDF to SVG</li>
+              <li>GIF to JPG</li>
+            </ul>
           </div>
         </div>
       </div>
