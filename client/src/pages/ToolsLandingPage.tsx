@@ -11,7 +11,7 @@ interface Tool {
   icon: string;
   comingSoon?: boolean;
 }
-
+// this is image tools
 const imageTools: Tool[] = [
   { name: "AI Image Generator", description: "Create AI generated images", category: "Image Tools", route: "/tools/ai-image-generator", icon: "🎨" },
   { name: "Remove Background", description: "Remove background from an image", category: "Image Tools", route: "/tools/remove-background", icon: "🖼️" },
@@ -72,6 +72,7 @@ const imageTools: Tool[] = [
   { name: "Font to Vector", description: "Convert fonts to vector outlines", category: "Image Tools", route: "/tools/font-to-vector", icon: "🔤" },
 ];
 
+// this is pdf tools
 const pdfTools: Tool[] = [
   { name: "Merge PDF", description: "Merge 2 or more PDF files into a single PDF file", category: "PDF Tools", route: "/tools/merge-pdf", icon: "🔗" },
   { name: "Edit PDF", description: "Free PDF Editor", category: "PDF Tools", route: "/tools/edit-pdf", icon: "✏️" },
@@ -128,7 +129,7 @@ export default function ToolsLandingPage() {
 
   useEffect(() => {
     document.title = "Free Online Image & PDF Tools - VectorWiz";
-    
+
     const metaDescription = document.querySelector('meta[name="description"]') || document.createElement('meta');
     metaDescription.setAttribute('name', 'description');
     metaDescription.setAttribute('content', 'Professional free online tools for image conversion, PDF editing, and file management. Convert formats, resize images, compress files, and more with VectorWiz tools.');
@@ -273,8 +274,8 @@ export default function ToolsLandingPage() {
                 onClick={() => setActiveCategory("all")}
                 className={`
                   flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
-                  ${activeCategory === "all" 
-                    ? "bg-[#0B9F47] text-white shadow-md" 
+                  ${activeCategory === "all"
+                    ? "bg-[#0B9F47] text-white shadow-md"
                     : "text-gray-700 hover:bg-white/40"
                   }
                 `}
@@ -286,8 +287,8 @@ export default function ToolsLandingPage() {
                 onClick={() => setActiveCategory("Image Tools")}
                 className={`
                   flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
-                  ${activeCategory === "Image Tools" 
-                    ? "bg-[#0B9F47] text-white shadow-md" 
+                  ${activeCategory === "Image Tools"
+                    ? "bg-[#0B9F47] text-white shadow-md"
                     : "text-gray-700 hover:bg-white/40"
                   }
                 `}
@@ -300,8 +301,8 @@ export default function ToolsLandingPage() {
                 onClick={() => setActiveCategory("PDF Tools")}
                 className={`
                   flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
-                  ${activeCategory === "PDF Tools" 
-                    ? "bg-[#0B9F47] text-white shadow-md" 
+                  ${activeCategory === "PDF Tools"
+                    ? "bg-[#0B9F47] text-white shadow-md"
                     : "text-gray-700 hover:bg-white/40"
                   }
                 `}
