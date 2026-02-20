@@ -99,6 +99,11 @@ import GIFToPDF from "@/pages/tools/gif-to-pdf";
 import ExtractTextPDF from "@/pages/tools/extract-text-pdf";
 import EPSToPDF from "@/pages/tools/eps-to-pdf";
 import PNGtoJPG from "./pages/tools/png-to-jpg";
+import WEBPtoJPG from "@/pages/tools/webp-to-jpg";
+import JPGtoPNG from "@/pages/tools/jpg-to-png";
+import SVGtoPNG from "@/pages/tools/svg-to-png";
+import TIFFtoJPG from "@/pages/tools/tiff-to-jpg";
+import PNGtoGIF from "@/pages/tools/png-to-gif";
 
 function Router() {
   return (
@@ -193,6 +198,11 @@ function Router() {
         <Route path="/tools/gif-to-pdf" component={GIFToPDF} />
         <Route path="/tools/extract-text-pdf" component={ExtractTextPDF} />
         <Route path="/tools/eps-to-pdf" component={EPSToPDF} />
+        <Route path="/tools/webp-to-jpg" component={WEBPtoJPG} />
+        <Route path="/tools/jpg-to-png" component={JPGtoPNG} />
+        <Route path="/tools/svg-to-png" component={SVGtoPNG} />
+        <Route path="/tools/tiff-to-jpg" component={TIFFtoJPG} />
+        <Route path="/tools/png-to-gif" component={PNGtoGIF} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
