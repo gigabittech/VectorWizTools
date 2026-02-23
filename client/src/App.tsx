@@ -104,6 +104,11 @@ import JPGtoPNG from "@/pages/tools/jpg-to-png";
 import SVGtoPNG from "@/pages/tools/svg-to-png";
 import TIFFtoJPG from "@/pages/tools/tiff-to-jpg";
 import PNGtoGIF from "@/pages/tools/png-to-gif";
+import EPStoJPG from "@/pages/tools/eps-to-jpg";
+import BMPtoJPG from "@/pages/tools/bmp-to-jpg";
+import PNGtoBMP from "@/pages/tools/png-to-bmp";
+import HEICtoJPG from "@/pages/tools/heic-to-jpg";
+import VSDtoJPG from "@/pages/tools/vsd-to-jpg";
 
 function Router() {
   return (
@@ -115,6 +120,11 @@ function Router() {
         <Route path="/tools/vector-checker" component={VectorChecker} />
         <Route path="/tools/format-converter" component={FormatConverter} />
         <Route path="/tools/png-to-jpg" component={PNGtoJPG} />
+        <Route path="/tools/eps-to-jpg" component={EPStoJPG} />
+        <Route path="/tools/bmp-to-jpg" component={BMPtoJPG} />
+        <Route path="/tools/png-to-bmp" component={PNGtoBMP} />
+        <Route path="/tools/heic-to-jpg" component={HEICtoJPG} />
+        <Route path="/tools/vsd-to-jpg" component={VSDtoJPG} />
         <Route path="/tools/color-extractor" component={ColorExtractor} />
         <Route path="/tools/file-size-calculator" component={FileSizeCalculator} />
         <Route path="/tools/print-size-calculator" component={PrintSizeCalculator} />
