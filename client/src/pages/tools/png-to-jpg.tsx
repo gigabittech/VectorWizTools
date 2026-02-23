@@ -53,13 +53,10 @@ export default function PNGtoJPG() {
 
         try {
             const qualityValue = quality[0] / 100;
-            // This utility function needs to handle PDF/SVG conversion logic
             const blob = await convertImageFormat(files[0].file, targetFormat, qualityValue);
 
             setConvertedBlob(blob);
 
-            // PDF and SVG might not preview well in a standard <img> tag without extra handling, 
-            // but for simple cases objectURL works.
             const previewUrl = URL.createObjectURL(blob);
             setConvertedPreview(previewUrl);
 
@@ -74,7 +71,7 @@ export default function PNGtoJPG() {
             setStatus("error");
             toast({
                 title: "Conversion Failed",
-                description: "This format might require specialized processing. Try a different file.",
+                description: error instanceof Error ? error.message : "An error occurred during conversion",
                 variant: "destructive",
             });
         }
@@ -85,7 +82,7 @@ export default function PNGtoJPG() {
 
         const originalName = files[0].file.name;
         const baseName = originalName.replace(/\.[^/.]+$/, '');
-        const targetExt = formatOptions.find(f => f.value === targetFormat)?.extension || 'png';
+        const targetExt = formatOptions.find(f => f.value === targetFormat)?.extension || 'jpg';
         const newFilename = `${baseName}.${targetExt}`;
 
         downloadFile(convertedBlob, newFilename);
@@ -95,27 +92,26 @@ export default function PNGtoJPG() {
         { from: "Any", to: "image/jpeg", label: "To JPG" },
         { from: "Any", to: "image/png", label: "To PNG" },
         { from: "Any", to: "application/pdf", label: "To PDF" },
-        { value: "image/webp", label: "To WebP" },
-        { value: "image/bmp", label: "To BMP" },
+        { from: "Any", to: "image/webp", label: "To WebP" },
+        { from: "Any", to: "image/svg+xml", label: "To SVG" },
     ];
 
     const needsQuality = targetFormat === "image/jpeg" || targetFormat === "image/webp";
 
     return (
         <ToolLayout
-            title="Image Converter"
-            description="Convert between PNG, JPG, WebP, PDF, SVG, HEIC, BMP, EPS, and more. Fast, free, and secure online conversion."
+            title="PNG to JPG Converter"
+            description="Convert PNG to JPG, PNG, PDF, and more instantly. Fast, free, and secure online conversion."
             category="Image Tools"
-            keywords={["png to jpg", "jpg to png", "heic to jpg", "eps to jpg", "bmp to jpg", "vsd to jpg", "convert image"]}
+            keywords={["png to jpg", "png converter", "image converter", "pdf converter"]}
             howToSteps={[
-                { name: "Upload File", text: "Upload any image or document (JPG, PNG, EPS, HEIC, VSDX, etc.)" },
-                { name: "Select Target", text: "Choose your desired output format from the dropdown" },
-                { name: "Adjust Quality", text: "Fine-tune quality for JPG or WebP if needed" },
+                { name: "Upload File", text: "Upload your PNG or other image file" },
+                { name: "Select Target", text: "Choose JPG or other output format" },
+                { name: "Adjust Settings", text: "Fine-tune quality if needed" },
                 { name: "Download", text: "Click convert and save your file" },
             ]}
         >
             <div className="space-y-6">
-                {/* File Upload */}
                 <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                         <RefreshCw className="h-5 w-5 text-[#0B9F47]" />
@@ -123,27 +119,23 @@ export default function PNGtoJPG() {
                     </h2>
                     <div>
                         <FileUploader
-                            accept="image/*,.pdf,.heic,.vsd,.vsdx,.eps,application/postscript"
+                            accept="image/webp,image/*"
                             maxFiles={1}
                             maxSize={50 * 1024 * 1024}
                             onFilesSelected={handleFilesSelected}
                             multiple={false}
                             allowedTypes={[
                                 "image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp",
-                                "image/tiff", "application/pdf", "image/heic", "image/vnd.visio",
-                                "application/vnd.visio", "image/svg+xml", "application/postscript", "image/x-eps",
-                                ".heic", ".eps", ".vsd", ".vsdx", ".bmp"
+                                "image/tiff", "application/pdf", "image/heic", "image/svg+xml"
                             ]}
                         />
                     </div>
                 </div>
 
-                {/* Conversion Settings */}
                 {files.length > 0 && (
                     <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
                         <h2 className="text-xl font-bold mb-4">Conversion Settings</h2>
                         <div className="space-y-6">
-                            {/* Source Format Display */}
                             <div className="bg-blue-50 p-4 rounded-lg">
                                 <p className="text-sm font-medium text-blue-900 mb-1">Source Format</p>
                                 <p className="text-lg font-bold text-blue-700">
@@ -151,7 +143,22 @@ export default function PNGtoJPG() {
                                 </p>
                             </div>
 
-                            {/* Target Format Selection */}
+                            <div>
+                                <Label className="mb-3 block">Quick Actions</Label>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                                    {quickConversions.map((conv) => (
+                                        <Button
+                                            key={conv.label}
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setTargetFormat(conv.to as SupportedImageFormat)}
+                                        >
+                                            {conv.label}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
                                 <Label htmlFor="format">Convert To</Label>
                                 <Select value={targetFormat} onValueChange={(value) => setTargetFormat(value as SupportedImageFormat)}>
@@ -168,7 +175,6 @@ export default function PNGtoJPG() {
                                 </Select>
                             </div>
 
-                            {/* Quality Slider */}
                             {needsQuality && (
                                 <div className="space-y-2">
                                     <Label>Quality: {quality[0]}%</Label>
@@ -195,7 +201,6 @@ export default function PNGtoJPG() {
                     </div>
                 )}
 
-                {/* Processing Status */}
                 {status !== "idle" && (
                     <ProcessingIndicator
                         status={status}
@@ -205,7 +210,6 @@ export default function PNGtoJPG() {
                     />
                 )}
 
-                {/* Preview and Download */}
                 {convertedBlob && convertedPreview && (
                     <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
                         <h2 className="text-xl font-bold mb-4">Output File</h2>
@@ -243,19 +247,13 @@ export default function PNGtoJPG() {
                     </div>
                 )}
 
-                {/* Information Table */}
                 <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6">
                     <h2 className="text-xl font-bold mb-4">Supported Conversions</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                         <ul className="list-disc pl-5 space-y-1">
-                            <li>PNG to PDF / BMP / SVG / WebP</li>
-                            <li>JPG to PNG / WebP / SVG</li>
-                            <li>HEIC to JPG (iPhone Photos)</li>
-                        </ul>
-                        <ul className="list-disc pl-5 space-y-1">
-                            <li>VSDX to PDF / JPG</li>
-                            <li>PDF to SVG</li>
-                            <li>GIF to JPG</li>
+                            <li>WEBP to JPG / PNG / PDF</li>
+                            <li>JPG to WEBP / PNG</li>
+                            <li>PNG to WEBP / JPG</li>
                         </ul>
                     </div>
                 </div>
