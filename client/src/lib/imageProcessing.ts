@@ -1,5 +1,9 @@
 import { jsPDF } from "jspdf";
 import heic2any from "heic2any";
+import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
+
+// Configure worker
+GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
 
 export interface ImageDimensions {
   width: number;
@@ -35,6 +39,74 @@ export async function loadImage(file: File): Promise<HTMLImageElement> {
       "temp.jpg",
       { type: "image/jpeg" }
     );
+  }
+
+  // PDF handling
+  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1); // Load first page
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas not supported");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: context, viewport }).promise;
+
+    // Convert canvas to image
+    const dataUrl = canvas.toDataURL("image/png");
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Failed to load PDF page as image"));
+      img.src = dataUrl;
+    });
+  }
+
+  // VSDX handling
+  if (file.name.toLowerCase().endsWith(".vsdx") || file.type === "application/vnd.visio" || file.type === "application/vnd.ms-visio.drawing.main+xml") {
+    const { default: JSZip } = await import("jszip");
+    const zip = new JSZip();
+    const arrayBuffer = await file.arrayBuffer();
+    const content = await zip.loadAsync(arrayBuffer);
+
+    // Try to find a preview image
+    // Standard VSDX preview paths
+    const previewPaths = [
+      "visio/media/preview.png",
+      "docProps/thumbnail.jpeg",
+      "visio/media/image1.png",
+      "visio/media/image1.jpeg"
+    ];
+
+    let previewFile = null;
+    for (const path of previewPaths) {
+      if (content.files[path]) {
+        previewFile = content.files[path];
+        break;
+      }
+    }
+
+    if (previewFile) {
+      const blob = await previewFile.async("blob");
+      const url = URL.createObjectURL(blob);
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("Failed to load Visio preview image"));
+        };
+        img.src = url;
+      });
+    }
+
+    throw new Error("Could not find a preview image in the Visio file. Try saving the file with a preview in Visio.");
   }
 
   return new Promise((resolve, reject) => {
@@ -153,24 +225,89 @@ export type SupportedImageFormat =
   | "image/bmp"
   | "image/gif"
   | "image/svg+xml"
-  | "application/pdf";
+  | "application/pdf"
+  | "application/vnd.visio";
 
 export async function convertImageFormat(
   file: File,
   targetFormat: SupportedImageFormat,
   quality: number = 0.92
 ): Promise<Blob> {
-  // SVG output logic (Very basic: Wraps image in SVG tag)
+  const img = await loadImage(file);
+
+  // VSDX (Visio) output logic
+  if (targetFormat === "application/vnd.visio") {
+    const { default: JSZip } = await import("jszip");
+    const zip = new JSZip();
+
+    // 1. [Content_Types].xml
+    zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="png" ContentType="image/png"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Override PartName="/visio/document.xml" ContentType="application/vnd.ms-visio.drawing.main+xml"/>
+</Types>`);
+
+    // 2. _rels/.rels
+    zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/document" Target="visio/document.xml"/>
+</Relationships>`);
+
+    // 3. visio/document.xml
+    zip.file("visio/document.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<VisioDocument xmlns="http://schemas.microsoft.com/visio/2010/drawings">
+  <Pages>
+    <Page ID="0" Name="Page-1">
+      <Shapes>
+        <Shape ID="1" Type="Shape">
+          <Cell N="Width" V="${img.width / 96}"/>
+          <Cell N="Height" V="${img.height / 96}"/>
+          <Rel ID="rId1" N="Image"/>
+        </Shape>
+      </Shapes>
+    </Page>
+  </Pages>
+</VisioDocument>`);
+
+    // 4. visio/_rels/document.xml.rels
+    zip.file("visio/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.jpg"/>
+</Relationships>`);
+
+    // 5. the image data
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(img, 0, 0);
+      const imgBlob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), "image/jpeg", quality));
+      zip.file("visio/media/image1.jpg", await imgBlob.arrayBuffer());
+    }
+
+    return await zip.generateAsync({ type: "blob" });
+  }
+
+  // SVG output logic (Wraps image in SVG tag)
   if (targetFormat === "image/svg+xml") {
-    const img = await loadImage(file);
-    const svgString = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${img.width}" height="${img.height}">
-        <image href="${await fileToBase64(file)}" width="${img.width}" height="${img.height}" />
-      </svg>`;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not get canvas context");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    const dataUrl = canvas.toDataURL("image/png");
+
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${img.width}" height="${img.height}">
+  <image href="${dataUrl}" width="${img.width}" height="${img.height}" />
+</svg>`;
     return new Blob([svgString], { type: "image/svg+xml" });
   }
 
-  const img = await loadImage(file);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 

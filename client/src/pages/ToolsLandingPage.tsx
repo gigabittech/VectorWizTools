@@ -11,6 +11,7 @@ interface Tool {
   icon: string;
   comingSoon?: boolean;
 }
+
 // this is image tools
 const imageTools: Tool[] = [
   { name: "AI Image Generator", description: "Create AI generated images", category: "Image Tools", route: "/tools/ai-image-generator", icon: "🎨" },
@@ -50,7 +51,7 @@ const imageTools: Tool[] = [
   { name: "PNG to SVG", description: "Convert PNG to SVG vector", category: "Image Tools", route: "/tools/png-to-svg", icon: "🔄" },
   { name: "JPG to SVG", description: "Convert JPG to SVG vector", category: "Image Tools", route: "/tools/jpg-to-svg", icon: "🔄" },
   { name: "PDF to SVG", description: "Convert PDF to SVG vector", category: "Image Tools", route: "/tools/pdf-to-svg", icon: "🔄" },
-  { name: "VSDX to JPG", description: "Convert VSDX to JPG format", category: "Image Tools", route: "/tools/format-converter", icon: "🔄" },
+  { name: "VSDX to JPG", description: "Convert VSDX to JPG format", category: "Image Tools", route: "/tools/vsdx-to-jpg", icon: "🔄" },
   { name: "VSDX to PDF", description: "Convert VSDX diagrams to PDF", category: "Image Tools", route: "/tools/format-converter", icon: "🔄" },
   { name: "GIF to JPG", description: "Convert GIF images to JPG", category: "Image Tools", route: "/tools/format-converter", icon: "🔄" },
   { name: "Add Watermark to Image", description: "Add text or logo watermarks to protect your images", category: "Image Tools", route: "/tools/image-watermark", icon: "💧" },

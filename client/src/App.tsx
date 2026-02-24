@@ -109,6 +109,11 @@ import BMPtoJPG from "@/pages/tools/bmp-to-jpg";
 import PNGtoBMP from "@/pages/tools/png-to-bmp";
 import HEICtoJPG from "@/pages/tools/heic-to-jpg";
 import VSDtoJPG from "@/pages/tools/vsd-to-jpg";
+import PNGtoSVG from "./pages/tools/image_tools/png-to-svg";
+import JPGtoSVG from "./pages/tools/image_tools/jpg-to-svg";
+import PDFtoSVG from "./pages/tools/image_tools/pdf-to-svg";
+import JPGtoVSDX from "./pages/tools/image_tools/jpg-to-vsdx";
+import VSDXtoJPG from "./pages/tools/image_tools/vsdx-to-jpg";
 
 function Router() {
   return (
@@ -120,7 +125,12 @@ function Router() {
         <Route path="/tools/vector-checker" component={VectorChecker} />
         <Route path="/tools/format-converter" component={FormatConverter} />
         <Route path="/tools/png-to-jpg" component={PNGtoJPG} />
+        <Route path="/tools/png-to-svg" component={PNGtoSVG} />
+        <Route path="/tools/jpg-to-svg" component={JPGtoSVG} />
         <Route path="/tools/eps-to-jpg" component={EPStoJPG} />
+        <Route path="/tools/pdf-to-svg" component={PDFtoSVG} />
+        <Route path="/tools/jpg-to-vsdx" component={JPGtoVSDX} />
+        <Route path="/tools/vsdx-to-jpg" component={VSDXtoJPG} />
         <Route path="/tools/bmp-to-jpg" component={BMPtoJPG} />
         <Route path="/tools/png-to-bmp" component={PNGtoBMP} />
         <Route path="/tools/heic-to-jpg" component={HEICtoJPG} />
