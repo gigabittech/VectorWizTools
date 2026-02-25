@@ -24,6 +24,7 @@ const imageTools: Tool[] = [
   { name: "Remove Objects From Photo", description: "Erase unwanted objects", category: "Image Tools", route: "/tools/remove-objects", icon: "✂️" },
   { name: "Profile Photo Maker", description: "Create professional profile photos", category: "Image Tools", route: "/tools/profile-photo-maker", icon: "👤" },
   { name: "PNG to JPG", description: "Convert PNG images to JPG format", category: "Image Tools", route: "/tools/png-to-jpg", icon: "🔄" },
+  { name: "Format Converter", description: "Convert images to different formats", category: "Image Tools", route: "/tools/format-converter", icon: "🔄" },
   { name: "Blur Background Tool", description: "Blur image backgrounds", category: "Image Tools", route: "/tools/blur-background", icon: "🌫️" },
   { name: "Image Filter & Effects", description: "Apply filters like grayscale, sepia, brightness", category: "Image Tools", route: "/tools/image-filter", icon: "✨" },
   { name: "WebP to JPG", description: "Convert WebP images to JPG", category: "Image Tools", route: "/tools/webp-to-jpg", icon: "🔄" },

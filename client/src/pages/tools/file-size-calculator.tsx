@@ -9,7 +9,7 @@ export default function FileSizeCalculatorPage() {
   useEffect(() => {
     // Set SEO metadata
     document.title = "Free File Size Calculator Tool | Calculate Image File Sizes | VectorWiz";
-    
+
     // Meta description
     const metaDescription = document.querySelector('meta[name="description"]') || document.createElement('meta');
     metaDescription.setAttribute('name', 'description');
@@ -54,7 +54,7 @@ export default function FileSizeCalculatorPage() {
     if (existingScript) {
       existingScript.remove();
     }
-    
+
     const scriptTag = document.createElement('script');
     scriptTag.type = 'application/ld+json';
     scriptTag.id = 'tool-structured-data';
@@ -92,18 +92,18 @@ export default function FileSizeCalculatorPage() {
     }
   }, []);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-white font-bold">V</span>
-          </div>
-          <Text c="dimmed">Loading file size calculator...</Text>
-        </div>
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       <div className="text-center">
+  //         <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
+  //           <span className="text-white font-bold">V</span>
+  //         </div>
+  //         <Text c="dimmed">Loading file size calculator...</Text>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
@@ -114,7 +114,7 @@ export default function FileSizeCalculatorPage() {
               Back to Tools
             </Button>
           </Link>
-          
+
           <Group align="flex-start" gap="lg" mb="xl">
             <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
               <HardDrive className="h-8 w-8 text-orange-600" />
@@ -122,7 +122,7 @@ export default function FileSizeCalculatorPage() {
             <div>
               <Title order={1} size="h1" mb="xs">Free File Size Calculator Tool</Title>
               <Text size="lg" c="dimmed" mb="md">
-                Calculate estimated file sizes for different image formats and compression settings. 
+                Calculate estimated file sizes for different image formats and compression settings.
                 Perfect for planning storage needs and optimizing web performance.
               </Text>
               <Group gap="xs">
@@ -189,7 +189,7 @@ export default function FileSizeCalculatorPage() {
         <Paper withBorder shadow="md" p="xl" mt="xl" className="text-center">
           <Title order={2} mb="md">Need Professional File Optimization?</Title>
           <Text size="lg" c="dimmed" mb="xl" maw={600} mx="auto">
-            Our experts can help optimize your entire image library for web performance, 
+            Our experts can help optimize your entire image library for web performance,
             storage efficiency, and loading speed across all devices.
           </Text>
           <Group justify="center" gap="md">
