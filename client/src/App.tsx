@@ -114,6 +114,8 @@ import JPGtoSVG from "./pages/tools/image_tools/jpg-to-svg";
 import PDFtoSVG from "./pages/tools/image_tools/pdf-to-svg";
 import JPGtoVSDX from "./pages/tools/image_tools/jpg-to-vsdx";
 import VSDXtoJPG from "./pages/tools/image_tools/vsdx-to-jpg";
+import PNGtoWebP from "./pages/tools/image_tools/png-to-webp";
+import JPGtoWebP from "./pages/tools/image_tools/jpg-to-webp";
 
 function Router() {
   return (
@@ -130,6 +132,8 @@ function Router() {
         <Route path="/tools/eps-to-jpg" component={EPStoJPG} />
         <Route path="/tools/pdf-to-svg" component={PDFtoSVG} />
         <Route path="/tools/jpg-to-vsdx" component={JPGtoVSDX} />
+        <Route path="/tools/png-to-webp" component={PNGtoWebP} />
+        <Route path="/tools/jpg-to-webp" component={JPGtoWebP} />
         <Route path="/tools/vsdx-to-jpg" component={VSDXtoJPG} />
         <Route path="/tools/bmp-to-jpg" component={BMPtoJPG} />
         <Route path="/tools/png-to-bmp" component={PNGtoBMP} />
