@@ -1,9 +1,9 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { MantineProvider } from '@mantine/core';
+import { MantineProvider, Loader } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
 import { theme, darkTheme } from './lib/theme';
@@ -21,6 +21,8 @@ import PrintSizeCalculator from "@/pages/tools/print-size-calculator";
 import LogoDimensions from "@/pages/tools/logo-dimensions";
 import VectorSimplifier from "@/pages/tools/vector-simplifier";
 import AspectRatioCalculator from "@/pages/tools/aspect-ratio-calculator";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import LoginPage from "@/pages/auth/login";
 import FontToVector from "@/pages/tools/font-to-vector";
 import ImageResizer from "@/pages/tools/image-resizer";
 import ImageCompressor from "@/pages/tools/image-compressor";
@@ -119,12 +121,38 @@ import JPGtoWebP from "./pages/tools/image_tools/jpg-to-webp";
 import Dashboard from "@/pages/dashboard";
 import ToolsManagement from "@/pages/tools/management";
 
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader color="green" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    setTimeout(() => setLocation("/login"), 0);
+    return null;
+  }
+
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
+      <Route path="/login" component={LoginPage} />
+
       {/* Admin Routes (Uses separate AdminLayout internally) */}
-      <Route path="/tools/admin/dashboard" component={Dashboard} />
-      <Route path="/tools/admin/management" component={ToolsManagement} />
+      <Route path="/tools/admin/dashboard">
+        {() => <ProtectedRoute component={Dashboard} />}
+      </Route>
+      <Route path="/tools/admin/management">
+        {() => <ProtectedRoute component={ToolsManagement} />}
+      </Route>
 
       {/* Main Project Routes (Wrapped in standard Layout) */}
       <Route>
@@ -253,10 +281,12 @@ function ThemedApp() {
       <Notifications />
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ModalsProvider>
     </MantineProvider>

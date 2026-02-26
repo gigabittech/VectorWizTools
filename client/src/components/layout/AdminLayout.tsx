@@ -9,17 +9,20 @@ import {
     User,
     Bell,
     Search,
-    ChevronRight
+    ChevronRight,
+    Loader
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import logoImage from "@assets/VectorWiz-logo_1760804742760.png";
+import { useAuth } from "@/hooks/use-auth";
 
 interface AdminLayoutProps {
     children: ReactNode;
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+    const { user, logoutMutation } = useAuth();
     const [location] = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -37,6 +40,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     ];
 
     const currentPath = location;
+
+    const handleLogout = () => {
+        logoutMutation.mutate();
+    };
 
     return (
         <div className="flex h-screen bg-[#f8fafc]">
@@ -84,9 +91,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </ScrollArea>
 
                 <div className="p-4 border-t border-white/10">
-                    <div className={`flex items-center gap-3 px-3 py-3 rounded-lg text-white/50 cursor-not-allowed`}>
-                        <LogOut size={20} className="shrink-0" />
-                        {isSidebarOpen && <span className="font-medium text-sm">Sign Out</span>}
+                    <div
+                        onClick={handleLogout}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-lg text-white/70 hover:bg-red-500/10 hover:text-red-400 cursor-pointer transition-all ${logoutMutation.isPending && "opacity-50 pointer-events-none"}`}
+                    >
+                        {logoutMutation.isPending ? (
+                            <Loader size={20} className="animate-spin" />
+                        ) : (
+                            <LogOut size={20} className="shrink-0" />
+                        )}
+                        {isSidebarOpen && <span className="font-medium text-sm">{logoutMutation.isPending ? "Signing Out..." : "Sign Out"}</span>}
                     </div>
                 </div>
             </aside>
@@ -120,8 +134,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         <div className="w-px h-6 bg-gray-200 mx-1"></div>
                         <div className="flex items-center gap-3 pl-2">
                             <div className="text-right hidden sm:block">
-                                <p className="text-sm font-semibold text-gray-900 leading-none">Admin User</p>
-                                <p className="text-xs text-gray-500 mt-1">Super Admin</p>
+                                <p className="text-sm font-semibold text-gray-900 leading-none">{user?.username || 'Admin User'}</p>
+                                <p className="text-xs text-gray-500 mt-1 capitalize">{user?.role || 'Super Admin'}</p>
                             </div>
                             <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0B9F47] to-[#0A8E3F] flex items-center justify-center text-white shadow-md">
                                 <User size={18} />
