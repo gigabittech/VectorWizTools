@@ -191,6 +191,11 @@ export default function ToolsLandingPage() {
     return matchesSearch && matchesCategory;
   });
 
+  useEffect(() => {
+    // Smooth scroll to top on page load
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -240,11 +245,6 @@ export default function ToolsLandingPage() {
       },
     },
   };
-
-  useEffect(() => {
-    // Smooth scroll to top on page load
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
 
   return (
     <motion.div
