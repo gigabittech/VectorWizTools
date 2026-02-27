@@ -7,7 +7,10 @@ import {
     type AIImageGeneration,
     type InsertAIImageGeneration,
     type User,
-    type InsertUser
+    type InsertUser,
+    type Tool,
+    type InsertTool,
+    tools
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq } from "drizzle-orm";
@@ -26,6 +29,14 @@ export interface IStorage {
     getUser(id: string): Promise<User | null>;
     getUserByUsername(username: string): Promise<User | null>;
     createUser(user: InsertUser): Promise<User>;
+
+    // Tools
+    getTools(): Promise<Tool[]>;
+    getTool(id: string): Promise<Tool | null>;
+    getToolByToolId(toolId: string): Promise<Tool | null>;
+    createTool(tool: InsertTool): Promise<Tool>;
+    updateTool(id: string, tool: Partial<InsertTool>): Promise<Tool>;
+    deleteTool(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -94,6 +105,38 @@ export class DatabaseStorage implements IStorage {
             .values(insertUser)
             .returning();
         return user;
+    }
+
+    async getTools(): Promise<Tool[]> {
+        return await db.select().from(tools).orderBy(desc(tools.createdAt));
+    }
+
+    async getTool(id: string): Promise<Tool | null> {
+        const [tool] = await db.select().from(tools).where(eq(tools.id, id)).limit(1);
+        return tool || null;
+    }
+
+    async getToolByToolId(toolId: string): Promise<Tool | null> {
+        const [tool] = await db.select().from(tools).where(eq(tools.tool_id, toolId)).limit(1);
+        return tool || null;
+    }
+
+    async createTool(insertTool: InsertTool): Promise<Tool> {
+        const [tool] = await db.insert(tools).values(insertTool).returning();
+        return tool;
+    }
+
+    async updateTool(id: string, toolUpdate: Partial<InsertTool>): Promise<Tool> {
+        const [updatedTool] = await db
+            .update(tools)
+            .set({ ...toolUpdate, updatedAt: new Date() })
+            .where(eq(tools.id, id))
+            .returning();
+        return updatedTool;
+    }
+
+    async deleteTool(id: string): Promise<void> {
+        await db.delete(tools).where(eq(tools.id, id));
     }
 }
 
