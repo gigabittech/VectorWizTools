@@ -1,9 +1,9 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { MantineProvider } from '@mantine/core';
+import { MantineProvider, Loader } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
 import { theme, darkTheme } from './lib/theme';
@@ -21,6 +21,8 @@ import PrintSizeCalculator from "@/pages/tools/print-size-calculator";
 import LogoDimensions from "@/pages/tools/logo-dimensions";
 import VectorSimplifier from "@/pages/tools/vector-simplifier";
 import AspectRatioCalculator from "@/pages/tools/aspect-ratio-calculator";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import LoginPage from "@/pages/auth/login";
 import FontToVector from "@/pages/tools/font-to-vector";
 import ImageResizer from "@/pages/tools/image-resizer";
 import ImageCompressor from "@/pages/tools/image-compressor";
@@ -116,120 +118,157 @@ import JPGtoVSDX from "./pages/tools/image_tools/jpg-to-vsdx";
 import VSDXtoJPG from "./pages/tools/image_tools/vsdx-to-jpg";
 import PNGtoWebP from "./pages/tools/image_tools/png-to-webp";
 import JPGtoWebP from "./pages/tools/image_tools/jpg-to-webp";
+import Dashboard from "@/pages/dashboard";
+import ToolsManagement from "@/pages/tools/management";
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader color="green" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    setTimeout(() => setLocation("/login"), 0);
+    return null;
+  }
+
+  return <Component />;
+}
 
 function Router() {
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={ToolsLandingPage} />
-        <Route path="/tools/dpi-calculator" component={DPICalculator} />
-        <Route path="/tools/turnaround-estimator" component={TurnaroundEstimator} />
-        <Route path="/tools/vector-checker" component={VectorChecker} />
-        <Route path="/tools/format-converter" component={FormatConverter} />
-        <Route path="/tools/png-to-jpg" component={PNGtoJPG} />
-        <Route path="/tools/png-to-svg" component={PNGtoSVG} />
-        <Route path="/tools/jpg-to-svg" component={JPGtoSVG} />
-        <Route path="/tools/eps-to-jpg" component={EPStoJPG} />
-        <Route path="/tools/pdf-to-svg" component={PDFtoSVG} />
-        <Route path="/tools/jpg-to-vsdx" component={JPGtoVSDX} />
-        <Route path="/tools/png-to-webp" component={PNGtoWebP} />
-        <Route path="/tools/jpg-to-webp" component={JPGtoWebP} />
-        <Route path="/tools/vsdx-to-jpg" component={VSDXtoJPG} />
-        <Route path="/tools/bmp-to-jpg" component={BMPtoJPG} />
-        <Route path="/tools/png-to-bmp" component={PNGtoBMP} />
-        <Route path="/tools/heic-to-jpg" component={HEICtoJPG} />
-        <Route path="/tools/vsd-to-jpg" component={VSDtoJPG} />
-        <Route path="/tools/color-extractor" component={ColorExtractor} />
-        <Route path="/tools/file-size-calculator" component={FileSizeCalculator} />
-        <Route path="/tools/print-size-calculator" component={PrintSizeCalculator} />
-        <Route path="/tools/logo-dimensions" component={LogoDimensions} />
-        <Route path="/tools/vector-simplifier" component={VectorSimplifier} />
-        <Route path="/tools/aspect-ratio-calculator" component={AspectRatioCalculator} />
-        <Route path="/tools/font-to-vector" component={FontToVector} />
-        <Route path="/tools/image-resizer" component={ImageResizer} />
-        <Route path="/tools/image-compressor" component={ImageCompressor} />
-        <Route path="/tools/image-cropper" component={ImageCropper} />
-        <Route path="/tools/image-rotator" component={ImageRotator} />
-        <Route path="/tools/image-filter" component={ImageFilter} />
-        <Route path="/tools/image-watermark" component={ImageWatermark} />
-        <Route path="/tools/image-border" component={ImageBorder} />
-        <Route path="/tools/color-palette-extractor" component={ColorPaletteExtractor} />
-        <Route path="/tools/image-to-base64" component={ImageToBase64} />
-        <Route path="/tools/image-comparison" component={ImageComparison} />
-        <Route path="/tools/add-text-to-image" component={AddTextToImage} />
-        <Route path="/tools/make-round-image" component={MakeRoundImage} />
-        <Route path="/tools/ai-image-generator" component={AIImageGenerator} />
-        <Route path="/tools/remove-background" component={RemoveBackgroundTool} />
-        <Route path="/tools/pdf-to-jpg" component={PDFToJPG} />
-        <Route path="/tools/image-upscale" component={ImageUpscale} />
-        <Route path="/tools/remove-watermark" component={RemoveWatermark} />
-        <Route path="/tools/image-to-text" component={ImageToText} />
-        <Route path="/tools/remove-objects" component={RemoveObjects} />
-        <Route path="/tools/profile-photo-maker" component={ProfilePhotoMaker} />
-        <Route path="/tools/blur-background" component={BlurBackground} />
-        <Route path="/tools/colorize-photo" component={ColorizePhoto} />
-        <Route path="/tools/combine-images" component={CombineImages} />
-        <Route path="/tools/make-background-transparent" component={MakeBackgroundTransparent} />
-        <Route path="/tools/file-to-svg" component={FileToSVG} />
-        <Route path="/tools/translate-image" component={TranslateImage} />
-        <Route path="/tools/postable-image" component={PostableImage} />
-        <Route path="/tools/collage-maker" component={CollageMaker} />
-        <Route path="/tools/chart-maker" component={ChartMaker} />
-        <Route path="/tools/image-splitter" component={ImageSplitter} />
-        <Route path="/tools/merge-pdf" component={MergePDF} />
-        <Route path="/tools/split-pdf" component={SplitPDF} />
-        <Route path="/tools/jpg-to-pdf" component={JPGToPDF} />
-        <Route path="/tools/compress-pdf" component={CompressPDF} />
-        <Route path="/tools/protect-pdf" component={ProtectPDF} />
-        <Route path="/tools/rotate-pdf" component={RotatePDF} />
-        <Route path="/tools/edit-pdf" component={EditPDF} />
-        <Route path="/tools/pdf-to-word" component={PDFToWord} />
-        <Route path="/tools/change-background" component={ChangeBackground} />
-        <Route path="/tools/word-to-pdf" component={WordToPDF} />
-        <Route path="/tools/unlock-pdf" component={UnlockPDF} />
-        <Route path="/tools/pdf-to-excel" component={PDFToExcel} />
-        <Route path="/tools/pdf-to-powerpoint" component={PDFToPowerpoint} />
-        <Route path="/tools/png-to-pdf" component={PNGToPDF} />
-        <Route path="/tools/epub-to-pdf" component={EPUBToPDF} />
-        <Route path="/tools/crop-pdf" component={CropPDF} />
-        <Route path="/tools/pdf-translator" component={PDFTranslator} />
-        <Route path="/tools/powerpoint-to-pdf" component={PowerpointToPDF} />
-        <Route path="/tools/pdf-to-epub" component={PDFToEPUB} />
-        <Route path="/tools/pdf-to-png" component={PDFToPNG} />
-        <Route path="/tools/delete-pdf-pages" component={DeletePDFPages} />
-        <Route path="/tools/url-to-pdf" component={URLToPDF} />
-        <Route path="/tools/rearrange-pdf" component={RearrangePDF} />
-        <Route path="/tools/extract-images-pdf" component={ExtractImagesPDF} />
-        <Route path="/tools/esign-pdf" component={ESignPDF} />
-        <Route path="/tools/create-pdf" component={CreatePDF} />
-        <Route path="/tools/pdf-watermark-remover" component={PDFWatermarkRemover} />
-        <Route path="/tools/pdf-to-csv" component={PDFToCSV} />
-        <Route path="/tools/add-page-numbers-pdf" component={AddPageNumbersPDF} />
-        <Route path="/tools/add-watermark-pdf" component={AddWatermarkPDF} />
-        <Route path="/tools/images-to-pdf" component={ImagesToPDF} />
-        <Route path="/tools/heic-to-pdf" component={HEICToPDF} />
-        <Route path="/tools/add-text-pdf" component={AddTextPDF} />
-        <Route path="/tools/annotate-pdf" component={AnnotatePDF} />
-        <Route path="/tools/tiff-to-pdf" component={TIFFToPDF} />
-        <Route path="/tools/mobi-to-pdf" component={MOBIToPDF} />
-        <Route path="/tools/pdf-to-mobi" component={PDFToMOBI} />
-        <Route path="/tools/pdf-to-tiff" component={PDFToTIFF} />
-        <Route path="/tools/azw3-to-pdf" component={AZW3ToPDF} />
-        <Route path="/tools/webp-to-pdf" component={WEBPToPDF} />
-        <Route path="/tools/pdf-to-azw3" component={PDFToAZW3} />
-        <Route path="/tools/ms-outlook-to-pdf" component={MSOutlookToPDF} />
-        <Route path="/tools/pdf-to-text" component={PDFToText} />
-        <Route path="/tools/gif-to-pdf" component={GIFToPDF} />
-        <Route path="/tools/extract-text-pdf" component={ExtractTextPDF} />
-        <Route path="/tools/eps-to-pdf" component={EPSToPDF} />
-        <Route path="/tools/webp-to-jpg" component={WEBPtoJPG} />
-        <Route path="/tools/jpg-to-png" component={JPGtoPNG} />
-        <Route path="/tools/svg-to-png" component={SVGtoPNG} />
-        <Route path="/tools/tiff-to-jpg" component={TIFFtoJPG} />
-        <Route path="/tools/png-to-gif" component={PNGtoGIF} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      <Route path="/login" component={LoginPage} />
+
+      {/* Admin Routes (Uses separate AdminLayout internally) */}
+      <Route path="/tools/admin/dashboard">
+        {() => <ProtectedRoute component={Dashboard} />}
+      </Route>
+      <Route path="/tools/admin/management">
+        {() => <ProtectedRoute component={ToolsManagement} />}
+      </Route>
+
+      {/* Main Project Routes (Wrapped in standard Layout) */}
+      <Route>
+        <Layout>
+          <Switch>
+            <Route path="/" component={ToolsLandingPage} />
+            <Route path="/tools/dpi-calculator" component={DPICalculator} />
+            <Route path="/tools/turnaround-estimator" component={TurnaroundEstimator} />
+            <Route path="/tools/vector-checker" component={VectorChecker} />
+            <Route path="/tools/format-converter" component={FormatConverter} />
+            <Route path="/tools/png-to-jpg" component={PNGtoJPG} />
+            <Route path="/tools/png-to-svg" component={PNGtoSVG} />
+            <Route path="/tools/jpg-to-svg" component={JPGtoSVG} />
+            <Route path="/tools/eps-to-jpg" component={EPStoJPG} />
+            <Route path="/tools/pdf-to-svg" component={PDFtoSVG} />
+            <Route path="/tools/jpg-to-vsdx" component={JPGtoVSDX} />
+            <Route path="/tools/png-to-webp" component={PNGtoWebP} />
+            <Route path="/tools/jpg-to-webp" component={JPGtoWebP} />
+            <Route path="/tools/vsdx-to-jpg" component={VSDXtoJPG} />
+            <Route path="/tools/bmp-to-jpg" component={BMPtoJPG} />
+            <Route path="/tools/png-to-bmp" component={PNGtoBMP} />
+            <Route path="/tools/heic-to-jpg" component={HEICtoJPG} />
+            <Route path="/tools/vsd-to-jpg" component={VSDtoJPG} />
+            <Route path="/tools/color-extractor" component={ColorExtractor} />
+            <Route path="/tools/file-size-calculator" component={FileSizeCalculator} />
+            <Route path="/tools/print-size-calculator" component={PrintSizeCalculator} />
+            <Route path="/tools/logo-dimensions" component={LogoDimensions} />
+            <Route path="/tools/vector-simplifier" component={VectorSimplifier} />
+            <Route path="/tools/aspect-ratio-calculator" component={AspectRatioCalculator} />
+            <Route path="/tools/font-to-vector" component={FontToVector} />
+            <Route path="/tools/image-resizer" component={ImageResizer} />
+            <Route path="/tools/image-compressor" component={ImageCompressor} />
+            <Route path="/tools/image-cropper" component={ImageCropper} />
+            <Route path="/tools/image-rotator" component={ImageRotator} />
+            <Route path="/tools/image-filter" component={ImageFilter} />
+            <Route path="/tools/image-watermark" component={ImageWatermark} />
+            <Route path="/tools/image-border" component={ImageBorder} />
+            <Route path="/tools/color-palette-extractor" component={ColorPaletteExtractor} />
+            <Route path="/tools/image-to-base64" component={ImageToBase64} />
+            <Route path="/tools/image-comparison" component={ImageComparison} />
+            <Route path="/tools/add-text-to-image" component={AddTextToImage} />
+            <Route path="/tools/make-round-image" component={MakeRoundImage} />
+            <Route path="/tools/ai-image-generator" component={AIImageGenerator} />
+            <Route path="/tools/remove-background" component={RemoveBackgroundTool} />
+            <Route path="/tools/pdf-to-jpg" component={PDFToJPG} />
+            <Route path="/tools/image-upscale" component={ImageUpscale} />
+            <Route path="/tools/remove-watermark" component={RemoveWatermark} />
+            <Route path="/tools/image-to-text" component={ImageToText} />
+            <Route path="/tools/remove-objects" component={RemoveObjects} />
+            <Route path="/tools/profile-photo-maker" component={ProfilePhotoMaker} />
+            <Route path="/tools/blur-background" component={BlurBackground} />
+            <Route path="/tools/colorize-photo" component={ColorizePhoto} />
+            <Route path="/tools/combine-images" component={CombineImages} />
+            <Route path="/tools/make-background-transparent" component={MakeBackgroundTransparent} />
+            <Route path="/tools/file-to-svg" component={FileToSVG} />
+            <Route path="/tools/translate-image" component={TranslateImage} />
+            <Route path="/tools/postable-image" component={PostableImage} />
+            <Route path="/tools/collage-maker" component={CollageMaker} />
+            <Route path="/tools/chart-maker" component={ChartMaker} />
+            <Route path="/tools/image-splitter" component={ImageSplitter} />
+            <Route path="/tools/merge-pdf" component={MergePDF} />
+            <Route path="/tools/split-pdf" component={SplitPDF} />
+            <Route path="/tools/jpg-to-pdf" component={JPGToPDF} />
+            <Route path="/tools/compress-pdf" component={CompressPDF} />
+            <Route path="/tools/protect-pdf" component={ProtectPDF} />
+            <Route path="/tools/rotate-pdf" component={RotatePDF} />
+            <Route path="/tools/edit-pdf" component={EditPDF} />
+            <Route path="/tools/pdf-to-word" component={PDFToWord} />
+            <Route path="/tools/change-background" component={ChangeBackground} />
+            <Route path="/tools/word-to-pdf" component={WordToPDF} />
+            <Route path="/tools/unlock-pdf" component={UnlockPDF} />
+            <Route path="/tools/pdf-to-excel" component={PDFToExcel} />
+            <Route path="/tools/pdf-to-powerpoint" component={PDFToPowerpoint} />
+            <Route path="/tools/png-to-pdf" component={PNGToPDF} />
+            <Route path="/tools/epub-to-pdf" component={EPUBToPDF} />
+            <Route path="/tools/crop-pdf" component={CropPDF} />
+            <Route path="/tools/pdf-translator" component={PDFTranslator} />
+            <Route path="/tools/powerpoint-to-pdf" component={PowerpointToPDF} />
+            <Route path="/tools/pdf-to-epub" component={PDFToEPUB} />
+            <Route path="/tools/pdf-to-png" component={PDFToPNG} />
+            <Route path="/tools/delete-pdf-pages" component={DeletePDFPages} />
+            <Route path="/tools/url-to-pdf" component={URLToPDF} />
+            <Route path="/tools/rearrange-pdf" component={RearrangePDF} />
+            <Route path="/tools/extract-images-pdf" component={ExtractImagesPDF} />
+            <Route path="/tools/esign-pdf" component={ESignPDF} />
+            <Route path="/tools/create-pdf" component={CreatePDF} />
+            <Route path="/tools/pdf-watermark-remover" component={PDFWatermarkRemover} />
+            <Route path="/tools/pdf-to-csv" component={PDFToCSV} />
+            <Route path="/tools/add-page-numbers-pdf" component={AddPageNumbersPDF} />
+            <Route path="/tools/add-watermark-pdf" component={AddWatermarkPDF} />
+            <Route path="/tools/images-to-pdf" component={ImagesToPDF} />
+            <Route path="/tools/heic-to-pdf" component={HEICToPDF} />
+            <Route path="/tools/add-text-pdf" component={AddTextPDF} />
+            <Route path="/tools/annotate-pdf" component={AnnotatePDF} />
+            <Route path="/tools/tiff-to-pdf" component={TIFFToPDF} />
+            <Route path="/tools/mobi-to-pdf" component={MOBIToPDF} />
+            <Route path="/tools/pdf-to-mobi" component={PDFToMOBI} />
+            <Route path="/tools/pdf-to-tiff" component={PDFToTIFF} />
+            <Route path="/tools/azw3-to-pdf" component={AZW3ToPDF} />
+            <Route path="/tools/webp-to-pdf" component={WEBPToPDF} />
+            <Route path="/tools/pdf-to-azw3" component={PDFToAZW3} />
+            <Route path="/tools/ms-outlook-to-pdf" component={MSOutlookToPDF} />
+            <Route path="/tools/pdf-to-text" component={PDFToText} />
+            <Route path="/tools/gif-to-pdf" component={GIFToPDF} />
+            <Route path="/tools/extract-text-pdf" component={ExtractTextPDF} />
+            <Route path="/tools/eps-to-pdf" component={EPSToPDF} />
+            <Route path="/tools/webp-to-jpg" component={WEBPtoJPG} />
+            <Route path="/tools/jpg-to-png" component={JPGtoPNG} />
+            <Route path="/tools/svg-to-png" component={SVGtoPNG} />
+            <Route path="/tools/tiff-to-jpg" component={TIFFtoJPG} />
+            <Route path="/tools/png-to-gif" component={PNGtoGIF} />
+            <Route component={NotFound} />
+          </Switch>
+        </Layout>
+      </Route>
+    </Switch>
   );
 }
 
@@ -242,10 +281,12 @@ function ThemedApp() {
       <Notifications />
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ModalsProvider>
     </MantineProvider>
