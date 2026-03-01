@@ -5,7 +5,7 @@ import { z } from "zod";
 
 // Simple quote requests table
 export const quoteRequests = pgTable("quote_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().defaultRandom(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email").notNull(),
@@ -31,7 +31,7 @@ export const insertQuoteRequestSchema = createInsertSchema(quoteRequests).omit({
 
 // AI Image Generations table
 export const aiImageGenerations = pgTable("ai_image_generations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().defaultRandom(),
   prompt: text("prompt").notNull(),
   model: varchar("model").notNull(), // "dall-e-3", "dall-e-2", "stable-diffusion"
   size: varchar("size"), // "1024x1024", etc.
@@ -56,7 +56,7 @@ export const insertAIImageGenerationSchema = createInsertSchema(aiImageGeneratio
 
 // Users table for authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().defaultRandom(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().default("admin"), // admin, ...
@@ -78,7 +78,7 @@ export const loginSchema = z.object({
 
 // Tools table
 export const tools = pgTable("tools", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().defaultRandom(),
   tool_id: varchar("tool_id").notNull().unique(),
   name: text("name").notNull(),
   title: text("title"),
