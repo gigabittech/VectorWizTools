@@ -91,6 +91,8 @@ export function setPageMetadata(metadata: {
   ogType?: string;
   ogUrl?: string;
   ogImage?: string;
+  canonicalUrl?: string;
+  robots?: string;
 }): void {
   // Set title
   document.title = metadata.title;
@@ -125,6 +127,25 @@ export function setPageMetadata(metadata: {
       name: 'keywords',
       content: metadata.keywords.join(', ')
     });
+  }
+
+  // Robots
+  if (metadata.robots) {
+    updateMetaTag('meta[name="robots"]', {
+      name: 'robots',
+      content: metadata.robots
+    });
+  }
+
+  // Canonical URL
+  if (metadata.canonicalUrl) {
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', metadata.canonicalUrl);
   }
 
   // Open Graph

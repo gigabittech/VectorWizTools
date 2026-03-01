@@ -52,6 +52,7 @@ export default function DPICalculator() {
 
   return (
     <ToolLayout
+      toolId="dpi-calculator"
       title="Free DPI Calculator Tool"
       description="Calculate image resolution and determine if your graphics need vectorization for professional printing."
       category="Image Tools"

@@ -42,6 +42,20 @@ export class ToolController {
         }
     }
 
+    async getToolBySlug(req: Request, res: Response) {
+        try {
+            const { slug } = req.params;
+            const tool = await toolService.getToolBySlug(slug);
+            if (!tool) {
+                return res.status(404).json({ message: "Tool not found" });
+            }
+            res.json(tool);
+        } catch (error) {
+            console.error("Error fetching tool by slug:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
     async createTool(req: Request, res: Response) {
         try {
             const data = insertToolSchema.parse(req.body);

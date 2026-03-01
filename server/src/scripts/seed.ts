@@ -115,33 +115,57 @@ const pdfTools = [
 async function seed() {
     console.log("🌱 Starting database seeding...");
     try {
-        // --- Admin User ---
-        const admin = await storage.getUserByUsername("admin");
-        if (!admin) {
-            const hashedPassword = await hashPassword("admin123");
-            await storage.createUser({
-                username: "admin",
-                password: hashedPassword,
-                role: "admin",
-            });
-            console.log("✅ Admin user created: admin / admin123");
+        // --- Users ---
+        const userRoles = [
+            { username: "admin", password: "admin123", role: "admin", name: "System Admin", email: "admin@vectorwiz.com" },
+            { username: "seo_expert", password: "seo123", role: "seo", name: "SEO Strategist", email: "seo@vectorwiz.com" },
+            { username: "content_writer", password: "writer123", role: "writer", name: "Content Writer", email: "writer@vectorwiz.com" },
+        ];
+
+        for (const user of userRoles) {
+            const existingUser = await storage.getUserByUsername(user.username);
+            if (!existingUser) {
+                const hashedPassword = await hashPassword(user.password);
+                await storage.createUser({
+                    username: user.username,
+                    password: hashedPassword,
+                    role: user.role,
+                    name: user.name,
+                    email: user.email,
+                });
+                console.log(`✅ User created: ${user.username} (${user.role})`);
+            }
         }
 
         // --- Tools ---
-        const allTools = [...imageTools, ...pdfTools];
-        const existingTools = await storage.getTools();
-        const existingToolIds = new Set(existingTools.map(t => t.tool_id));
+        const allToolsRaw = [...imageTools, ...pdfTools];
+        const existingToolsList = await storage.getTools();
+        const existingToolIds = new Set(existingToolsList.map(t => t.tool_id));
+        const seenInSeed = new Set<string>();
 
-        for (const tool of allTools) {
+        let count = 0;
+        for (const tool of allToolsRaw) {
             const toolId = tool.route.split('/').pop() || "";
+            if (seenInSeed.has(toolId)) continue;
+            seenInSeed.add(toolId);
+
             if (!existingToolIds.has(toolId)) {
-                await storage.createTool({
+                // Determine component name from route
+                const componentName = toolId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+
+                const createdTool = await storage.createTool({
                     tool_id: toolId,
+
+
+
                     name: tool.name,
                     title: `Free ${tool.name} Tool`,
                     description: tool.description,
                     category: tool.category,
                     status: "active",
+                    slug: toolId,
+                    tool_component: componentName,
+                    is_active: "active",
                     keywords: [tool.name.toLowerCase(), tool.category.toLowerCase()],
                     howToSteps: [
                         "Upload your file",
@@ -150,13 +174,34 @@ async function seed() {
                         "Download the result"
                     ]
                 });
+
+                // Seed SEO
+                await storage.createToolSeo({
+                    toolId: createdTool.id,
+                    metaTitle: `Free ${tool.name} Tool Online | VectorWiz`,
+                    metaDescription: tool.description,
+                    metaKeywords: `${tool.name}, online tool, free, vector, converted`,
+                    indexStatus: "index",
+                    followStatus: "follow",
+                });
+
+                // Seed Content
+                await storage.createToolContents({
+                    toolId: createdTool.id,
+                    h1Title: tool.name,
+                    introContent: tool.description,
+                    howToUse: "Follow the simple steps to use this tool effectively.",
+                    features: "Fast, Free, Secure, and Online",
+                });
+
+                count++;
+                console.log(`✅ Seeded tool: ${tool.name}`);
             }
         }
-        console.log(`✅ Seeded ${allTools.length} tools successfully!`);
+        console.log(`✅ Seeded ${count} new tools successfully!`);
 
     } catch (error) {
         console.error("❌ Seeding failed:", error);
-        process.exit(1);
     } finally {
         process.exit(0);
     }
