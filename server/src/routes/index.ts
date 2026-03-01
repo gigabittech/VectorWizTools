@@ -7,6 +7,7 @@ import { sendQuoteRequestNotification } from "../services/emailService";
 import { generateAIImage } from "../services/aiImageService";
 import { comparePassword, generateToken } from "../utils/auth";
 import { protect } from "../middlewares/auth";
+import { toolController } from "../controllers/toolController";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // --- Auth Routes ---
@@ -255,6 +256,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // --- Tool Management Routes ---
+  app.get("/api/tools", toolController.getAllTools);
+  app.get("/api/tools/:id", toolController.getTool);
+  app.get("/api/tools/tool_id/:toolId", toolController.getToolByToolId);
+  app.post("/api/tools", protect, toolController.createTool);
+  app.patch("/api/tools/:id", protect, toolController.updateTool);
+  app.delete("/api/tools/:id", protect, toolController.deleteTool);
 
   const httpServer = createServer(app);
   return httpServer;

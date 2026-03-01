@@ -76,6 +76,27 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+// Tools table
+export const tools = pgTable("tools", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tool_id: varchar("tool_id").notNull().unique(),
+  name: text("name").notNull(),
+  title: text("title"),
+  description: text("description"),
+  category: text("category").notNull(),
+  keywords: text("keywords").array(),
+  howToSteps: text("how_to_steps").array(),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+export const insertToolSchema = createInsertSchema(tools).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type QuoteRequest = typeof quoteRequests.$inferSelect;
 export type InsertQuoteRequest = z.infer<typeof insertQuoteRequestSchema>;
@@ -84,3 +105,5 @@ export type InsertAIImageGeneration = z.infer<typeof insertAIImageGenerationSche
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginRequest = z.infer<typeof loginSchema>;
+export type Tool = typeof tools.$inferSelect;
+export type InsertTool = z.infer<typeof insertToolSchema>;

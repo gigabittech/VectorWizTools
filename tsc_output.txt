@@ -1,0 +1,12 @@
+client/src/components/tools/TurnaroundEstimator.tsx(49,15): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, option: ComboboxItem) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+client/src/components/tools/TurnaroundEstimator.tsx(60,15): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, option: ComboboxItem) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+client/src/hooks/use-websocket.ts(1,30): error TS2307: Cannot find module '@/lib/websocket' or its corresponding type declarations.
+client/src/pages/tools/extract-images-pdf.tsx(44,17): error TS2339: Property 'xObject' does not exist on type 'PDFDict | {}'.
+client/src/pages/tools/remove-background.tsx(71,9): error TS2322: Type '"medium"' is not assignable to type '"isnet" | "isnet_fp16" | "isnet_quint8" | undefined'.
+client/src/pages/tools/rotate-pdf.tsx(51,26): error TS2345: Argument of type 'number' is not assignable to parameter of type 'Rotation'.
