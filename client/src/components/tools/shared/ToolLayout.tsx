@@ -157,6 +157,18 @@ export default function ToolLayout({
     );
   }
 
+  if (cmsData && cmsData.is_active === 'in_active') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-center px-4">
+        <Text size="xl" fw={700} c="red" mb="sm">This tool is currently unavailable</Text>
+        <Text c="dimmed" mb="lg">The tool you are looking for has been temporarily disabled or moved.</Text>
+        <Link href="/">
+          <span className="text-[#0B9F47] hover:underline cursor-pointer font-medium">Return to Home</span>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       className="min-h-screen"

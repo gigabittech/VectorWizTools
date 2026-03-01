@@ -6,7 +6,8 @@ import { z } from "zod";
 export class ToolController {
     async getAllTools(req: Request, res: Response) {
         try {
-            const tools = await toolService.getAllTools();
+            const onlyActive = req.query.onlyActive === 'true';
+            const tools = await toolService.getAllTools(onlyActive);
             res.json(tools);
         } catch (error) {
             console.error("Error fetching tools:", error);

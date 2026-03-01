@@ -2,8 +2,8 @@ import { storage, ToolWithCms } from "../data/storage";
 import { InsertTool, Tool } from "@shared/schema";
 
 export class ToolService {
-    async getAllTools(): Promise<ToolWithCms[]> {
-        return await storage.getTools();
+    async getAllTools(onlyActive?: boolean): Promise<ToolWithCms[]> {
+        return await storage.getTools(onlyActive);
     }
 
     async getToolById(id: string): Promise<ToolWithCms | null> {

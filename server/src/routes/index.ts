@@ -326,6 +326,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- Internal Links Routes ---
+  app.get("/api/tools/:id/internal-links", async (req, res) => {
+    try {
+      const result = await storage.getToolInternalLinks(req.params.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch internal links" });
+    }
+  });
+
+  app.post("/api/tools/:id/internal-links", protect, async (req, res) => {
+    try {
+      const data = { ...req.body, toolId: req.params.id };
+      const result = await storage.createToolInternalLink(data);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create internal link" });
+    }
+  });
+
+  app.delete("/api/internal-links/:id", protect, async (req, res) => {
+    try {
+      await storage.deleteToolInternalLink(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete internal link" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

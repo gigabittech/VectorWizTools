@@ -35,6 +35,7 @@ export type ToolWithCms = Tool & {
     seo?: ToolSeoType | null;
     contents?: ToolContentsType | null;
     faqs?: ToolFaqType[];
+    internalLinks?: (ToolInternalLinkType & { relatedTool?: Tool })[];
 };
 
 export interface IStorage {
@@ -54,7 +55,7 @@ export interface IStorage {
     updateUser(id: string, user: Partial<InsertUser>): Promise<User>;
 
     // Tools
-    getTools(): Promise<ToolWithCms[]>;
+    getTools(onlyActive?: boolean): Promise<ToolWithCms[]>;
     getTool(id: string): Promise<ToolWithCms | null>;
     getToolByToolId(toolId: string): Promise<ToolWithCms | null>;
     getToolBySlug(slug: string): Promise<ToolWithCms | null>;
@@ -71,6 +72,11 @@ export interface IStorage {
     createToolFaq(data: any): Promise<ToolFaqType>;
     updateToolFaq(id: string, data: any): Promise<ToolFaqType>;
     deleteToolFaq(id: string): Promise<void>;
+
+    // Internal Links
+    getToolInternalLinks(toolId: string): Promise<(ToolInternalLinkType & { relatedTool?: Tool })[]>;
+    createToolInternalLink(data: any): Promise<ToolInternalLinkType>;
+    deleteToolInternalLink(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -154,17 +160,23 @@ export class DatabaseStorage implements IStorage {
         const [seo] = await db.select().from(toolSeo).where(eq(toolSeo.toolId, tool.id)).limit(1);
         const [contents] = await db.select().from(toolContents).where(eq(toolContents.toolId, tool.id)).limit(1);
         const faqs = await db.select().from(toolFaqs).where(eq(toolFaqs.toolId, tool.id)).orderBy(toolFaqs.sortOrder);
+        const internalLinks = await this.getToolInternalLinks(tool.id);
 
         return {
             ...tool,
             seo: seo || null,
             contents: contents || null,
-            faqs: faqs || []
+            faqs: faqs || [],
+            internalLinks: internalLinks || []
         };
     }
 
-    async getTools(): Promise<ToolWithCms[]> {
-        const allTools = await db.select().from(tools).orderBy(desc(tools.createdAt));
+    async getTools(onlyActive?: boolean): Promise<ToolWithCms[]> {
+        let query = db.select().from(tools);
+        if (onlyActive) {
+            query = query.where(eq(tools.is_active, 'active')) as any;
+        }
+        const allTools = await query.orderBy(desc(tools.createdAt));
         return Promise.all(allTools.map(t => this.attachCmsData(t)));
     }
 
@@ -241,6 +253,27 @@ export class DatabaseStorage implements IStorage {
 
     async deleteToolFaq(id: string): Promise<void> {
         await db.delete(toolFaqs).where(eq(toolFaqs.id, id));
+    }
+
+    // Internal Links
+    async getToolInternalLinks(toolId: string): Promise<(ToolInternalLinkType & { relatedTool?: Tool })[]> {
+        const links = await db.select().from(toolInternalLinks).where(eq(toolInternalLinks.toolId, toolId));
+        return Promise.all(links.map(async link => {
+            const [relatedTool] = await db.select().from(tools).where(eq(tools.id, link.relatedToolId)).limit(1);
+            return {
+                ...link,
+                relatedTool: relatedTool || undefined
+            };
+        }));
+    }
+
+    async createToolInternalLink(data: any): Promise<ToolInternalLinkType> {
+        const [res] = await db.insert(toolInternalLinks).values(data).returning();
+        return res;
+    }
+
+    async deleteToolInternalLink(id: string): Promise<void> {
+        await db.delete(toolInternalLinks).where(eq(toolInternalLinks.id, id));
     }
 }
 

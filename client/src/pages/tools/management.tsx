@@ -40,6 +40,7 @@ export default function ToolsManagement() {
             status: "",
             keywords: [] as string[],
             howToSteps: [] as string[],
+            is_active: "active",
             // SEO
             seo: {
                 metaTitle: "",
@@ -59,6 +60,9 @@ export default function ToolsManagement() {
             }
         },
     });
+
+    const [faqForm, setFaqForm] = useState({ question: "", answer: "" });
+    const [linkForm, setLinkForm] = useState({ relatedToolId: "", anchorText: "" });
 
     const categories = useMemo(() => {
         const cats = new Set(tools.map((t: any) => t.category));
@@ -110,6 +114,7 @@ export default function ToolsManagement() {
             status: tool.status || "active",
             keywords: tool.keywords || [],
             howToSteps: tool.howToSteps || [],
+            is_active: tool.is_active || "active",
             seo: {
                 metaTitle: tool.seo?.metaTitle || "",
                 metaDescription: tool.seo?.metaDescription || "",
@@ -128,6 +133,40 @@ export default function ToolsManagement() {
         });
         setModalOpened(true);
     };
+
+    const addFaqMutation = useMutation({
+        mutationFn: (toolId: string) => apiRequest("POST", `/api/tools/${toolId}/faqs`, faqForm),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
+            setFaqForm({ question: "", answer: "" });
+            toast({ title: "FAQ Added" });
+        }
+    });
+
+    const deleteFaqMutation = useMutation({
+        mutationFn: (id: string) => apiRequest("DELETE", `/api/faqs/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
+            toast({ title: "FAQ Deleted" });
+        }
+    });
+
+    const addLinkMutation = useMutation({
+        mutationFn: (toolId: string) => apiRequest("POST", `/api/tools/${toolId}/internal-links`, linkForm),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
+            setLinkForm({ relatedToolId: "", anchorText: "" });
+            toast({ title: "Internal Link Added" });
+        }
+    });
+
+    const deleteLinkMutation = useMutation({
+        mutationFn: (id: string) => apiRequest("DELETE", `/api/internal-links/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
+            toast({ title: "Internal Link Deleted" });
+        }
+    });
 
     const handleUpdate = (values: typeof editForm.values) => {
         if (editingTool) {
@@ -220,8 +259,8 @@ export default function ToolsManagement() {
                                             </Badge>
                                         </Table.Td>
                                         <Table.Td>
-                                            <Badge color={tool.status === 'active' ? 'green' : 'gray'} variant="dot">
-                                                {tool.status}
+                                            <Badge color={tool.is_active === 'active' ? 'green' : 'red'} variant="dot">
+                                                {tool.is_active}
                                             </Badge>
                                         </Table.Td>
                                         <Table.Td>
@@ -266,6 +305,7 @@ export default function ToolsManagement() {
                         <Tabs.Tab value="seo" leftSection={<Globe size={16} />}>SEO (Meta & OG)</Tabs.Tab>
                         <Tabs.Tab value="content" leftSection={<FileText size={16} />}>Page Content</Tabs.Tab>
                         <Tabs.Tab value="faqs" leftSection={<HelpCircle size={16} />}>FAQs</Tabs.Tab>
+                        <Tabs.Tab value="links" leftSection={<Globe size={16} />}>Internal Links</Tabs.Tab>
                     </Tabs.List>
 
                     <form onSubmit={editForm.onSubmit(handleUpdate)}>
@@ -282,9 +322,16 @@ export default function ToolsManagement() {
                                 <Textarea label="Short Description" minRows={3} required {...editForm.getInputProps('description')} />
                                 <Group grow>
                                     <Select label="Category" data={categories} required {...editForm.getInputProps('category')} />
-                                    <Select label="App Status" data={['active', 'inactive', 'coming-soon']} required {...editForm.getInputProps('status')} />
+                                    <Select label="Internal Logic Status" data={['active', 'coming-soon']} {...editForm.getInputProps('status')} />
+                                    <Select
+                                        label="Public Visibility (is_active)"
+                                        data={[{ value: 'active', label: 'Active (Show)' }, { value: 'in_active', label: 'Inactive (Hide)' }]}
+                                        required
+                                        {...editForm.getInputProps('is_active')}
+                                    />
                                 </Group>
-                                <TagsInput label="Keywords" {...editForm.getInputProps('keywords')} />
+                                <TagsInput label="Tool Keywords (App-level)" {...editForm.getInputProps('keywords')} />
+                                <TagsInput label="How To Steps (JSON array)" placeholder="Enter step and press enter" {...editForm.getInputProps('howToSteps')} />
                             </Stack>
                         </Tabs.Panel>
 
@@ -311,8 +358,94 @@ export default function ToolsManagement() {
                         </Tabs.Panel>
 
                         <Tabs.Panel value="faqs">
-                            <Text c="dimmed" size="sm" mb="md">FAQ Management coming soon in next sub-module. Basic fields added.</Text>
-                            {/* FAQ Logic can be added here similarly */}
+                            <Stack gap="md" mt="md">
+                                <Box p="md" className="bg-gray-50 rounded-lg border">
+                                    <Title order={5} mb="sm">Add New FAQ</Title>
+                                    <Stack gap="xs">
+                                        <TextInput
+                                            placeholder="Question"
+                                            value={faqForm.question}
+                                            onChange={(e) => setFaqForm({ ...faqForm, question: e.target.value })}
+                                        />
+                                        <Textarea
+                                            placeholder="Answer"
+                                            value={faqForm.answer}
+                                            onChange={(e) => setFaqForm({ ...faqForm, answer: e.target.value })}
+                                        />
+                                        <Button
+                                            size="xs"
+                                            color="blue"
+                                            leftSection={<Plus size={14} />}
+                                            onClick={() => editingTool && addFaqMutation.mutate(editingTool.id)}
+                                            disabled={!faqForm.question || !faqForm.answer}
+                                        >
+                                            Add FAQ
+                                        </Button>
+                                    </Stack>
+                                </Box>
+                                <Divider label="Existing FAQs" labelPosition="center" />
+                                {editingTool?.faqs?.map((faq: any) => (
+                                    <Paper key={faq.id} withBorder p="sm" radius="md">
+                                        <Group justify="space-between" align="flex-start" wrap="nowrap">
+                                            <div style={{ flex: 1 }}>
+                                                <Text size="sm" fw={600}>{faq.question}</Text>
+                                                <Text size="xs" c="dimmed">{faq.answer}</Text>
+                                            </div>
+                                            <ActionIcon color="red" variant="light" size="sm" onClick={() => deleteFaqMutation.mutate(faq.id)}>
+                                                <X size={14} />
+                                            </ActionIcon>
+                                        </Group>
+                                    </Paper>
+                                ))}
+                            </Stack>
+                        </Tabs.Panel>
+
+                        <Tabs.Panel value="links">
+                            <Stack gap="md" mt="md">
+                                <Box p="md" className="bg-gray-50 rounded-lg border">
+                                    <Title order={5} mb="sm">Add Internal Link</Title>
+                                    <Group grow align="flex-end">
+                                        <Select
+                                            label="Select Tool"
+                                            placeholder="Click to select"
+                                            data={tools.filter((t: any) => t.id !== editingTool?.id).map((t: any) => ({ value: t.id, label: t.name }))}
+                                            value={linkForm.relatedToolId}
+                                            onChange={(val) => setLinkForm({ ...linkForm, relatedToolId: val || "" })}
+                                            searchable
+                                        />
+                                        <TextInput
+                                            label="Anchor Text"
+                                            placeholder="e.g. Related Tool"
+                                            value={linkForm.anchorText}
+                                            onChange={(e) => setLinkForm({ ...linkForm, anchorText: e.target.value })}
+                                        />
+                                        <Button
+                                            color="blue"
+                                            onClick={() => editingTool && addLinkMutation.mutate(editingTool.id)}
+                                            disabled={!linkForm.relatedToolId || !linkForm.anchorText}
+                                        >
+                                            Add Link
+                                        </Button>
+                                    </Group>
+                                </Box>
+                                <Divider label="Current Links" labelPosition="center" />
+                                <Table>
+                                    <Table.Thead><Table.Tr><Table.Th>Related Tool</Table.Th><Table.Th>Anchor Text</Table.Th><Table.Th ta="right">Action</Table.Th></Table.Tr></Table.Thead>
+                                    <Table.Tbody>
+                                        {editingTool?.internalLinks?.map((link: any) => (
+                                            <Table.Tr key={link.id}>
+                                                <Table.Td>{link.relatedTool?.name || 'Unknown'}</Table.Td>
+                                                <Table.Td><Code size="xs">{link.anchorText}</Code></Table.Td>
+                                                <Table.Td ta="right">
+                                                    <ActionIcon color="red" variant="subtle" size="sm" onClick={() => deleteLinkMutation.mutate(link.id)}>
+                                                        <Trash2 size={14} />
+                                                    </ActionIcon>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
+                            </Stack>
                         </Tabs.Panel>
 
                         <Group justify="flex-end" mt="xl">
