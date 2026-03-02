@@ -355,6 +355,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- Redirects Routes ---
+  app.get("/api/redirects", protect, async (_req, res) => {
+    try {
+      const result = await storage.getAllRedirects();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch redirects" });
+    }
+  });
+
+  app.post("/api/redirects", protect, async (req, res) => {
+    try {
+      const result = await storage.createRedirect(req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create redirect" });
+    }
+  });
+
+  app.patch("/api/redirects/:id", protect, async (req, res) => {
+    try {
+      const result = await storage.updateRedirect(req.params.id, req.body);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update redirect" });
+    }
+  });
+
+  app.delete("/api/redirects/:id", protect, async (req, res) => {
+    try {
+      await storage.deleteRedirect(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete redirect" });
+    }
+  });
+
+  // --- SEO Settings Routes ---
+  app.get("/api/seo-settings", protect, async (_req, res) => {
+    try {
+      const result = await storage.getSeoSettings();
+      res.json(result || {});
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch SEO settings" });
+    }
+  });
+
+  app.patch("/api/seo-settings", protect, async (req, res) => {
+    try {
+      const result = await storage.updateSeoSettings(req.body);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update SEO settings" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

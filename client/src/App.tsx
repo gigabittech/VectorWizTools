@@ -120,6 +120,7 @@ import PNGtoWebP from "./pages/tools/image_tools/png-to-webp";
 import JPGtoWebP from "./pages/tools/image_tools/jpg-to-webp";
 import Dashboard from "@/pages/dashboard";
 import ToolsManagement from "@/pages/toolsManagement";
+import SeoRedirects from "@/pages/SeoRedirects";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
@@ -152,6 +153,9 @@ function Router() {
       </Route>
       <Route path="/tools/admin/management">
         {() => <ProtectedRoute component={ToolsManagement} />}
+      </Route>
+      <Route path="/tools/admin/seo-redirects">
+        {() => <ProtectedRoute component={SeoRedirects} />}
       </Route>
 
       {/* Main Project Routes (Wrapped in standard Layout) */}
