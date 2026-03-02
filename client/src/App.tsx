@@ -119,7 +119,7 @@ import VSDXtoJPG from "./pages/tools/image_tools/vsdx-to-jpg";
 import PNGtoWebP from "./pages/tools/image_tools/png-to-webp";
 import JPGtoWebP from "./pages/tools/image_tools/jpg-to-webp";
 import Dashboard from "@/pages/dashboard";
-import ToolsManagement from "@/pages/tools/management";
+import ToolsManagement from "@/pages/toolsManagement";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
