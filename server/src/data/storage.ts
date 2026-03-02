@@ -10,10 +10,33 @@ import {
     type InsertUser,
     type Tool,
     type InsertTool,
-    tools
+    type ToolSeo as ToolSeoType,
+    type ToolContents as ToolContentsType,
+    type ToolFaq as ToolFaqType,
+    type ToolInternalLink as ToolInternalLinkType,
+    type Page,
+    type Blog,
+    type Redirect,
+    type SeoSettings,
+    tools,
+    toolSeo,
+    toolContents,
+    toolFaqs,
+    toolInternalLinks,
+    pages,
+    blogs,
+    redirects,
+    seoSettings
 } from "@shared/schema";
 import { db } from "./db";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
+
+export type ToolWithCms = Tool & {
+    seo?: ToolSeoType | null;
+    contents?: ToolContentsType | null;
+    faqs?: ToolFaqType[];
+    internalLinks?: (ToolInternalLinkType & { relatedTool?: Tool })[];
+};
 
 export interface IStorage {
     // Quote Requests
@@ -29,14 +52,31 @@ export interface IStorage {
     getUser(id: string): Promise<User | null>;
     getUserByUsername(username: string): Promise<User | null>;
     createUser(user: InsertUser): Promise<User>;
+    updateUser(id: string, user: Partial<InsertUser>): Promise<User>;
 
     // Tools
-    getTools(): Promise<Tool[]>;
-    getTool(id: string): Promise<Tool | null>;
-    getToolByToolId(toolId: string): Promise<Tool | null>;
+    getTools(onlyActive?: boolean): Promise<ToolWithCms[]>;
+    getTool(id: string): Promise<ToolWithCms | null>;
+    getToolByToolId(toolId: string): Promise<ToolWithCms | null>;
+    getToolBySlug(slug: string): Promise<ToolWithCms | null>;
     createTool(tool: InsertTool): Promise<Tool>;
     updateTool(id: string, tool: Partial<InsertTool>): Promise<Tool>;
     deleteTool(id: string): Promise<void>;
+
+    // CMS Tables
+    createToolSeo(data: any): Promise<ToolSeoType>;
+    updateToolSeo(toolId: string, data: any): Promise<ToolSeoType>;
+    createToolContents(data: any): Promise<ToolContentsType>;
+    updateToolContents(toolId: string, data: any): Promise<ToolContentsType>;
+    getToolFaqs(toolId: string): Promise<ToolFaqType[]>;
+    createToolFaq(data: any): Promise<ToolFaqType>;
+    updateToolFaq(id: string, data: any): Promise<ToolFaqType>;
+    deleteToolFaq(id: string): Promise<void>;
+
+    // Internal Links
+    getToolInternalLinks(toolId: string): Promise<(ToolInternalLinkType & { relatedTool?: Tool })[]>;
+    createToolInternalLink(data: any): Promise<ToolInternalLinkType>;
+    deleteToolInternalLink(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -107,18 +147,55 @@ export class DatabaseStorage implements IStorage {
         return user;
     }
 
-    async getTools(): Promise<Tool[]> {
-        return await db.select().from(tools).orderBy(desc(tools.createdAt));
+    async updateUser(id: string, userUpdate: Partial<InsertUser>): Promise<User> {
+        const [user] = await db
+            .update(users)
+            .set({ ...userUpdate, updatedAt: new Date() })
+            .where(eq(users.id, id))
+            .returning();
+        return user;
     }
 
-    async getTool(id: string): Promise<Tool | null> {
+    private async attachCmsData(tool: Tool): Promise<ToolWithCms> {
+        const [seo] = await db.select().from(toolSeo).where(eq(toolSeo.toolId, tool.id)).limit(1);
+        const [contents] = await db.select().from(toolContents).where(eq(toolContents.toolId, tool.id)).limit(1);
+        const faqs = await db.select().from(toolFaqs).where(eq(toolFaqs.toolId, tool.id)).orderBy(toolFaqs.sortOrder);
+        const internalLinks = await this.getToolInternalLinks(tool.id);
+
+        return {
+            ...tool,
+            seo: seo || null,
+            contents: contents || null,
+            faqs: faqs || [],
+            internalLinks: internalLinks || []
+        };
+    }
+
+    async getTools(onlyActive?: boolean): Promise<ToolWithCms[]> {
+        let query = db.select().from(tools);
+        if (onlyActive) {
+            query = query.where(eq(tools.is_active, 'active')) as any;
+        }
+        const allTools = await query.orderBy(desc(tools.createdAt));
+        return Promise.all(allTools.map(t => this.attachCmsData(t)));
+    }
+
+    async getTool(id: string): Promise<ToolWithCms | null> {
         const [tool] = await db.select().from(tools).where(eq(tools.id, id)).limit(1);
-        return tool || null;
+        if (!tool) return null;
+        return this.attachCmsData(tool);
     }
 
-    async getToolByToolId(toolId: string): Promise<Tool | null> {
+    async getToolByToolId(toolId: string): Promise<ToolWithCms | null> {
         const [tool] = await db.select().from(tools).where(eq(tools.tool_id, toolId)).limit(1);
-        return tool || null;
+        if (!tool) return null;
+        return this.attachCmsData(tool);
+    }
+
+    async getToolBySlug(slug: string): Promise<ToolWithCms | null> {
+        const [tool] = await db.select().from(tools).where(eq(tools.slug, slug)).limit(1);
+        if (!tool) return null;
+        return this.attachCmsData(tool);
     }
 
     async createTool(insertTool: InsertTool): Promise<Tool> {
@@ -137,6 +214,66 @@ export class DatabaseStorage implements IStorage {
 
     async deleteTool(id: string): Promise<void> {
         await db.delete(tools).where(eq(tools.id, id));
+    }
+
+    // CMS Table Methods
+    async createToolSeo(data: any): Promise<ToolSeoType> {
+        const [res] = await db.insert(toolSeo).values(data).returning();
+        return res;
+    }
+
+    async updateToolSeo(toolId: string, data: any): Promise<ToolSeoType> {
+        const [res] = await db.update(toolSeo).set({ ...data, updatedAt: new Date() }).where(eq(toolSeo.toolId, toolId)).returning();
+        return res;
+    }
+
+    async createToolContents(data: any): Promise<ToolContentsType> {
+        const [res] = await db.insert(toolContents).values(data).returning();
+        return res;
+    }
+
+    async updateToolContents(toolId: string, data: any): Promise<ToolContentsType> {
+        const [res] = await db.update(toolContents).set({ ...data, updatedAt: new Date() }).where(eq(toolContents.toolId, toolId)).returning();
+        return res;
+    }
+
+    async getToolFaqs(toolId: string): Promise<ToolFaqType[]> {
+        return db.select().from(toolFaqs).where(eq(toolFaqs.toolId, toolId)).orderBy(toolFaqs.sortOrder);
+    }
+
+    async createToolFaq(data: any): Promise<ToolFaqType> {
+        const [res] = await db.insert(toolFaqs).values(data).returning();
+        return res;
+    }
+
+    async updateToolFaq(id: string, data: any): Promise<ToolFaqType> {
+        const [res] = await db.update(toolFaqs).set({ ...data, updatedAt: new Date() }).where(eq(toolFaqs.id, id)).returning();
+        return res;
+    }
+
+    async deleteToolFaq(id: string): Promise<void> {
+        await db.delete(toolFaqs).where(eq(toolFaqs.id, id));
+    }
+
+    // Internal Links
+    async getToolInternalLinks(toolId: string): Promise<(ToolInternalLinkType & { relatedTool?: Tool })[]> {
+        const links = await db.select().from(toolInternalLinks).where(eq(toolInternalLinks.toolId, toolId));
+        return Promise.all(links.map(async link => {
+            const [relatedTool] = await db.select().from(tools).where(eq(tools.id, link.relatedToolId)).limit(1);
+            return {
+                ...link,
+                relatedTool: relatedTool || undefined
+            };
+        }));
+    }
+
+    async createToolInternalLink(data: any): Promise<ToolInternalLinkType> {
+        const [res] = await db.insert(toolInternalLinks).values(data).returning();
+        return res;
+    }
+
+    async deleteToolInternalLink(id: string): Promise<void> {
+        await db.delete(toolInternalLinks).where(eq(toolInternalLinks.id, id));
     }
 }
 

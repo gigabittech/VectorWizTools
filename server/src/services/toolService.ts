@@ -1,17 +1,21 @@
-import { storage } from "../data/storage";
+import { storage, ToolWithCms } from "../data/storage";
 import { InsertTool, Tool } from "@shared/schema";
 
 export class ToolService {
-    async getAllTools(): Promise<Tool[]> {
-        return await storage.getTools();
+    async getAllTools(onlyActive?: boolean): Promise<ToolWithCms[]> {
+        return await storage.getTools(onlyActive);
     }
 
-    async getToolById(id: string): Promise<Tool | null> {
+    async getToolById(id: string): Promise<ToolWithCms | null> {
         return await storage.getTool(id);
     }
 
-    async getToolByToolId(toolId: string): Promise<Tool | null> {
+    async getToolByToolId(toolId: string): Promise<ToolWithCms | null> {
         return await storage.getToolByToolId(toolId);
+    }
+
+    async getToolBySlug(slug: string): Promise<ToolWithCms | null> {
+        return await storage.getToolBySlug(slug);
     }
 
     async createTool(toolData: InsertTool): Promise<Tool> {

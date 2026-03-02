@@ -6,7 +6,8 @@ import { z } from "zod";
 export class ToolController {
     async getAllTools(req: Request, res: Response) {
         try {
-            const tools = await toolService.getAllTools();
+            const onlyActive = req.query.onlyActive === 'true';
+            const tools = await toolService.getAllTools(onlyActive);
             res.json(tools);
         } catch (error) {
             console.error("Error fetching tools:", error);
@@ -38,6 +39,20 @@ export class ToolController {
             res.json(tool);
         } catch (error) {
             console.error("Error fetching tool by ID:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    async getToolBySlug(req: Request, res: Response) {
+        try {
+            const { slug } = req.params;
+            const tool = await toolService.getToolBySlug(slug);
+            if (!tool) {
+                return res.status(404).json({ message: "Tool not found" });
+            }
+            res.json(tool);
+        } catch (error) {
+            console.error("Error fetching tool by slug:", error);
             res.status(500).json({ message: "Internal server error" });
         }
     }

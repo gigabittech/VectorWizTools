@@ -261,9 +261,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tools", toolController.getAllTools);
   app.get("/api/tools/:id", toolController.getTool);
   app.get("/api/tools/tool_id/:toolId", toolController.getToolByToolId);
+  app.get("/api/tools/slug/:slug", toolController.getToolBySlug);
   app.post("/api/tools", protect, toolController.createTool);
   app.patch("/api/tools/:id", protect, toolController.updateTool);
   app.delete("/api/tools/:id", protect, toolController.deleteTool);
+
+  // --- CMS Management Routes ---
+  app.patch("/api/tools/:id/seo", protect, async (req, res) => {
+    try {
+      const toolId = req.params.id;
+      const data = req.body;
+      const result = await storage.updateToolSeo(toolId, data);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update SEO" });
+    }
+  });
+
+  app.patch("/api/tools/:id/contents", protect, async (req, res) => {
+    try {
+      const toolId = req.params.id;
+      const data = req.body;
+      const result = await storage.updateToolContents(toolId, data);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update content" });
+    }
+  });
+
+  app.get("/api/tools/:id/faqs", async (req, res) => {
+    try {
+      const result = await storage.getToolFaqs(req.params.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch FAQs" });
+    }
+  });
+
+  app.post("/api/tools/:id/faqs", protect, async (req, res) => {
+    try {
+      const data = { ...req.body, toolId: req.params.id };
+      const result = await storage.createToolFaq(data);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create FAQ" });
+    }
+  });
+
+  app.patch("/api/faqs/:id", protect, async (req, res) => {
+    try {
+      const result = await storage.updateToolFaq(req.params.id, req.body);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update FAQ" });
+    }
+  });
+
+  app.delete("/api/faqs/:id", protect, async (req, res) => {
+    try {
+      await storage.deleteToolFaq(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete FAQ" });
+    }
+  });
+
+  // --- Internal Links Routes ---
+  app.get("/api/tools/:id/internal-links", async (req, res) => {
+    try {
+      const result = await storage.getToolInternalLinks(req.params.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch internal links" });
+    }
+  });
+
+  app.post("/api/tools/:id/internal-links", protect, async (req, res) => {
+    try {
+      const data = { ...req.body, toolId: req.params.id };
+      const result = await storage.createToolInternalLink(data);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create internal link" });
+    }
+  });
+
+  app.delete("/api/internal-links/:id", protect, async (req, res) => {
+    try {
+      await storage.deleteToolInternalLink(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete internal link" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
