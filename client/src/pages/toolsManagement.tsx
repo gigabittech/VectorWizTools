@@ -359,8 +359,6 @@ export default function ToolsManagement() {
                                         {...editForm.getInputProps('is_active')}
                                     />
                                 </Group>
-                                <TagsInput label="Tool Keywords (App-level)" {...editForm.getInputProps('keywords')} />
-                                <TagsInput label="How To Steps (JSON array)" placeholder="Enter step and press enter" {...editForm.getInputProps('howToSteps')} />
                             </Stack>
                         </Tabs.Panel>
 
@@ -379,6 +377,7 @@ export default function ToolsManagement() {
                                     <Select label="Index Status" data={['index', 'noindex']} {...editForm.getInputProps('seo.indexStatus')} />
                                     <Select label="Follow Status" data={['follow', 'nofollow']} {...editForm.getInputProps('seo.followStatus')} />
                                 </Group>
+                                <TagsInput label="Tool Keywords (App-level)" {...editForm.getInputProps('keywords')} />
                             </Stack>
                         </Tabs.Panel>
 
