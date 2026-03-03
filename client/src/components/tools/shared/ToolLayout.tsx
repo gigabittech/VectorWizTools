@@ -7,6 +7,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import QuoteRequestForm from "@/components/QuoteRequestForm";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import FAQSection from "./FAQSection";
 import {
   setPageMetadata,
   injectJSONLD,
@@ -41,16 +42,33 @@ export default function ToolLayout({
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [location] = useLocation();
 
+  // Auto-detect slug from URL if not provided
+  // Paths are typically /tools/:slug
+  const derivedSlug = useMemo(() => {
+    if (slug) return slug;
+    const match = location.match(/\/tools\/([^\/]+)$/);
+    return match ? match[1] : null;
+  }, [location, slug]);
+
   // Fetch CMS data if toolId or slug is provided
-  const queryKey = toolId ? `/api/tools/tool_id/${toolId}` : slug ? `/api/tools/slug/${slug}` : null;
-  const { data: cmsData, isLoading } = useQuery<any>({
+  const queryKey = toolId ? `/api/tools/tool_id/${toolId}` : derivedSlug ? `/api/tools/slug/${derivedSlug}` : null;
+  const { data: cmsData, isLoading: isCmsLoading } = useQuery<any>({
     queryKey: [queryKey],
     enabled: !!queryKey,
   });
 
+  // Fetch global SEO settings for fallback
+  const { data: seoSettings, isLoading: isSeoSettingsLoading } = useQuery<any>({
+    queryKey: ["/api/seo-settings"],
+  });
+
+  const isLoading = isCmsLoading || isSeoSettingsLoading;
+  console.log('cms Data', cmsData);
+
   // Use CMS data if available, otherwise fallback to props
-  const toolTitle = cmsData?.seo?.metaTitle || cmsData?.name || initialTitle || "VectorWiz Tool";
-  const toolDescription = cmsData?.seo?.metaDescription || cmsData?.description || initialDescription || "";
+  const toolName = cmsData?.name || initialTitle || "VectorWiz Tool";
+  const toolTitle = cmsData?.title || initialTitle || toolName;
+  const toolDescription = cmsData?.description || initialDescription || "";
   const toolCategory = cmsData?.category || initialCategory;
   const toolKeywords = cmsData?.seo?.metaKeywords?.split(',').map((k: string) => k.trim()) || initialKeywords;
 
@@ -60,17 +78,31 @@ export default function ToolLayout({
   useEffect(() => {
     if (isLoading) return;
 
+    // Priority Logic:
+    // 1. Tool-specific SEO data from tool_seo table (cmsData.seo)
+    // 2. Default SEO values from seo_settings table (seoSettings)
+    // 3. Last fallback to tool-related fields or hardcoded values
+
+    const seoTitle = cmsData?.seo?.metaTitle || seoSettings?.defaultMetaTitle || `${toolTitle} - Free Online Tool | VectorWiz`;
+    const seoDescription = cmsData?.seo?.metaDescription || seoSettings?.defaultMetaDescription || toolDescription;
+    const seoOgTitle = cmsData?.seo?.ogTitle || seoTitle;
+    const seoOgDescription = cmsData?.seo?.ogDescription || seoDescription;
+    const seoOgImage = cmsData?.seo?.ogImage || seoSettings?.defaultOgImage;
+    const seoCanonical = cmsData?.seo?.canonicalUrl || window.location.href;
+    const seoRobots = `${cmsData?.seo?.indexStatus || 'index'}, ${cmsData?.seo?.followStatus || 'follow'}`;
+
     // Set page metadata using helper function
     setPageMetadata({
-      title: cmsData?.seo?.metaTitle ? `${cmsData.seo.metaTitle} | VectorWiz` : `${toolTitle} - Free Online Tool | VectorWiz`,
-      description: toolDescription,
-      keywords: [toolTitle.toLowerCase(), toolCategory.toLowerCase(), ...toolKeywords],
-      ogTitle: cmsData?.seo?.metaTitle || `${toolTitle} - VectorWiz`,
-      ogDescription: toolDescription,
+      title: seoTitle,
+      description: seoDescription,
+      keywords: [toolName.toLowerCase(), toolCategory.toLowerCase(), ...toolKeywords],
+      ogTitle: seoOgTitle,
+      ogDescription: seoOgDescription,
       ogType: 'website',
       ogUrl: window.location.href,
-      canonicalUrl: cmsData?.seo?.canonicalUrl || window.location.href,
-      robots: `${cmsData?.seo?.indexStatus || 'index'}, ${cmsData?.seo?.followStatus || 'follow'}`
+      ogImage: seoOgImage || undefined,
+      canonicalUrl: seoCanonical,
+      robots: seoRobots
     });
 
     // Generate JSON-LD schemas
@@ -78,8 +110,8 @@ export default function ToolLayout({
 
     // Add SoftwareApplication schema
     schemas.push(generateSoftwareApplicationSchema({
-      name: toolTitle,
-      description: toolDescription,
+      name: toolName,
+      description: seoDescription,
       applicationCategory: "UtilityApplication",
       operatingSystem: "Any",
       price: "0",
@@ -89,12 +121,29 @@ export default function ToolLayout({
     // Add HowTo schema if steps provided
     if (formattedSteps.length > 0) {
       schemas.push(generateHowToSchema({
-        name: `How to use ${toolTitle}`,
-        description: toolDescription,
+        name: `How to use ${toolName}`,
+        description: seoDescription,
         steps: typeof formattedSteps[0] === 'string'
           ? formattedSteps.map((s: string, i: number) => ({ name: `Step ${i + 1}`, text: s }))
           : formattedSteps
       }));
+    }
+
+    // Add generic schema based on schemaType if provided
+    if (cmsData?.seo?.schemaType) {
+      try {
+        // If it's valid JSON, use it, otherwise create a simple WebPage schema
+        const customSchema = JSON.parse(cmsData.seo.schemaType);
+        schemas.push(customSchema);
+      } catch (e) {
+        // fallback to a simple WebPage schema with specified type
+        schemas.push({
+          "@context": "https://schema.org",
+          "@type": cmsData.seo.schemaType,
+          "name": toolTitle,
+          "description": toolDescription
+        });
+      }
     }
 
     // Inject schemas and get cleanup function
@@ -102,7 +151,7 @@ export default function ToolLayout({
 
     // Return cleanup function
     return cleanupSchema;
-  }, [toolTitle, toolDescription, toolCategory, toolKeywords, formattedSteps, isLoading, cmsData]);
+  }, [toolName, toolTitle, toolDescription, toolCategory, toolKeywords, formattedSteps, isLoading, cmsData, seoSettings]);
 
   // Animation variants
   const containerVariants = {
@@ -150,7 +199,7 @@ export default function ToolLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Stack align="center" gap="md">
-          <Loader size="xl" color="green" />
+          <Loader size="lg" color="green" />
           <Text c="dimmed" size="sm" fw={500}>Loading Tool CMS Data...</Text>
         </Stack>
       </div>
@@ -217,14 +266,14 @@ export default function ToolLayout({
             data-testid="tool-title"
             variants={itemVariants}
           >
-            {cmsData?.contents?.h1Title || toolTitle}
+            {toolTitle || ''}
           </motion.h1>
           <motion.p
             className="text-lg text-gray-200 max-w-2xl mx-auto"
             data-testid="tool-description"
             variants={itemVariants}
           >
-            {cmsData?.contents?.introContent || toolDescription}
+            {toolDescription || ''}
           </motion.p>
         </div>
       </motion.section>
@@ -240,13 +289,15 @@ export default function ToolLayout({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           >
-            {/* If we have CMS content for usage/features, we could inject it here, 
-                 but for now we let the children components handle their own logic 
-                 while overriding SEO/Header info above */}
             {children}
           </motion.div>
         </div>
       </motion.main>
+
+      {/* FAQ Section */}
+      {cmsData?.faqs && cmsData.faqs.length > 0 && (
+        <FAQSection faqs={cmsData.faqs} />
+      )}
 
       {/* Footer CTA with Glassmorphism */}
       <motion.section

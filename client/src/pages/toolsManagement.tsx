@@ -252,7 +252,6 @@ export default function ToolsManagement() {
                             <Table.Thead className="bg-gray-50/50">
                                 <Table.Tr>
                                     <Table.Th>Tool Name / Slug</Table.Th>
-                                    <Table.Th>Title</Table.Th>
                                     <Table.Th>Description</Table.Th>
                                     <Table.Th>Category</Table.Th>
                                     <Table.Th>CMS Status</Table.Th>
@@ -268,9 +267,6 @@ export default function ToolsManagement() {
                                             <Code size="xs">/{tool.slug || tool.tool_id}</Code>
                                         </Table.Td>
                                         <Table.Td>
-                                            <Text size="sm" lineClamp={1} w={150}>{tool.title || '-'}</Text>
-                                        </Table.Td>
-                                        <Table.Td>
                                             <Text size="xs" c="dimmed" lineClamp={2} w={200}>{tool.description || '-'}</Text>
                                         </Table.Td>
                                         <Table.Td>
@@ -283,16 +279,6 @@ export default function ToolsManagement() {
                                                 {tool.is_active}
                                             </Badge>
                                         </Table.Td>
-                                        {/* <Table.Td>
-                                            {(!tool.seo?.metaTitle || !tool.seo?.metaDescription || !tool.seo?.ogTitle || !tool.seo?.ogDescription) ? (
-                                                <Badge color="red" variant="filled" size="sm">Bad Health</Badge>
-                                            ) : (
-                                                <Group gap={4}>
-                                                    <Badge size="xs" color="green">SEO</Badge>
-                                                    <Badge size="xs" color={tool.contents?.h1Title ? 'green' : 'red'}>Content</Badge>
-                                                </Group>
-                                            )}
-                                        </Table.Td> */}
                                         <Table.Td>
                                             <Group gap="xs" justify="flex-end">
                                                 <Tooltip label="View Details">
@@ -348,7 +334,7 @@ export default function ToolsManagement() {
                                     <TextInput label="URL Slug" required {...editForm.getInputProps('slug')} />
                                     <TextInput label="React Component Name" placeholder="e.g. DpiCalculator" {...editForm.getInputProps('tool_component')} />
                                 </Group>
-                                <Textarea label="Short Description" minRows={3} required {...editForm.getInputProps('description')} />
+                                <Textarea label="Description" minRows={3} required {...editForm.getInputProps('description')} />
                                 <Group grow>
                                     <Select label="Category" data={categories} required {...editForm.getInputProps('category')} />
                                     <Select label="Internal Logic Status" data={['active', 'coming-soon']} {...editForm.getInputProps('status')} />
@@ -506,11 +492,11 @@ export default function ToolsManagement() {
                                 <div><Text size="xs" c="dimmed">Slug</Text><Text size="sm">{viewingTool.slug || viewingTool.tool_id}</Text></div>
                             </Group>
                             <Box mt="xs">
-                                <Text size="xs" c="dimmed">Title</Text>
-                                <Text size="sm">{viewingTool.title || '-'}</Text>
+                                <Text size="xs" c="dimmed">Description</Text>
+                                <Text size="sm">{viewingTool.description || '-'}</Text>
                             </Box>
                             <Box mt="xs">
-                                <Text size="xs" c="dimmed">Description</Text>
+                                <Text size="xs" c="dimmed">Full Description</Text>
                                 <Text size="sm">{viewingTool.description || '-'}</Text>
                             </Box>
                         </Box>
