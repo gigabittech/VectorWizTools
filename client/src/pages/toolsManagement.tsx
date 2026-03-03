@@ -332,7 +332,7 @@ export default function ToolsManagement() {
                                 </Group>
                                 <Group grow>
                                     <TextInput label="URL Slug" required {...editForm.getInputProps('slug')} />
-                                    <TextInput label="React Component Name" placeholder="e.g. DpiCalculator" {...editForm.getInputProps('tool_component')} />
+                                    <TextInput label="React Component Name" readOnly placeholder="e.g. DpiCalculator" {...editForm.getInputProps('tool_component')} />
                                 </Group>
                                 <Textarea label="Description" minRows={3} required {...editForm.getInputProps('description')} />
                                 <Group grow>
