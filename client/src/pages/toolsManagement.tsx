@@ -4,7 +4,7 @@ import {
     Tooltip, ActionIcon, Loader, Modal, TextInput, Textarea,
     Select, MultiSelect, Pagination, Box, Divider, Stack, TagsInput, Tabs
 } from "@mantine/core";
-import { Edit2, Trash2, Search, Filter, X, Plus, Globe, FileText, HelpCircle } from "lucide-react";
+import { Edit2, Trash2, Search, Filter, X, Plus, Globe, FileText, HelpCircle, Eye } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "@mantine/form";
@@ -29,6 +29,9 @@ export default function ToolsManagement() {
         queryKey: ["/api/tools"],
     });
 
+    const [viewingTool, setViewingTool] = useState<ToolWithCms | null>(null);
+    const [viewModalOpened, setViewModalOpened] = useState(false);
+
     const editForm = useForm({
         initialValues: {
             name: "",
@@ -47,6 +50,8 @@ export default function ToolsManagement() {
                 metaDescription: "",
                 metaKeywords: "",
                 canonicalUrl: "",
+                ogTitle: "",
+                ogDescription: "",
                 indexStatus: "index",
                 followStatus: "follow",
             },
@@ -120,6 +125,8 @@ export default function ToolsManagement() {
                 metaDescription: tool.seo?.metaDescription || "",
                 metaKeywords: tool.seo?.metaKeywords || "",
                 canonicalUrl: tool.seo?.canonicalUrl || "",
+                ogTitle: tool.seo?.ogTitle || "",
+                ogDescription: tool.seo?.ogDescription || "",
                 indexStatus: tool.seo?.indexStatus || "index",
                 followStatus: tool.seo?.followStatus || "follow",
             },
@@ -172,6 +179,11 @@ export default function ToolsManagement() {
         if (editingTool) {
             updateToolMutation.mutate({ id: editingTool.id, data: values });
         }
+    };
+
+    const handleView = (tool: any) => {
+        setViewingTool(tool);
+        setViewModalOpened(true);
     };
 
     const filteredTools = useMemo(() => {
@@ -240,9 +252,11 @@ export default function ToolsManagement() {
                             <Table.Thead className="bg-gray-50/50">
                                 <Table.Tr>
                                     <Table.Th>Tool Name / Slug</Table.Th>
+                                    <Table.Th>Title</Table.Th>
+                                    <Table.Th>Description</Table.Th>
                                     <Table.Th>Category</Table.Th>
                                     <Table.Th>CMS Status</Table.Th>
-                                    <Table.Th>SEO Health</Table.Th>
+                                    {/* <Table.Th>SEO Health</Table.Th> */}
                                     <Table.Th ta="right">Actions</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -254,6 +268,12 @@ export default function ToolsManagement() {
                                             <Code size="xs">/{tool.slug || tool.tool_id}</Code>
                                         </Table.Td>
                                         <Table.Td>
+                                            <Text size="sm" lineClamp={1} w={150}>{tool.title || '-'}</Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Text size="xs" c="dimmed" lineClamp={2} w={200}>{tool.description || '-'}</Text>
+                                        </Table.Td>
+                                        <Table.Td>
                                             <Badge variant="light" color="blue" radius="sm" size="sm">
                                                 {tool.category}
                                             </Badge>
@@ -263,14 +283,23 @@ export default function ToolsManagement() {
                                                 {tool.is_active}
                                             </Badge>
                                         </Table.Td>
-                                        <Table.Td>
-                                            <Group gap={4}>
-                                                <Badge size="xs" color={tool.seo?.metaTitle ? 'green' : 'red'}>SEO</Badge>
-                                                <Badge size="xs" color={tool.contents?.h1Title ? 'green' : 'red'}>Content</Badge>
-                                            </Group>
-                                        </Table.Td>
+                                        {/* <Table.Td>
+                                            {(!tool.seo?.metaTitle || !tool.seo?.metaDescription || !tool.seo?.ogTitle || !tool.seo?.ogDescription) ? (
+                                                <Badge color="red" variant="filled" size="sm">Bad Health</Badge>
+                                            ) : (
+                                                <Group gap={4}>
+                                                    <Badge size="xs" color="green">SEO</Badge>
+                                                    <Badge size="xs" color={tool.contents?.h1Title ? 'green' : 'red'}>Content</Badge>
+                                                </Group>
+                                            )}
+                                        </Table.Td> */}
                                         <Table.Td>
                                             <Group gap="xs" justify="flex-end">
+                                                <Tooltip label="View Details">
+                                                    <ActionIcon variant="subtle" color="gray" size="md" onClick={() => handleView(tool)}>
+                                                        <Eye size={18} />
+                                                    </ActionIcon>
+                                                </Tooltip>
                                                 <Tooltip label="Edit Details & CMS">
                                                     <ActionIcon variant="subtle" color="blue" size="md" onClick={() => handleEdit(tool)}>
                                                         <Edit2 size={18} />
@@ -330,20 +359,25 @@ export default function ToolsManagement() {
                                         {...editForm.getInputProps('is_active')}
                                     />
                                 </Group>
-                                <TagsInput label="Tool Keywords (App-level)" {...editForm.getInputProps('keywords')} />
-                                <TagsInput label="How To Steps (JSON array)" placeholder="Enter step and press enter" {...editForm.getInputProps('howToSteps')} />
                             </Stack>
                         </Tabs.Panel>
 
                         <Tabs.Panel value="seo">
                             <Stack gap="md">
-                                <TextInput label="Meta Title" placeholder="Target SEO Title" {...editForm.getInputProps('seo.metaTitle')} />
-                                <Textarea label="Meta Description" placeholder="SEO Description (150-160 chars)" {...editForm.getInputProps('seo.metaDescription')} />
+                                <Group grow>
+                                    <TextInput label="Meta Title" placeholder="Target SEO Title" {...editForm.getInputProps('seo.metaTitle')} />
+                                    <TextInput label="OG Title" placeholder="Open Graph Title" {...editForm.getInputProps('seo.ogTitle')} />
+                                </Group>
+                                <Group grow>
+                                    <Textarea label="Meta Description" placeholder="SEO Description (150-160 chars)" {...editForm.getInputProps('seo.metaDescription')} />
+                                    <Textarea label="OG Description" placeholder="Open Graph Description" {...editForm.getInputProps('seo.ogDescription')} />
+                                </Group>
                                 <TextInput label="Canonical URL" {...editForm.getInputProps('seo.canonicalUrl')} />
                                 <Group grow>
                                     <Select label="Index Status" data={['index', 'noindex']} {...editForm.getInputProps('seo.indexStatus')} />
                                     <Select label="Follow Status" data={['follow', 'nofollow']} {...editForm.getInputProps('seo.followStatus')} />
                                 </Group>
+                                <TagsInput label="Tool Keywords (App-level)" {...editForm.getInputProps('keywords')} />
                             </Stack>
                         </Tabs.Panel>
 
@@ -454,6 +488,58 @@ export default function ToolsManagement() {
                         </Group>
                     </form>
                 </Tabs>
+            </Modal>
+
+            <Modal
+                opened={viewModalOpened}
+                onClose={() => setViewModalOpened(false)}
+                title={<Title order={4}>Tool Details: {viewingTool?.name}</Title>}
+                size="lg"
+                radius="lg"
+            >
+                {viewingTool && (
+                    <Stack gap="md">
+                        <Box p="md" className="bg-gray-50 rounded-lg">
+                            <Text fw={700} size="sm" mb={4}>General Info</Text>
+                            <Group grow>
+                                <div><Text size="xs" c="dimmed">Name</Text><Text size="sm">{viewingTool.name}</Text></div>
+                                <div><Text size="xs" c="dimmed">Slug</Text><Text size="sm">{viewingTool.slug || viewingTool.tool_id}</Text></div>
+                            </Group>
+                            <Box mt="xs">
+                                <Text size="xs" c="dimmed">Title</Text>
+                                <Text size="sm">{viewingTool.title || '-'}</Text>
+                            </Box>
+                            <Box mt="xs">
+                                <Text size="xs" c="dimmed">Description</Text>
+                                <Text size="sm">{viewingTool.description || '-'}</Text>
+                            </Box>
+                        </Box>
+
+                        <Box p="md" className="border rounded-lg">
+                            <Text fw={700} size="sm" mb={4}>SEO & OG Details</Text>
+                            <Stack gap="xs">
+                                <div><Text size="xs" c="dimmed">Meta Title</Text><Text size="sm">{viewingTool.seo?.metaTitle || 'Not Set'}</Text></div>
+                                <div><Text size="xs" c="dimmed">OG Title</Text><Text size="sm">{viewingTool.seo?.ogTitle || 'Not Set'}</Text></div>
+                                <div><Text size="xs" c="dimmed">Meta Description</Text><Text size="sm">{viewingTool.seo?.metaDescription || 'Not Set'}</Text></div>
+                                <div><Text size="xs" c="dimmed">OG Description</Text><Text size="sm">{viewingTool.seo?.ogDescription || 'Not Set'}</Text></div>
+                            </Stack>
+                        </Box>
+
+                        <Box p="md" className="border rounded-lg">
+                            <Text fw={700} size="sm" mb={4}>Content Status</Text>
+                            <Group>
+                                <Badge color={viewingTool.contents?.h1Title ? 'green' : 'red'}>H1 Title</Badge>
+                                <Badge color={viewingTool.contents?.introContent ? 'green' : 'red'}>Intro</Badge>
+                                <Badge color={viewingTool.faqs?.length ? 'green' : 'red'}>{viewingTool.faqs?.length || 0} FAQs</Badge>
+                            </Group>
+                        </Box>
+
+                        <Group justify="flex-end">
+                            <Button variant="light" onClick={() => setViewModalOpened(false)}>Close</Button>
+                            <Button color="blue" onClick={() => { setViewModalOpened(false); handleEdit(viewingTool); }}>Edit This Tool</Button>
+                        </Group>
+                    </Stack>
+                )}
             </Modal>
         </AdminLayout>
     );

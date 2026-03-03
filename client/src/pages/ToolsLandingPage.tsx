@@ -179,8 +179,8 @@ export default function ToolsLandingPage() {
     name: t.name,
     description: t.description || "",
     category: t.category as "Image Tools" | "PDF Tools",
-    route: `/tools/${t.tool_id}`,
-    icon: toolIcons[t.tool_id] || "🛠️",
+    route: `/tools/${t.slug || t.tool_id}`,
+    icon: (t.slug && toolIcons[t.slug]) || toolIcons[t.tool_id] || "🛠️",
     comingSoon: t.status === "coming-soon"
   }));
 
@@ -477,6 +477,8 @@ function ToolCard({ tool }: { tool: Tool }) {
       </div>
     </motion.div>
   );
+
+  console.log(tool, 'jpg');
 
   if (tool.route && !tool.comingSoon) {
     return <Link href={tool.route}>{content}</Link>;

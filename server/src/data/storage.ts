@@ -77,6 +77,16 @@ export interface IStorage {
     getToolInternalLinks(toolId: string): Promise<(ToolInternalLinkType & { relatedTool?: Tool })[]>;
     createToolInternalLink(data: any): Promise<ToolInternalLinkType>;
     deleteToolInternalLink(id: string): Promise<void>;
+
+    // Global SEO Settings
+    getSeoSettings(): Promise<SeoSettings | null>;
+    updateSeoSettings(data: any): Promise<SeoSettings>;
+
+    // Redirects
+    getAllRedirects(): Promise<Redirect[]>;
+    createRedirect(data: any): Promise<Redirect>;
+    updateRedirect(id: string, data: any): Promise<Redirect>;
+    deleteRedirect(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -223,8 +233,14 @@ export class DatabaseStorage implements IStorage {
     }
 
     async updateToolSeo(toolId: string, data: any): Promise<ToolSeoType> {
-        const [res] = await db.update(toolSeo).set({ ...data, updatedAt: new Date() }).where(eq(toolSeo.toolId, toolId)).returning();
-        return res;
+        const [existing] = await db.select().from(toolSeo).where(eq(toolSeo.toolId, toolId)).limit(1);
+        if (existing) {
+            const [res] = await db.update(toolSeo).set({ ...data, updatedAt: new Date() }).where(eq(toolSeo.toolId, toolId)).returning();
+            return res;
+        } else {
+            const [res] = await db.insert(toolSeo).values({ ...data, toolId, updatedAt: new Date() }).returning();
+            return res;
+        }
     }
 
     async createToolContents(data: any): Promise<ToolContentsType> {
@@ -233,8 +249,14 @@ export class DatabaseStorage implements IStorage {
     }
 
     async updateToolContents(toolId: string, data: any): Promise<ToolContentsType> {
-        const [res] = await db.update(toolContents).set({ ...data, updatedAt: new Date() }).where(eq(toolContents.toolId, toolId)).returning();
-        return res;
+        const [existing] = await db.select().from(toolContents).where(eq(toolContents.toolId, toolId)).limit(1);
+        if (existing) {
+            const [res] = await db.update(toolContents).set({ ...data, updatedAt: new Date() }).where(eq(toolContents.toolId, toolId)).returning();
+            return res;
+        } else {
+            const [res] = await db.insert(toolContents).values({ ...data, toolId, updatedAt: new Date() }).returning();
+            return res;
+        }
     }
 
     async getToolFaqs(toolId: string): Promise<ToolFaqType[]> {
@@ -274,6 +296,47 @@ export class DatabaseStorage implements IStorage {
 
     async deleteToolInternalLink(id: string): Promise<void> {
         await db.delete(toolInternalLinks).where(eq(toolInternalLinks.id, id));
+    }
+
+    // Global SEO Settings
+    async getSeoSettings(): Promise<SeoSettings | null> {
+        const [settings] = await db.select().from(seoSettings).limit(1);
+        return settings || null;
+    }
+
+    async updateSeoSettings(data: any): Promise<SeoSettings> {
+        const [existing] = await db.select().from(seoSettings).limit(1);
+        if (existing) {
+            const [updated] = await db.update(seoSettings)
+                .set({ ...data, updatedAt: new Date() })
+                .where(eq(seoSettings.id, existing.id))
+                .returning();
+            return updated;
+        } else {
+            const [created] = await db.insert(seoSettings)
+                .values({ ...data, updatedAt: new Date() })
+                .returning();
+            return created;
+        }
+    }
+
+    // Redirects
+    async getAllRedirects(): Promise<Redirect[]> {
+        return db.select().from(redirects).orderBy(desc(redirects.createdAt));
+    }
+
+    async createRedirect(data: any): Promise<Redirect> {
+        const [res] = await db.insert(redirects).values(data).returning();
+        return res;
+    }
+
+    async updateRedirect(id: string, data: any): Promise<Redirect> {
+        const [res] = await db.update(redirects).set(data).where(eq(redirects.id, id)).returning();
+        return res;
+    }
+
+    async deleteRedirect(id: string): Promise<void> {
+        await db.delete(redirects).where(eq(redirects.id, id));
     }
 }
 

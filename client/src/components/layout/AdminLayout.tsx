@@ -10,7 +10,9 @@ import {
     Bell,
     Search,
     ChevronRight,
-    Loader
+    Loader,
+    Globe,
+    ArrowRightLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -36,6 +38,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             label: "Tools Management",
             href: "/tools/admin/management",
             icon: Settings
+        },
+        {
+            label: "SEO & Redirects",
+            href: "/tools/admin/seo-redirects",
+            icon: Globe
         }
     ];
 
