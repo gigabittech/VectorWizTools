@@ -3,8 +3,9 @@ import { Link } from "wouter";
 import { Image as ImageIcon, FileText, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Tool as DbTool } from "@shared/schema";
+import { Tool as DbTool, SeoSettings } from "@shared/schema";
 import { Loader } from "@mantine/core";
+import { setPageMetadata } from "@/lib/seoHelpers";
 
 interface Tool {
   name: string;
@@ -129,51 +130,23 @@ export default function ToolsLandingPage() {
     queryKey: ["/api/tools?onlyActive=true"],
   });
 
+  const { data: seoSettings } = useQuery<SeoSettings>({
+    queryKey: ["/api/seo-settings"],
+  });
+
   useEffect(() => {
-    document.title = "Free Online Image & PDF Tools - VectorWiz";
-
-    const metaDescription = document.querySelector('meta[name="description"]') || document.createElement('meta');
-    metaDescription.setAttribute('name', 'description');
-    metaDescription.setAttribute('content', 'Professional free online tools for image conversion, PDF editing, and file management. Convert formats, resize images, compress files, and more with VectorWiz tools.');
-    if (!document.querySelector('meta[name="description"]')) {
-      document.head.appendChild(metaDescription);
-    }
-
-    const ogTitle = document.querySelector('meta[property="og:title"]') || document.createElement('meta');
-    ogTitle.setAttribute('property', 'og:title');
-    ogTitle.setAttribute('content', 'Free Online Image & PDF Tools - VectorWiz');
-    if (!document.querySelector('meta[property="og:title"]')) {
-      document.head.appendChild(ogTitle);
-    }
-
-    const ogDescription = document.querySelector('meta[property="og:description"]') || document.createElement('meta');
-    ogDescription.setAttribute('property', 'og:description');
-    ogDescription.setAttribute('content', 'Professional free online tools for image conversion, PDF editing, and file management. Convert formats, resize images, compress files, and more.');
-    if (!document.querySelector('meta[property="og:description"]')) {
-      document.head.appendChild(ogDescription);
-    }
-
-    const ogType = document.querySelector('meta[property="og:type"]') || document.createElement('meta');
-    ogType.setAttribute('property', 'og:type');
-    ogType.setAttribute('content', 'website');
-    if (!document.querySelector('meta[property="og:type"]')) {
-      document.head.appendChild(ogType);
-    }
-
-    const ogUrl = document.querySelector('meta[property="og:url"]') || document.createElement('meta');
-    ogUrl.setAttribute('property', 'og:url');
-    ogUrl.setAttribute('content', window.location.href);
-    if (!document.querySelector('meta[property="og:url"]')) {
-      document.head.appendChild(ogUrl);
-    }
-
-    const keywords = document.querySelector('meta[name="keywords"]') || document.createElement('meta');
-    keywords.setAttribute('name', 'keywords');
-    keywords.setAttribute('content', 'image converter, PDF tools, format converter, image resizer, file compression, vector tools, online image tools, free PDF editor');
-    if (!document.querySelector('meta[name="keywords"]')) {
-      document.head.appendChild(keywords);
-    }
-  }, []);
+    // Set page metadata dynamically from database or fallback to defaults
+    setPageMetadata({
+      title: seoSettings?.defaultMetaTitle || "Free Online Image & PDF Tools - VectorWiz",
+      description: seoSettings?.defaultMetaDescription || "Professional free online tools for image conversion, PDF editing, and file management. Convert formats, resize images, compress files, and more with VectorWiz tools.",
+      keywords: ['image converter', 'PDF tools', 'format converter', 'image resizer', 'file compression', 'vector tools', 'online image tools', 'free PDF editor'],
+      ogTitle: seoSettings?.defaultMetaTitle || "Free Online Image & PDF Tools - VectorWiz",
+      ogDescription: seoSettings?.defaultMetaDescription || "Professional free online tools for image conversion, PDF editing, and file management.",
+      ogType: 'website',
+      ogUrl: window.location.href,
+      ogImage: seoSettings?.defaultOgImage || undefined
+    });
+  }, [seoSettings]);
 
   const allTools: Tool[] = (dbTools || []).map(t => ({
     name: t.name,
@@ -478,7 +451,6 @@ function ToolCard({ tool }: { tool: Tool }) {
     </motion.div>
   );
 
-  console.log(tool, 'jpg');
 
   if (tool.route && !tool.comingSoon) {
     return <Link href={tool.route}>{content}</Link>;

@@ -7,6 +7,7 @@ import { Image as ImageIcon, Eraser, Download, ArrowLeft, Wand2, Loader2 } from 
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { removeBackground } from "@imgly/background-removal";
+import ToolLayout from "@/components/tools/shared/ToolLayout";
 
 export default function RemoveBackgroundTool() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -74,7 +75,7 @@ export default function RemoveBackgroundTool() {
       // Create object URL for preview
       const url = URL.createObjectURL(blob);
       setProcessedUrl(url);
-      
+
       toast({
         title: "Background Removed!",
         description: "Your image background has been successfully removed.",
@@ -101,7 +102,7 @@ export default function RemoveBackgroundTool() {
       const blob = await response.blob();
       const filename = `removed-background-${Date.now()}.png`;
       downloadFile(blob, filename);
-      
+
       toast({
         title: "Download Started",
         description: "Your image is being downloaded",
@@ -127,47 +128,26 @@ export default function RemoveBackgroundTool() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Hero Header */}
-      <div className="text-white" style={{ backgroundColor: '#09183a' }}>
-        <Container size="xl" py="xl">
-          <div className="mb-6">
-            <Link href="/tools">
-              <Button 
-                variant="ghost" 
-                className="text-white/90 hover:text-white hover:bg-white/10 mb-6"
-              >
-                <ArrowLeft size={16} className="mr-2" />
-                Back to Tools
-              </Button>
-            </Link>
-          </div>
-          
-          <Group align="flex-start" gap="xl" wrap="nowrap">
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg" style={{ backgroundColor: '#489c51' }}>
-              <Eraser className="h-10 w-10 text-white" />
-            </div>
-            <div className="flex-1">
-              <Title order={1} size="h1" mb="md" className="text-white">
-                Remove Background
-              </Title>
-              <Text size="lg" className="text-white/90 mb-4 max-w-2xl">
-                Remove backgrounds from images using AI-powered technology. 
-                Works entirely in your browser - your images never leave your device.
-              </Text>
-            </div>
-          </Group>
-        </Container>
-      </div>
-
+    <ToolLayout
+      title="Remove Objects From Photo"
+      description="Erase unwanted objects from your photos. Select areas to remove and let the tool fill them in."
+      category="Image Tools"
+      keywords={["remove objects", "erase objects", "photo editing", "object removal", "inpainting"]}
+      howToSteps={[
+        { name: "Upload Photo", text: "Upload an image with objects you want to remove" },
+        { name: "Highlight", text: "Use the brush to cover the object completely" },
+        { name: "Remove", text: "Click Remove Objects to process" },
+        { name: "Download", text: "Download your edited image" },
+      ]}
+    >
       <Container size="xl" py="xl">
         <Grid gutter="xl">
           {/* Left Column - Upload */}
           <Grid.Col span={{ base: 12, lg: 6 }}>
-            <Paper 
-              withBorder 
-              shadow="lg" 
-              p="xl" 
+            <Paper
+              withBorder
+              shadow="lg"
+              p="xl"
               className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             >
               <div className="flex items-center gap-3 mb-6">
@@ -176,13 +156,13 @@ export default function RemoveBackgroundTool() {
                 </div>
                 <Title order={2} size="h3">Upload Image</Title>
               </div>
-              
+
               <Stack gap="lg">
                 <div className="space-y-2">
-                  <Input 
+                  <Input
                     ref={fileInputRef}
-                    type="file" 
-                    accept="image/*" 
+                    type="file"
+                    accept="image/*"
                     onChange={handleFileSelect}
                     className="cursor-pointer"
                   />
@@ -205,8 +185,8 @@ export default function RemoveBackgroundTool() {
                 )}
 
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={processImage} 
+                  <Button
+                    onClick={processImage}
                     disabled={!imageFile || processing}
                     className="flex-1 h-12 text-white"
                     style={{ backgroundColor: '#489c51' }}
@@ -226,7 +206,7 @@ export default function RemoveBackgroundTool() {
                     )}
                   </Button>
                   {imageUrl && (
-                    <Button 
+                    <Button
                       onClick={handleReset}
                       variant="outline"
                       className="h-12"
@@ -257,9 +237,9 @@ export default function RemoveBackgroundTool() {
 
           {/* Right Column - Preview */}
           <Grid.Col span={{ base: 12, lg: 6 }}>
-            <Paper 
-              withBorder 
-              shadow="lg" 
+            <Paper
+              withBorder
+              shadow="lg"
               p="xl"
               className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             >
@@ -311,7 +291,7 @@ export default function RemoveBackgroundTool() {
                         }}
                       />
                     </div>
-                    
+
                     <Button
                       onClick={handleDownload}
                       className="w-full h-12 text-white shadow-lg hover:shadow-xl transition-all"
@@ -323,8 +303,8 @@ export default function RemoveBackgroundTool() {
                       Download PNG
                     </Button>
 
-                    <Alert 
-                      color="green" 
+                    <Alert
+                      color="green"
                       title="Success!"
                       icon={<Eraser className="h-4 w-4" />}
                       className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20"
@@ -339,6 +319,6 @@ export default function RemoveBackgroundTool() {
           </Grid.Col>
         </Grid>
       </Container>
-    </div>
+    </ToolLayout>
   );
 }

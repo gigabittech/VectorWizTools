@@ -40,8 +40,8 @@ const imageTools = [
     { name: "PNG to SVG", description: "Convert PNG to SVG vector", category: "Image Tools", route: "/tools/png-to-svg", icon: "🔄" },
     { name: "JPG to SVG", description: "Convert JPG to SVG vector", category: "Image Tools", route: "/tools/jpg-to-svg", icon: "🔄" },
     { name: "PDF to SVG", description: "Convert PDF to SVG vector", category: "Image Tools", route: "/tools/pdf-to-svg", icon: "🔄" },
-    { name: "VSDX to JPG", description: "Convert VSDX to JPG format", category: "Image Tools", route: "/tools/jpg-to-vsdx", icon: "🔄" },
-    { name: "VSDX to PDF", description: "Convert VSDX diagrams to PDF", category: "Image Tools", route: "/tools/vsdx-to-pdf", icon: "🔄" },
+    { name: "JPG to VSDX", description: "Convert JPG to VSDX format", category: "Image Tools", route: "/tools/jpg-to-vsdx", icon: "🔄" },
+    { name: "VSDX to JPG", description: "Convert VSDX to JPG format", category: "Image Tools", route: "/tools/vsdx-to-jpg", icon: "🔄" },
     { name: "GIF to JPG", description: "Convert GIF images to JPG", category: "Image Tools", route: "/tools/gif-to-jpg", icon: "🔄" },
     { name: "Add Watermark to Image", description: "Add text or logo watermarks to protect your images", category: "Image Tools", route: "/tools/image-watermark", icon: "💧" },
     { name: "Add Border to Image", description: "Add frames and borders to your images", category: "Image Tools", route: "/tools/image-border", icon: "🖼️" },
@@ -60,6 +60,8 @@ const imageTools = [
     { name: "Vector Simplifier", description: "Simplify complex vector paths", category: "Image Tools", route: "/tools/vector-simplifier", icon: "✨" },
     { name: "Aspect Ratio Calculator", description: "Calculate image aspect ratios", category: "Image Tools", route: "/tools/aspect-ratio-calculator", icon: "📐" },
     { name: "Font to Vector", description: "Convert fonts to vector outlines", category: "Image Tools", route: "/tools/font-to-vector", icon: "🔤" },
+    { name: "Turnaround Estimator", description: "Estimate turnaround time for vector services", category: "Image Tools", route: "/tools/turnaround-estimator", icon: "⏱️" },
+    { name: "Color Extractor", description: "Extract colors from images", category: "Image Tools", route: "/tools/color-extractor", icon: "🎨" },
 ];
 
 const pdfTools = [
@@ -112,6 +114,114 @@ const pdfTools = [
     { name: "EPS to PDF", description: "Upload images and receive as a PDF file", category: "PDF Tools", route: "/tools/eps-to-pdf", icon: "📄" },
 ];
 
+const TOOL_COMPONENT_MAP: Record<string, string> = {
+    "dpi-calculator": "DPICalculator",
+    "turnaround-estimator": "TurnaroundEstimator",
+    "vector-checker": "VectorChecker",
+    "format-converter": "FormatConverter",
+    "color-extractor": "ColorExtractor",
+    "file-size-calculator": "FileSizeCalculator",
+    "print-size-calculator": "PrintSizeCalculator",
+    "logo-dimensions": "LogoDimensions",
+    "vector-simplifier": "VectorSimplifier",
+    "aspect-ratio-calculator": "AspectRatioCalculator",
+    "font-to-vector": "FontToVector",
+    "image-resizer": "ImageResizer",
+    "image-compressor": "ImageCompressor",
+    "image-cropper": "ImageCropper",
+    "image-rotator": "ImageRotator",
+    "image-filter": "ImageFilter",
+    "image-watermark": "ImageWatermark",
+    "image-border": "ImageBorder",
+    "color-palette-extractor": "ColorPaletteExtractor",
+    "image-to-base64": "ImageToBase64",
+    "image-comparison": "ImageComparison",
+    "add-text-to-image": "AddTextToImage",
+    "make-round-image": "MakeRoundImage",
+    "ai-image-generator": "AIImageGenerator",
+    "remove-background": "RemoveBackgroundTool",
+    "pdf-to-jpg": "PDFToJPG",
+    "image-upscale": "ImageUpscale",
+    "remove-watermark": "RemoveWatermark",
+    "image-to-text": "ImageToText",
+    "remove-objects": "RemoveObjects",
+    "profile-photo-maker": "ProfilePhotoMaker",
+    "blur-background": "BlurBackground",
+    "colorize-photo": "ColorizePhoto",
+    "combine-images": "CombineImages",
+    "make-background-transparent": "MakeBackgroundTransparent",
+    "file-to-svg": "FileToSVG",
+    "translate-image": "TranslateImage",
+    "postable-image": "PostableImage",
+    "collage-maker": "CollageMaker",
+    "chart-maker": "ChartMaker",
+    "image-splitter": "ImageSplitter",
+    "merge-pdf": "MergePDF",
+    "split-pdf": "SplitPDF",
+    "jpg-to-pdf": "JPGToPDF",
+    "compress-pdf": "CompressPDF",
+    "protect-pdf": "ProtectPDF",
+    "rotate-pdf": "RotatePDF",
+    "edit-pdf": "EditPDF",
+    "pdf-to-word": "PDFToWord",
+    "change-background": "ChangeBackground",
+    "word-to-pdf": "WordToPDF",
+    "unlock-pdf": "UnlockPDF",
+    "pdf-to-excel": "PDFToExcel",
+    "pdf-to-powerpoint": "PDFToPowerpoint",
+    "png-to-pdf": "PNGToPDF",
+    "epub-to-pdf": "EPUBToPDF",
+    "crop-pdf": "CropPDF",
+    "pdf-translator": "PDFTranslator",
+    "powerpoint-to-pdf": "PowerpointToPDF",
+    "pdf-to-epub": "PDFToEPUB",
+    "pdf-to-png": "PDFToPNG",
+    "delete-pdf-pages": "DeletePDFPages",
+    "url-to-pdf": "URLToPDF",
+    "rearrange-pdf": "RearrangePDF",
+    "extract-images-pdf": "ExtractImagesPDF",
+    "esign-pdf": "ESignPDF",
+    "create-pdf": "CreatePDF",
+    "pdf-watermark-remover": "PDFWatermarkRemover",
+    "pdf-to-csv": "PDFToCSV",
+    "add-page-numbers-pdf": "AddPageNumbersPDF",
+    "add-watermark-pdf": "AddWatermarkPDF",
+    "images-to-pdf": "ImagesToPDF",
+    "heic-to-pdf": "HEICToPDF",
+    "add-text-pdf": "AddTextPDF",
+    "annotate-pdf": "AnnotatePDF",
+    "tiff-to-pdf": "TIFFToPDF",
+    "mobi-to-pdf": "MOBIToPDF",
+    "pdf-to-mobi": "PDFToMOBI",
+    "pdf-to-tiff": "PDFToTIFF",
+    "azw3-to-pdf": "AZW3ToPDF",
+    "webp-to-pdf": "WEBPToPDF",
+    "pdf-to-azw3": "PDFToAZW3",
+    "ms-outlook-to-pdf": "MSOutlookToPDF",
+    "pdf-to-text": "PDFToText",
+    "gif-to-pdf": "GIFToPDF",
+    "extract-text-pdf": "ExtractTextPDF",
+    "eps-to-pdf": "EPSToPDF",
+    "png-to-jpg": "PNGtoJPG",
+    "webp-to-jpg": "WEBPtoJPG",
+    "jpg-to-png": "JPGtoPNG",
+    "svg-to-png": "SVGtoPNG",
+    "tiff-to-jpg": "TIFFtoJPG",
+    "png-to-gif": "PNGtoGIF",
+    "eps-to-jpg": "EPStoJPG",
+    "bmp-to-jpg": "BMPtoJPG",
+    "png-to-bmp": "PNGtoBMP",
+    "heic-to-jpg": "HEICtoJPG",
+    "vsd-to-jpg": "VSDtoJPG",
+    "png-to-svg": "PNGtoSVG",
+    "jpg-to-svg": "JPGtoSVG",
+    "pdf-to-svg": "PDFtoSVG",
+    "jpg-to-vsdx": "JPGtoVSDX",
+    "vsdx-to-jpg": "VSDXtoJPG",
+    "png-to-webp": "PNGtoWebP",
+    "jpg-to-webp": "JPGtoWebP",
+};
+
 async function seed() {
     console.log("🌱 Starting database seeding...");
     try {
@@ -140,65 +250,73 @@ async function seed() {
         // --- Tools ---
         const allToolsRaw = [...imageTools, ...pdfTools];
         const existingToolsList = await storage.getTools();
-        const existingToolIds = new Set(existingToolsList.map(t => t.tool_id));
+        const existingToolsMap = new Map(existingToolsList.map(t => [t.tool_id, t]));
         const seenInSeed = new Set<string>();
 
-        let count = 0;
+        let newCount = 0;
+        let updateCount = 0;
         for (const tool of allToolsRaw) {
             const toolId = tool.route.split('/').pop() || "";
             if (seenInSeed.has(toolId)) continue;
             seenInSeed.add(toolId);
 
-            if (!existingToolIds.has(toolId)) {
-                // Determine component name from route
-                const componentName = toolId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+            const componentName = TOOL_COMPONENT_MAP[toolId] || toolId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+            const existingTool = existingToolsMap.get(toolId);
 
-                const createdTool = await storage.createTool({
-                    tool_id: toolId,
-
-
-
-                    name: tool.name,
-                    title: `Free ${tool.name} Tool`,
-                    description: tool.description,
-                    category: tool.category,
-                    status: "active",
-                    slug: toolId,
-                    tool_component: componentName,
-                    is_active: "active",
-                    keywords: [tool.name.toLowerCase(), tool.category.toLowerCase()],
-                    howToSteps: [
-                        "Upload your file",
-                        "Configure settings if needed",
-                        "Process the file",
-                        "Download the result"
-                    ]
-                });
-
-                // Seed SEO
-                await storage.createToolSeo({
-                    toolId: createdTool.id,
-                    metaTitle: `Free ${tool.name} Tool Online | VectorWiz`,
-                    metaDescription: tool.description,
-                    metaKeywords: `${tool.name}, online tool, free, vector, converted`,
-                    indexStatus: "index",
-                    followStatus: "follow",
-                });
-
-                // Seed Content
-                await storage.createToolContents({
-                    toolId: createdTool.id,
-                    h1Title: tool.name,
-                    introContent: tool.description,
-                    howToUse: "Follow the simple steps to use this tool effectively.",
-                    features: "Fast, Free, Secure, and Online",
-                });
-
-                count++;
-                console.log(`✅ Seeded tool: ${tool.name}`);
+            if (existingTool) {
+                if (existingTool.tool_component !== componentName) {
+                    await storage.updateTool(existingTool.id, {
+                        tool_component: componentName
+                    });
+                    console.log(`📡 Updated tool component: ${toolId} -> ${componentName}`);
+                    updateCount++;
+                }
+                continue;
             }
+
+            // Create new tool
+            const createdTool = await storage.createTool({
+                tool_id: toolId,
+                name: tool.name,
+                title: `Free ${tool.name} Tool`,
+                description: tool.description,
+                category: tool.category,
+                status: "active",
+                slug: toolId,
+                tool_component: componentName,
+                is_active: "active",
+                keywords: [tool.name.toLowerCase(), tool.category.toLowerCase()],
+                howToSteps: [
+                    "Upload your file",
+                    "Configure settings if needed",
+                    "Process the file",
+                    "Download the result"
+                ]
+            });
+
+            // Seed SEO
+            await storage.createToolSeo({
+                toolId: createdTool.id,
+                metaTitle: `Free ${tool.name} Tool Online | VectorWiz`,
+                metaDescription: tool.description,
+                metaKeywords: `${tool.name}, online tool, free, vector, converted`,
+                indexStatus: "index",
+                followStatus: "follow",
+            });
+
+            // Seed Content
+            await storage.createToolContents({
+                toolId: createdTool.id,
+                h1Title: tool.name,
+                introContent: tool.description,
+                howToUse: "Follow the simple steps to use this tool effectively.",
+                features: "Fast, Free, Secure, and Online",
+            });
+
+            newCount++;
+            console.log(`✅ Seeded tool: ${tool.name}`);
         }
-        console.log(`✅ Seeded ${count} new tools successfully!`);
+        console.log(`✅ Seeded ${newCount} new tools, updated ${updateCount} tools successfully!`);
 
     } catch (error) {
         console.error("❌ Seeding failed:", error);
