@@ -371,9 +371,9 @@ export default function ToolsManagement() {
                             <Stack gap="md">
                                 <TextInput label="H1 Title" {...editForm.getInputProps('contents.h1Title')} />
                                 <Textarea label="Intro Content" minRows={4} {...editForm.getInputProps('contents.introContent')} />
-                                <Textarea label="How to Use (HTML/Markdown)" minRows={4} {...editForm.getInputProps('contents.howToUse')} />
-                                <Textarea label="Features Section" minRows={3} {...editForm.getInputProps('contents.features')} />
-                                <Textarea label="Bottom Content" minRows={4} {...editForm.getInputProps('contents.bottomContent')} />
+                                <Textarea label="How to Use (Plain Text/HTML)" minRows={10} {...editForm.getInputProps('contents.howToUse')} />
+                                <Textarea label="Features Section" minRows={6} {...editForm.getInputProps('contents.features')} />
+                                <Textarea label="Bottom Content" minRows={12} {...editForm.getInputProps('contents.bottomContent')} />
                             </Stack>
                         </Tabs.Panel>
 
