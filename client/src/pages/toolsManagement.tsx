@@ -11,6 +11,7 @@ import { useForm } from "@mantine/form";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CustomRichTextEditor } from "@/components/ui/RichTextEditor";
 
 type ToolWithCms = any; // We'll use any for now or define the full type based on Tool + CMS
 
@@ -368,12 +369,32 @@ export default function ToolsManagement() {
                         </Tabs.Panel>
 
                         <Tabs.Panel value="content">
-                            <Stack gap="md">
-                                <TextInput label="H1 Title" {...editForm.getInputProps('contents.h1Title')} />
-                                <Textarea label="Intro Content" minRows={4} {...editForm.getInputProps('contents.introContent')} />
-                                <Textarea label="How to Use (Plain Text/HTML)" minRows={10} {...editForm.getInputProps('contents.howToUse')} />
-                                <Textarea label="Features Section" minRows={6} {...editForm.getInputProps('contents.features')} />
-                                <Textarea label="Bottom Content" minRows={12} {...editForm.getInputProps('contents.bottomContent')} />
+                            <Stack gap="md" mt="md">
+                                <CustomRichTextEditor
+                                    label="H1 Title"
+                                    value={editForm.values.contents.h1Title || ''}
+                                    onChange={(val) => editForm.setFieldValue('contents.h1Title', val)}
+                                />
+                                <CustomRichTextEditor
+                                    label="Intro Content"
+                                    value={editForm.values.contents.introContent || ''}
+                                    onChange={(val) => editForm.setFieldValue('contents.introContent', val)}
+                                />
+                                <CustomRichTextEditor
+                                    label="How to Use"
+                                    value={editForm.values.contents.howToUse || ''}
+                                    onChange={(val) => editForm.setFieldValue('contents.howToUse', val)}
+                                />
+                                <CustomRichTextEditor
+                                    label="Features Section"
+                                    value={editForm.values.contents.features || ''}
+                                    onChange={(val) => editForm.setFieldValue('contents.features', val)}
+                                />
+                                <CustomRichTextEditor
+                                    label="Bottom Content"
+                                    value={editForm.values.contents.bottomContent || ''}
+                                    onChange={(val) => editForm.setFieldValue('contents.bottomContent', val)}
+                                />
                             </Stack>
                         </Tabs.Panel>
 
@@ -381,23 +402,25 @@ export default function ToolsManagement() {
                             <Stack gap="md" mt="md">
                                 <Box p="md" className="bg-gray-50 rounded-lg border">
                                     <Title order={5} mb="sm">Add New FAQ</Title>
-                                    <Stack gap="xs">
+                                    <Stack gap="sm">
                                         <TextInput
-                                            placeholder="Question"
+                                            label="Question"
+                                            placeholder="Enter question"
                                             value={faqForm.question}
                                             onChange={(e) => setFaqForm({ ...faqForm, question: e.target.value })}
                                         />
-                                        <Textarea
-                                            placeholder="Answer"
+                                        <CustomRichTextEditor
+                                            label="Answer"
                                             value={faqForm.answer}
-                                            onChange={(e) => setFaqForm({ ...faqForm, answer: e.target.value })}
+                                            onChange={(val) => setFaqForm({ ...faqForm, answer: val })}
                                         />
                                         <Button
-                                            size="xs"
+                                            size="sm"
                                             color="blue"
                                             leftSection={<Plus size={14} />}
                                             onClick={() => editingTool && addFaqMutation.mutate(editingTool.id)}
-                                            disabled={!faqForm.question || !faqForm.answer}
+                                            disabled={!faqForm.question || !faqForm.answer || faqForm.answer === '<p></p>'}
+                                            mt="xs"
                                         >
                                             Add FAQ
                                         </Button>
@@ -409,7 +432,10 @@ export default function ToolsManagement() {
                                         <Group justify="space-between" align="flex-start" wrap="nowrap">
                                             <div style={{ flex: 1 }}>
                                                 <Text size="sm" fw={600}>{faq.question}</Text>
-                                                <Text size="xs" c="dimmed">{faq.answer}</Text>
+                                                <div
+                                                    className="text-xs text-gray-400 mt-1 line-clamp-2 prose prose-sm max-w-none"
+                                                    dangerouslySetInnerHTML={{ __html: faq.answer }}
+                                                />
                                             </div>
                                             <ActionIcon color="red" variant="light" size="sm" onClick={() => deleteFaqMutation.mutate(faq.id)}>
                                                 <X size={14} />
