@@ -60,6 +60,15 @@ export class ToolController {
     async createTool(req: Request, res: Response) {
         try {
             const data = insertToolSchema.parse(req.body);
+
+            // Check for duplicate slug
+            if (data.slug) {
+                const existing = await toolService.getToolBySlug(data.slug);
+                if (existing) {
+                    return res.status(400).json({ message: "Slug already exists. Please choose a unique slug." });
+                }
+            }
+
             const tool = await toolService.createTool(data);
             res.status(201).json(tool);
         } catch (error) {
@@ -75,6 +84,15 @@ export class ToolController {
         try {
             const { id } = req.params;
             const data = insertToolSchema.partial().parse(req.body);
+
+            // Check for duplicate slug
+            if (data.slug) {
+                const existing = await toolService.getToolBySlug(data.slug);
+                if (existing && existing.id !== id) {
+                    return res.status(400).json({ message: "Slug already exists. Please choose a unique slug." });
+                }
+            }
+
             const tool = await toolService.updateTool(id, data);
             res.json(tool);
         } catch (error) {

@@ -66,6 +66,13 @@ export default function ToolsManagement() {
                 bottomContent: "",
             }
         },
+        validate: {
+            slug: (value) => {
+                if (!value) return "Slug is required";
+                const isDuplicate = tools.some((t: any) => t.slug === value && t.id !== editingTool?.id);
+                return isDuplicate ? "This slug is already in use by another tool" : null;
+            }
+        }
     });
 
     const [faqForm, setFaqForm] = useState({ question: "", answer: "" });
