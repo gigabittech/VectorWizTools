@@ -42,8 +42,8 @@ export default function FAQSection({ faqs }: FAQSectionProps) {
                                 <Accordion.Control className="hover:bg-gray-50 transition-colors py-4">
                                     <span className="font-semibold text-gray-800">{faq.question}</span>
                                 </Accordion.Control>
-                                <Accordion.Panel className="text-gray-600 leading-relaxed pb-6">
-                                    {faq.answer}
+                                <Accordion.Panel className="text-gray-600 leading-relaxed pb-6 prose prose-slate max-w-none">
+                                    <div dangerouslySetInnerHTML={{ __html: faq.answer }} />
                                 </Accordion.Panel>
                             </Accordion.Item>
                         ))}

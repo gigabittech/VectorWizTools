@@ -7,6 +7,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import QuoteRequestForm from "@/components/QuoteRequestForm";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import ToolContentSection from "./ToolContentSection";
 import FAQSection from "./FAQSection";
 import {
   setPageMetadata,
@@ -293,6 +294,11 @@ export default function ToolLayout({
           </motion.div>
         </div>
       </motion.main>
+
+      {/* CMS Content Section */}
+      {cmsData?.contents && (
+        <ToolContentSection contents={cmsData.contents} />
+      )}
 
       {/* FAQ Section */}
       {cmsData?.faqs && cmsData.faqs.length > 0 && (
