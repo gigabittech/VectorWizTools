@@ -29,7 +29,7 @@ import {
     seoSettings
 } from "@shared/schema";
 import { db } from "./db";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, asc } from "drizzle-orm";
 
 export type ToolWithCms = Tool & {
     seo?: ToolSeoType | null;
@@ -186,7 +186,7 @@ export class DatabaseStorage implements IStorage {
         if (onlyActive) {
             query = query.where(eq(tools.is_active, 'active')) as any;
         }
-        const allTools = await query.orderBy(desc(tools.createdAt));
+        const allTools = await query.orderBy(asc(tools.index_name), desc(tools.createdAt));
         return Promise.all(allTools.map(t => this.attachCmsData(t)));
     }
 

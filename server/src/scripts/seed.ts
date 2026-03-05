@@ -255,6 +255,7 @@ async function seed() {
 
         let newCount = 0;
         let updateCount = 0;
+        let serial = 1;
         for (const tool of allToolsRaw) {
             const toolId = tool.route.split('/').pop() || "";
             if (seenInSeed.has(toolId)) continue;
@@ -264,13 +265,14 @@ async function seed() {
             const existingTool = existingToolsMap.get(toolId);
 
             if (existingTool) {
-                if (existingTool.tool_component !== componentName) {
-                    await storage.updateTool(existingTool.id, {
-                        tool_component: componentName
-                    });
-                    console.log(`📡 Updated tool component: ${toolId} -> ${componentName}`);
-                    updateCount++;
-                }
+                // Always update the index and component if needed
+                await storage.updateTool(existingTool.id, {
+                    tool_component: componentName,
+                    index_name: serial
+                });
+                console.log(`📡 Updated tool ${toolId}: component -> ${componentName}, index -> ${serial}`);
+                updateCount++;
+                serial++;
                 continue;
             }
 
@@ -285,6 +287,7 @@ async function seed() {
                 slug: toolId,
                 tool_component: componentName,
                 is_active: "active",
+                index_name: serial,
                 keywords: [tool.name.toLowerCase(), tool.category.toLowerCase()],
                 howToSteps: [
                     "Upload your file",
@@ -293,6 +296,7 @@ async function seed() {
                     "Download the result"
                 ]
             });
+            serial++;
 
             // Seed SEO
             await storage.createToolSeo({

@@ -97,6 +97,7 @@ export const tools = pgTable("tools", {
   slug: varchar("slug").unique(),
   tool_component: text("tool_component"),
   is_active: text("is_active").default("active"),
+  index_name: integer("index_name").default(999),
 
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
