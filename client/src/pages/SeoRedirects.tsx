@@ -134,7 +134,7 @@ export default function SeoRedirects() {
                         <Tabs.Tab value="seo" leftSection={<Globe size={16} />} className="px-6 py-2">
                             Global SEO Settings
                         </Tabs.Tab>
-                        <Tabs.Tab value="redirects" leftSection={<ArrowRightLeft size={16} />} className="px-6 py-2">
+                        <Tabs.Tab value="redirects" classNames={{ tab: "hidden" }} leftSection={<ArrowRightLeft size={16} />} className="px-6 py-2">
                             URL Redirects
                         </Tabs.Tab>
                     </Tabs.List>

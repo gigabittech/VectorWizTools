@@ -2,7 +2,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import {
     Paper, Title, Text, Table, Badge, Group, Button, Switch,
     Tooltip, ActionIcon, Loader, Modal, TextInput, Textarea,
-    Select, MultiSelect, Pagination, Box, Divider, Stack, TagsInput, Tabs
+    Select, MultiSelect, Pagination, Box, Divider, Stack, TagsInput, Tabs, NumberInput
 } from "@mantine/core";
 import { Edit2, Trash2, Search, Filter, X, Plus, Globe, FileText, HelpCircle, Eye } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -20,7 +20,7 @@ export default function ToolsManagement() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string | null>("all");
     const [page, setPage] = useState(1);
-    const pageSize = 10;
+    const [pageSize, setPageSize] = useState<string | null>("10");
 
     const [editingTool, setEditingTool] = useState<ToolWithCms | null>(null);
     const [modalOpened, setModalOpened] = useState(false);
@@ -45,6 +45,7 @@ export default function ToolsManagement() {
             keywords: [] as string[],
             howToSteps: [] as string[],
             is_active: "active",
+            index_name: 0,
             // SEO
             seo: {
                 metaTitle: "",
@@ -65,6 +66,13 @@ export default function ToolsManagement() {
                 bottomContent: "",
             }
         },
+        validate: {
+            slug: (value) => {
+                if (!value) return "Slug is required";
+                const isDuplicate = tools.some((t: any) => t.slug === value && t.id !== editingTool?.id);
+                return isDuplicate ? "This slug is already in use by another tool" : null;
+            }
+        }
     });
 
     const [faqForm, setFaqForm] = useState({ question: "", answer: "" });
@@ -121,6 +129,7 @@ export default function ToolsManagement() {
             keywords: tool.keywords || [],
             howToSteps: tool.howToSteps || [],
             is_active: tool.is_active || "active",
+            index_name: tool.index_name || 0,
             seo: {
                 metaTitle: tool.seo?.metaTitle || "",
                 metaDescription: tool.seo?.metaDescription || "",
@@ -197,11 +206,12 @@ export default function ToolsManagement() {
     }, [tools, searchTerm, selectedCategory]);
 
     const paginatedTools = useMemo(() => {
-        const start = (page - 1) * pageSize;
-        return filteredTools.slice(start, start + pageSize);
-    }, [filteredTools, page]);
+        const size = parseInt(pageSize || "10");
+        const start = (page - 1) * size;
+        return filteredTools.slice(start, start + size);
+    }, [filteredTools, page, pageSize]);
 
-    const totalPages = Math.ceil(filteredTools.length / pageSize);
+    const totalPages = Math.ceil(filteredTools.length / parseInt(pageSize || "10"));
 
     return (
         <AdminLayout>
@@ -252,6 +262,7 @@ export default function ToolsManagement() {
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead className="bg-gray-50/50">
                                 <Table.Tr>
+                                    <Table.Th>Index</Table.Th>
                                     <Table.Th>Tool Name / Slug</Table.Th>
                                     <Table.Th>Description</Table.Th>
                                     <Table.Th>Category</Table.Th>
@@ -263,6 +274,9 @@ export default function ToolsManagement() {
                             <Table.Tbody>
                                 {paginatedTools.map((tool: any) => (
                                     <Table.Tr key={tool.id}>
+                                        <Table.Td>
+                                            <Badge variant="outline" color="gray">{tool.index_name || 0}</Badge>
+                                        </Table.Td>
                                         <Table.Td>
                                             <Text fw={600} size="sm">{tool.name}</Text>
                                             <Code size="xs">/{tool.slug || tool.tool_id}</Code>
@@ -301,7 +315,25 @@ export default function ToolsManagement() {
                     )}
 
                     {!isLoading && totalPages > 1 && (
-                        <div className="mt-8 flex justify-center">
+                        <div className="mt-8 flex justify-between items-center border-t pt-6">
+                            <Group>
+                                <Text size="sm" c="dimmed">
+                                    Showing {Math.min((page - 1) * parseInt(pageSize || "10") + 1, filteredTools.length)} to {Math.min(page * parseInt(pageSize || "10"), filteredTools.length)} of {filteredTools.length} tools
+                                </Text>
+                                <Group gap="xs">
+                                    <Text size="xs" c="dimmed">Items per page:</Text>
+                                    <Select
+                                        size="xs"
+                                        w={70}
+                                        data={["10", "20", "50", "100"]}
+                                        value={pageSize}
+                                        onChange={(val) => {
+                                            setPageSize(val);
+                                            setPage(1);
+                                        }}
+                                    />
+                                </Group>
+                            </Group>
                             <Pagination total={totalPages} value={page} onChange={setPage} color="green" radius="md" />
                         </div>
                     )}
@@ -321,7 +353,7 @@ export default function ToolsManagement() {
                         <Tabs.Tab value="seo" leftSection={<Globe size={16} />}>SEO (Meta & OG)</Tabs.Tab>
                         <Tabs.Tab value="content" leftSection={<FileText size={16} />}>Page Content</Tabs.Tab>
                         <Tabs.Tab value="faqs" leftSection={<HelpCircle size={16} />}>FAQs</Tabs.Tab>
-                        <Tabs.Tab value="links" leftSection={<Globe size={16} />}>Internal Links</Tabs.Tab>
+                        <Tabs.Tab className="hidden" value="links" leftSection={<Globe size={16} />}>Internal Links</Tabs.Tab>
                     </Tabs.List>
 
                     <form onSubmit={editForm.onSubmit(handleUpdate)}>
@@ -333,18 +365,19 @@ export default function ToolsManagement() {
                                 </Group>
                                 <Group grow>
                                     <TextInput label="URL Slug" required {...editForm.getInputProps('slug')} />
-                                    <TextInput label="React Component Name" readOnly placeholder="e.g. DpiCalculator" {...editForm.getInputProps('tool_component')} />
+                                    <TextInput label="React Component Name" className="hidden" readOnly placeholder="e.g. DpiCalculator" {...editForm.getInputProps('tool_component')} />
                                 </Group>
                                 <Textarea label="Description" minRows={3} required {...editForm.getInputProps('description')} />
                                 <Group grow>
                                     <Select label="Category" data={categories} required {...editForm.getInputProps('category')} />
-                                    <Select label="Internal Logic Status" data={['active', 'coming-soon']} {...editForm.getInputProps('status')} />
+                                    <Select label="Internal Logic Status" className="hidden" data={['active', 'coming-soon']} {...editForm.getInputProps('status')} />
                                     <Select
                                         label="Public Visibility (is_active)"
                                         data={[{ value: 'active', label: 'Active (Show)' }, { value: 'in_active', label: 'Inactive (Hide)' }]}
                                         required
                                         {...editForm.getInputProps('is_active')}
                                     />
+                                    <NumberInput label="Index / Serial No" placeholder="0" {...editForm.getInputProps('index_name')} />
                                 </Group>
                             </Stack>
                         </Tabs.Panel>
@@ -446,7 +479,7 @@ export default function ToolsManagement() {
                             </Stack>
                         </Tabs.Panel>
 
-                        <Tabs.Panel value="links">
+                        <Tabs.Panel className=" hidden" value="links">
                             <Stack gap="md" mt="md">
                                 <Box p="md" className="bg-gray-50 rounded-lg border">
                                     <Title order={5} mb="sm">Add Internal Link</Title>
