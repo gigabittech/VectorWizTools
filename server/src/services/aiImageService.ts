@@ -5,7 +5,7 @@
 
 interface GenerateImageOptions {
   prompt: string;
-  model: "dall-e-3" | "dall-e-2" | "stable-diffusion";
+  model: "dall-e-3" | "dall-e-2" | "stable-diffusion" | "free-model";
   size?: string;
   quality?: "standard" | "hd";
   style?: "vivid" | "natural";
@@ -30,11 +30,15 @@ export async function generateAIImage(options: GenerateImageOptions): Promise<Im
   switch (model) {
     case "dall-e-3":
     case "dall-e-2":
+      console.log('here give the error')
       return await generateWithOpenAI({ prompt, model, size, quality, style, n });
-    
+
     case "stable-diffusion":
-      return await generateWithStabilityAI({ prompt, size });
-    
+      return await generateWithFreeModel({ prompt, size });
+    // return await generateWithStabilityAI({ prompt, size });                     
+
+    case "free-model":
+
     default:
       throw new Error(`Unsupported model: ${model}`);
   }
@@ -52,7 +56,7 @@ async function generateWithOpenAI(options: {
   n?: number;
 }): Promise<ImageGenerationResult> {
   const apiKey = process.env.OPENAI_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error("OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.");
   }
@@ -116,7 +120,7 @@ async function generateWithStabilityAI(options: {
   size?: string;
 }): Promise<ImageGenerationResult> {
   const apiKey = process.env.STABILITY_AI_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error("Stability AI API key not configured. Please set STABILITY_AI_API_KEY environment variable.");
   }
@@ -126,7 +130,7 @@ async function generateWithStabilityAI(options: {
   try {
     // Parse size
     const [width, height] = size.split("x").map(Number);
-    
+
     const response = await fetch("https://api.stability.ai/v2beta/stable-image/generate/core", {
       method: "POST",
       headers: {
@@ -148,7 +152,7 @@ async function generateWithStabilityAI(options: {
 
     // Stability AI returns the image directly as binary
     const imageBlob = await response.blob();
-    
+
     // Convert blob to data URL for frontend
     // In production, you'd want to upload to cloud storage and return URL
     const arrayBuffer = await imageBlob.arrayBuffer();
@@ -169,7 +173,7 @@ async function generateWithStabilityAI(options: {
  */
 export async function generateWithReplicate(prompt: string, size?: string): Promise<ImageGenerationResult> {
   const apiKey = process.env.REPLICATE_API_TOKEN;
-  
+
   if (!apiKey) {
     throw new Error("Replicate API token not configured. Please set REPLICATE_API_TOKEN environment variable.");
   }
@@ -196,7 +200,7 @@ export async function generateWithReplicate(prompt: string, size?: string): Prom
     }
 
     const data = await response.json();
-    
+
     // Replicate returns a prediction that needs to be polled
     // This is a simplified version - in production, implement polling
     return {
@@ -206,5 +210,26 @@ export async function generateWithReplicate(prompt: string, size?: string): Prom
     console.error("Replicate image generation error:", error);
     throw new Error(error.message || "Failed to generate image with Replicate");
   }
+}
+
+async function generateWithFreeModel(options: {
+  prompt: string;
+  size?: string;
+}): Promise<ImageGenerationResult> {
+  const { prompt, size = "1024x1024" } = options;
+
+  // স্পেস এবং স্পেশাল ক্যারেক্টারগুলো URL-এর জন্য এনকোড করা
+  const encodedPrompt = encodeURIComponent(prompt);
+
+  // Pollinations সরাসরি URL-এর মাধ্যমেই ছবি রিটার্ন করে
+  // সাইজ সেট করা (যেমন: width ও height আলাদা করা)
+  const [width, height] = size.split("x").map(s => s || "1024");
+
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true`;
+
+  // এখানে কোনো await fetch করার দরকার নেই, কারণ URL টাই নিজেই ইমেজ সোর্স
+  return {
+    imageUrl: imageUrl,
+  };
 }
 

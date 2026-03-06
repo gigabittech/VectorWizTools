@@ -1,0 +1,7 @@
+
+> rest-express@1.0.0 db:seed
+> tsx server/src/scripts/seed.ts
+
+[dotenv@17.2.3] injecting env (6) from .env -- tip: ≡ƒùé∩╕Å backup and recover secrets: https://dotenvx.com/ops
+≡ƒî▒ Starting seeding process...
+Γä╣∩╕Å Admin user already exists. Skipping...

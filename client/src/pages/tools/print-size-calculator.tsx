@@ -1,154 +1,40 @@
-import { useEffect } from "react";
 import PrintSizeCalculator from "@/components/tools/PrintSizeCalculator";
-import { Button, Paper, Title, Container, Group, Stack, Grid, Text, List, Badge } from "@mantine/core";
-import { ArrowLeft, Ruler, Printer, CheckCircle, Award, Zap, Camera, FileText } from "lucide-react";
+import ToolLayout from "@/components/tools/shared/ToolLayout";
+import { Paper, Title, Grid, Text, List, Group, Stack, Button } from "@mantine/core";
+import { Printer, CheckCircle, Award, FileText } from "lucide-react";
 import { Link } from "wouter";
 
 export default function PrintSizeCalculatorPage() {
-
-  useEffect(() => {
-    // Set SEO metadata
-    document.title = "Free Print Size Calculator Tool | Calculate Maximum Print Dimensions | VectorWiz";
-    
-    // Meta description
-    const metaDescription = document.querySelector('meta[name="description"]') || document.createElement('meta');
-    metaDescription.setAttribute('name', 'description');
-    metaDescription.setAttribute('content', 'Calculate maximum print dimensions from image resolution. Determine optimal sizes for business cards, posters, banners, and professional printing projects with DPI optimization.');
-    if (!document.querySelector('meta[name="description"]')) {
-      document.head.appendChild(metaDescription);
-    }
-
-    // Open Graph tags
-    const ogTitle = document.querySelector('meta[property="og:title"]') || document.createElement('meta');
-    ogTitle.setAttribute('property', 'og:title');
-    ogTitle.setAttribute('content', 'Free Print Size Calculator | Calculate Maximum Print Dimensions');
-    if (!document.querySelector('meta[property="og:title"]')) {
-      document.head.appendChild(ogTitle);
-    }
-
-    const ogDescription = document.querySelector('meta[property="og:description"]') || document.createElement('meta');
-    ogDescription.setAttribute('property', 'og:description');
-    ogDescription.setAttribute('content', 'Calculate maximum print dimensions from image resolution for professional printing projects.');
-    if (!document.querySelector('meta[property="og:description"]')) {
-      document.head.appendChild(ogDescription);
-    }
-
-    // Structured Data for SEO
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Print Size Calculator",
-      "description": "Calculate maximum print dimensions from image resolution with DPI optimization",
-      "url": "https://vectorwiz.com/tools/print-size-calculator",
-      "applicationCategory": "DesignApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      }
-    };
-
-    // Remove existing tool-specific structured data and add new one
-    const existingScript = document.getElementById('tool-structured-data');
-    if (existingScript) {
-      existingScript.remove();
-    }
-    
-    const scriptTag = document.createElement('script');
-    scriptTag.type = 'application/ld+json';
-    scriptTag.id = 'tool-structured-data';
-    scriptTag.textContent = JSON.stringify(structuredData);
-    document.head.appendChild(scriptTag);
-
-    // Additional Open Graph tags
-    const ogType = document.querySelector('meta[property="og:type"]') || document.createElement('meta');
-    ogType.setAttribute('property', 'og:type');
-    ogType.setAttribute('content', 'website');
-    if (!document.querySelector('meta[property="og:type"]')) {
-      document.head.appendChild(ogType);
-    }
-
-    const ogImage = document.querySelector('meta[property="og:image"]') || document.createElement('meta');
-    ogImage.setAttribute('property', 'og:image');
-    ogImage.setAttribute('content', 'https://vectorwiz.com/og-print-calculator.png');
-    if (!document.querySelector('meta[property="og:image"]')) {
-      document.head.appendChild(ogImage);
-    }
-
-    const ogUrl = document.querySelector('meta[property="og:url"]') || document.createElement('meta');
-    ogUrl.setAttribute('property', 'og:url');
-    ogUrl.setAttribute('content', 'https://vectorwiz.com/tools/print-size-calculator');
-    if (!document.querySelector('meta[property="og:url"]')) {
-      document.head.appendChild(ogUrl);
-    }
-
-    // Canonical URL
-    const canonical = document.querySelector('link[rel="canonical"]') || document.createElement('link');
-    canonical.setAttribute('rel', 'canonical');
-    canonical.setAttribute('href', 'https://vectorwiz.com/tools/print-size-calculator');
-    if (!document.querySelector('link[rel="canonical"]')) {
-      document.head.appendChild(canonical);
-    }
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-white font-bold">V</span>
-          </div>
-          <Text c="dimmed">Loading print size calculator...</Text>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      
-      <Container size="xl" py="xl" data-testid="print-size-calculator-page">
-        <div className="mb-8">
-          <Link href="/tools">
-            <Button variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />} mb="md" data-testid="back-to-tools">
-              Back to Tools
-            </Button>
-          </Link>
-          
-          <Group align="flex-start" gap="lg" mb="xl">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <Ruler className="h-8 w-8 text-green-600" />
-            </div>
-            <div>
-              <Title order={1} size="h1" mb="xs">Free Print Size Calculator Tool</Title>
-              <Text size="lg" c="dimmed" mb="md">
-                Calculate maximum print dimensions from your image resolution. Determine optimal sizes 
-                for business cards, posters, banners, and professional printing projects.
-              </Text>
-              <Group gap="xs">
-                <Badge variant="light" color="green">Print Planning</Badge>
-                <Badge variant="light" color="blue">DPI Optimization</Badge>
-                <Badge variant="light" color="purple">Professional Quality</Badge>
-              </Group>
-            </div>
-          </Group>
+    <ToolLayout
+      title="Print Size Calculator"
+      description="Calculate maximum print dimensions from your image resolution. Determine optimal sizes for business cards, posters, banners, and professional printing projects."
+      category="Image Tools"
+      keywords={["print size calculator", "maximum print dimensions", "resolution to inches", "printing standards", "DPI for print", "poster size guide"]}
+      howToSteps={[
+        { name: "Input Resolution", text: "Enter the width and height of your image in pixels." },
+        { name: "Choose DPI", text: "Select the target printing resolution (e.g., 300 DPI for high quality)." },
+        { name: "Calculate", text: "Get the maximum physical print dimensions in inches or centimeters." },
+        { name: "Check Quality", text: "Review if your image resolution is sufficient for the intended print size." },
+      ]}
+    >
+      <div className="space-y-8">
+        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 shadow-sm hover:shadow-md transition-all">
+          <PrintSizeCalculator />
         </div>
-
-        <PrintSizeCalculator />
 
         {/* Print Quality Standards */}
-        <Paper withBorder shadow="md" p="xl" mt="xl">
-          <Title order={2} mb="lg" ta="center">Professional Print Quality Standards</Title>
+        <Paper withBorder shadow="md" p="xl" radius="lg">
+          <Title order={2} mb="lg" ta="center" className="text-2xl md:text-3xl font-bold">Professional Print Quality Standards</Title>
           <Grid gutter="xl">
             <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="lg" className="bg-green-50 dark:bg-green-950/20 h-full">
+              <Paper p="lg" className="bg-green-50/50 dark:bg-green-950/20 h-full" radius="md">
                 <Group gap="sm" mb="md">
                   <Award className="h-5 w-5 text-green-600" />
-                  <Title order={3} c="green">High-End Printing</Title>
+                  <Title order={3} size="h4" c="green">High-End Printing</Title>
                 </Group>
-                <Text size="sm" mb="md">300+ DPI for professional results</Text>
-                <List size="sm" spacing="sm">
+                <Text size="sm" mb="md" fw={500}>300+ DPI for professional results</Text>
+                <List size="sm" spacing="xs" center icon={<CheckCircle size={16} className="text-green-500" />}>
                   <List.Item>Business cards and brochures</List.Item>
                   <List.Item>Magazine and book printing</List.Item>
                   <List.Item>Fine art reproductions</List.Item>
@@ -157,13 +43,13 @@ export default function PrintSizeCalculatorPage() {
               </Paper>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="lg" className="bg-blue-50 dark:bg-blue-950/20 h-full">
+              <Paper p="lg" className="bg-blue-50/50 dark:bg-blue-950/20 h-full" radius="md">
                 <Group gap="sm" mb="md">
                   <Printer className="h-5 w-5 text-blue-600" />
-                  <Title order={3} c="blue">Large Format</Title>
+                  <Title order={3} size="h4" c="blue">Large Format</Title>
                 </Group>
-                <Text size="sm" mb="md">150-300 DPI for viewing distance</Text>
-                <List size="sm" spacing="sm">
+                <Text size="sm" mb="md" fw={500}>150-300 DPI for viewing distance</Text>
+                <List size="sm" spacing="xs" center icon={<CheckCircle size={16} className="text-blue-500" />}>
                   <List.Item>Posters and displays</List.Item>
                   <List.Item>Trade show graphics</List.Item>
                   <List.Item>Banners and signs</List.Item>
@@ -172,13 +58,13 @@ export default function PrintSizeCalculatorPage() {
               </Paper>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="lg" className="bg-purple-50 dark:bg-purple-950/20 h-full">
+              <Paper p="lg" className="bg-purple-50/50 dark:bg-purple-950/20 h-full" radius="md">
                 <Group gap="sm" mb="md">
                   <FileText className="h-5 w-5 text-purple-600" />
-                  <Title order={3} c="purple">Digital & Web</Title>
+                  <Title order={3} size="h4" c="purple">Digital & Web</Title>
                 </Group>
-                <Text size="sm" mb="md">72-150 DPI for screen display</Text>
-                <List size="sm" spacing="sm">
+                <Text size="sm" mb="md" fw={500}>72-150 DPI for screen display</Text>
+                <List size="sm" spacing="xs" center icon={<CheckCircle size={16} className="text-purple-500" />}>
                   <List.Item>Website images</List.Item>
                   <List.Item>Email newsletters</List.Item>
                   <List.Item>Social media graphics</List.Item>
@@ -190,11 +76,11 @@ export default function PrintSizeCalculatorPage() {
         </Paper>
 
         {/* Print Preparation Checklist */}
-        <Paper withBorder shadow="md" p="xl" mt="xl">
-          <Title order={2} mb="lg">Pre-Press Preparation Checklist</Title>
+        <Paper withBorder shadow="md" p="xl" radius="lg">
+          <Title order={2} mb="lg" className="text-2xl font-bold">Pre-Press Preparation Checklist</Title>
           <Grid gutter="xl">
             <Grid.Col span={{ base: 12, md: 6 }}>
-              <Title order={3} mb="md">Before Printing</Title>
+              <Title order={3} size="h4" mb="md" c="blue.7">Before Printing</Title>
               <Stack gap="sm">
                 <Group gap="xs">
                   <CheckCircle size={16} className="text-green-500" />
@@ -219,7 +105,7 @@ export default function PrintSizeCalculatorPage() {
               </Stack>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 6 }}>
-              <Title order={3} mb="md">Quality Assurance</Title>
+              <Title order={3} size="h4" mb="md" c="green.7">Quality Assurance</Title>
               <Stack gap="sm">
                 <Group gap="xs">
                   <CheckCircle size={16} className="text-blue-500" />
@@ -247,22 +133,22 @@ export default function PrintSizeCalculatorPage() {
         </Paper>
 
         {/* Professional Services CTA */}
-        <Paper withBorder shadow="md" p="xl" mt="xl" className="text-center">
-          <Title order={2} mb="md">Professional Print Preparation Service</Title>
-          <Text size="lg" c="dimmed" mb="xl" maw={600} mx="auto">
-            Let our experts prepare your graphics for professional printing. We ensure optimal 
+        <Paper withBorder shadow="md" p="xl" radius="lg" className="text-center bg-gray-50/50">
+          <Title order={2} mb="md" className="text-2xl font-bold">Professional Print Preparation Service</Title>
+          <Text size="md" c="dimmed" mb="xl" maw={600} mx="auto">
+            Let our experts prepare your graphics for professional printing. We ensure optimal
             resolution, color accuracy, and print-ready files for any project size.
           </Text>
           <Group justify="center" gap="md">
-            <Button component={Link} href="/order/new" size="lg" color="green" data-testid="print-prep-service-cta">
+            <Button component={Link} href="/order/new" size="md" color="green" radius="xl">
               Get Print Preparation Service
             </Button>
-            <Button component={Link} href="/tools/dpi-calculator" variant="outline" size="lg">
+            <Button component={Link} href="/tools/dpi-calculator" variant="outline" size="md" radius="xl">
               Check DPI First
             </Button>
           </Group>
         </Paper>
-      </Container>
-    </div>
+      </div>
+    </ToolLayout>
   );
 }

@@ -17,7 +17,7 @@ Add the following environment variables to your `.env` file:
 ```env
 OPENAI_API_KEY=sk-your-openai-api-key-here
 ```
-
+ 
 **How to get an OpenAI API key:**
 1. Go to https://platform.openai.com/
 2. Sign up or log in

@@ -59,7 +59,7 @@ export default function FontToVector() {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const estimatedSizeKB = Math.max(1, inputText.length * 0.5 + parseInt(fontSize) * 0.1);
-    
+
     const features = ["Scalable text", "Editable paths", "No font dependencies"];
     if (strokeWidth !== "0") features.push("Custom stroke");
     if (outputFormat === "svg") features.push("Web compatible");
@@ -76,6 +76,42 @@ export default function FontToVector() {
 
     setResult(mockResult);
     setIsConverting(false);
+  };
+
+  const handleDownload = () => {
+    if (!result) return;
+
+    const extension = result.outputFormat.toLowerCase();
+    const filename = `vectorized-text.${extension}`;
+
+    let content: string | Blob;
+    let mimeType: string;
+
+    if (extension === "svg") {
+      mimeType = "image/svg+xml";
+      content = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .text { 
+      font-family: ${result.font}, sans-serif; 
+      font-size: ${fontSize}px;
+      fill: black;
+      stroke: black;
+      stroke-width: ${strokeWidth};
+    }
+  </style>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="text">
+    ${result.text}
+  </text>
+</svg>`;
+    } else {
+      mimeType = "application/octet-stream";
+      content = `Mock ${result.outputFormat} file for: ${result.text}`;
+    }
+
+    import("@/lib/fileUtils").then(({ downloadFile }) => {
+      downloadFile(content, filename, mimeType);
+    });
   };
 
   const presetTexts = [
@@ -136,7 +172,7 @@ export default function FontToVector() {
                 label="Font Size"
                 value={fontSize}
                 onChange={(value) => setFontSize(value || "72")}
-                data={formatOptions}
+                data={fontSizeOptions}
                 data-testid="font-size-select"
               />
             </Group>
@@ -225,6 +261,7 @@ export default function FontToVector() {
                 leftSection={<Download size={16} />}
                 color="green"
                 size="lg"
+                onClick={handleDownload}
                 data-testid="download-vector-text"
               >
                 Download Vector Text
@@ -243,7 +280,7 @@ export default function FontToVector() {
               <Title order={4}>Logo Creation</Title>
             </Group>
             <Text size="sm" c="dimmed">
-              Convert company names and slogans into scalable vector logos that work perfectly 
+              Convert company names and slogans into scalable vector logos that work perfectly
               at any size, from business cards to billboards.
             </Text>
           </div>
@@ -253,7 +290,7 @@ export default function FontToVector() {
               <Title order={4}>Sign Making</Title>
             </Group>
             <Text size="sm" c="dimmed">
-              Create vector text for vinyl cutting, laser engraving, and CNC machines. 
+              Create vector text for vinyl cutting, laser engraving, and CNC machines.
               Perfect for custom signs and promotional materials.
             </Text>
           </div>
@@ -263,7 +300,7 @@ export default function FontToVector() {
               <Title order={4}>Font Independence</Title>
             </Group>
             <Text size="sm" c="dimmed">
-              Share designs without worrying about font availability. Vector text ensures 
+              Share designs without worrying about font availability. Vector text ensures
               consistent appearance across all devices and software.
             </Text>
           </div>
@@ -298,7 +335,7 @@ export default function FontToVector() {
 
       <Alert icon={<AlertCircle size={16} />} color="blue">
         <Text size="sm">
-          <strong>Note:</strong> Vector text conversion creates outlined paths that can't be edited as text. 
+          <strong>Note:</strong> Vector text conversion creates outlined paths that can't be edited as text.
           Always keep your original text version for future modifications.
         </Text>
       </Alert>

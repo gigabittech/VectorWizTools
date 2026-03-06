@@ -69,6 +69,18 @@ export default function VectorSimplifier() {
     setIsProcessing(false);
   };
 
+  const handleDownload = () => {
+    if (!result || !selectedFile) return;
+
+    const extension = selectedFile.name.split('.').pop() || 'svg';
+    const baseName = selectedFile.name.replace(/\.[^/.]+$/, '');
+    const filename = `${baseName}-simplified.${extension}`;
+
+    import("@/lib/fileUtils").then(({ downloadFile }) => {
+      downloadFile(selectedFile, filename);
+    });
+  };
+
   const getOptimizationDescription = () => {
     switch (optimizationType) {
       case "quality":
@@ -181,7 +193,7 @@ export default function VectorSimplifier() {
                   {result.quality} Quality
                 </Badge>
               </Group>
-              
+
               <Stack gap="md">
                 <Group justify="space-between">
                   <Text size="sm">Vector Nodes:</Text>
@@ -203,6 +215,7 @@ export default function VectorSimplifier() {
                 leftSection={<Download size={16} />}
                 color="green"
                 size="lg"
+                onClick={handleDownload}
                 data-testid="download-simplified"
               >
                 Download Simplified Vector
@@ -221,7 +234,7 @@ export default function VectorSimplifier() {
               <Title order={4}>Faster Loading</Title>
             </Group>
             <Text size="sm" c="dimmed">
-              Simplified vectors load faster on websites and applications, improving user experience 
+              Simplified vectors load faster on websites and applications, improving user experience
               and SEO performance.
             </Text>
           </div>
@@ -231,7 +244,7 @@ export default function VectorSimplifier() {
               <Title order={4}>Smaller File Sizes</Title>
             </Group>
             <Text size="sm" c="dimmed">
-              Reduced node counts and optimized paths result in significantly smaller file sizes 
+              Reduced node counts and optimized paths result in significantly smaller file sizes
               without noticeable quality loss.
             </Text>
           </div>
@@ -241,7 +254,7 @@ export default function VectorSimplifier() {
               <Title order={4}>Better Performance</Title>
             </Group>
             <Text size="sm" c="dimmed">
-              Simplified vectors render faster in design software and web browsers, especially 
+              Simplified vectors render faster in design software and web browsers, especially
               important for complex illustrations.
             </Text>
           </div>
@@ -250,8 +263,8 @@ export default function VectorSimplifier() {
 
       <Alert icon={<AlertCircle size={16} />} color="blue">
         <Text size="sm">
-          <strong>Pro Tip:</strong> Always keep a backup of your original vector file. Start with 
-          conservative settings and gradually increase simplification until you find the perfect 
+          <strong>Pro Tip:</strong> Always keep a backup of your original vector file. Start with
+          conservative settings and gradually increase simplification until you find the perfect
           balance for your needs.
         </Text>
       </Alert>

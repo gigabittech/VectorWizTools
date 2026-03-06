@@ -1,3 +1,10 @@
+import { jsPDF } from "jspdf";
+import heic2any from "heic2any";
+import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
+
+// Configure worker
+GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
+
 export interface ImageDimensions {
   width: number;
   height: number;
@@ -18,20 +25,104 @@ export interface CropOptions {
 }
 
 export async function loadImage(file: File): Promise<HTMLImageElement> {
+  let processingFile = file;
+
+  // Jodi file-ti HEIC hoy, seta-ke prothome JPG-te convert kore nite hobe
+  if (file.name.toLowerCase().endsWith(".heic") || file.type === "image/heic") {
+    const convertedBlob = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.9,
+    });
+    processingFile = new File(
+      [Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob],
+      "temp.jpg",
+      { type: "image/jpeg" }
+    );
+  }
+
+  // PDF handling
+  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1); // Load first page
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas not supported");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: context, viewport }).promise;
+
+    // Convert canvas to image
+    const dataUrl = canvas.toDataURL("image/png");
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Failed to load PDF page as image"));
+      img.src = dataUrl;
+    });
+  }
+
+  // VSDX handling
+  if (file.name.toLowerCase().endsWith(".vsdx") || file.type === "application/vnd.visio" || file.type === "application/vnd.ms-visio.drawing.main+xml") {
+    const { default: JSZip } = await import("jszip");
+    const zip = new JSZip();
+    const arrayBuffer = await file.arrayBuffer();
+    const content = await zip.loadAsync(arrayBuffer);
+
+    // Try to find a preview image
+    // Standard VSDX preview paths
+    const previewPaths = [
+      "visio/media/preview.png",
+      "docProps/thumbnail.jpeg",
+      "visio/media/image1.png",
+      "visio/media/image1.jpeg"
+    ];
+
+    let previewFile = null;
+    for (const path of previewPaths) {
+      if (content.files[path]) {
+        previewFile = content.files[path];
+        break;
+      }
+    }
+
+    if (previewFile) {
+      const blob = await previewFile.async("blob");
+      const url = URL.createObjectURL(blob);
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("Failed to load Visio preview image"));
+        };
+        img.src = url;
+      });
+    }
+
+    throw new Error("Could not find a preview image in the Visio file. Try saving the file with a preview in Visio.");
+  }
+
   return new Promise((resolve, reject) => {
     const img = new Image();
-    const url = URL.createObjectURL(file);
-    
+    const url = URL.createObjectURL(processingFile);
+
     img.onload = () => {
       URL.revokeObjectURL(url);
       resolve(img);
     };
-    
+
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('Failed to load image'));
+      reject(new Error("Failed to load image. Ensure it's a valid format."));
     };
-    
+
     img.src = url;
   });
 }
@@ -43,7 +134,7 @@ export async function resizeImage(
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -53,7 +144,7 @@ export async function resizeImage(
 
   if (maintainAspectRatio) {
     const aspectRatio = img.width / img.height;
-    
+
     if (width && !height) {
       height = Math.round(width / aspectRatio);
     } else if (height && !width) {
@@ -92,7 +183,7 @@ export async function cropImage(file: File, options: CropOptions): Promise<Blob>
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -127,12 +218,15 @@ export async function cropImage(file: File, options: CropOptions): Promise<Blob>
   });
 }
 
-export type SupportedImageFormat = 
-  | 'image/jpeg'
-  | 'image/png'
-  | 'image/webp'
-  | 'image/bmp'
-  | 'image/gif';
+export type SupportedImageFormat =
+  | "image/jpeg"
+  | "image/png"
+  | "image/webp"
+  | "image/bmp"
+  | "image/gif"
+  | "image/svg+xml"
+  | "application/pdf"
+  | "application/vnd.visio";
 
 export async function convertImageFormat(
   file: File,
@@ -140,32 +234,114 @@ export async function convertImageFormat(
   quality: number = 0.92
 ): Promise<Blob> {
   const img = await loadImage(file);
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  
-  if (!ctx) {
-    throw new Error('Could not get canvas context');
+
+  // VSDX (Visio) output logic
+  if (targetFormat === "application/vnd.visio") {
+    const { default: JSZip } = await import("jszip");
+    const zip = new JSZip();
+
+    // 1. [Content_Types].xml
+    zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="png" ContentType="image/png"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Override PartName="/visio/document.xml" ContentType="application/vnd.ms-visio.drawing.main+xml"/>
+</Types>`);
+
+    // 2. _rels/.rels
+    zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/document" Target="visio/document.xml"/>
+</Relationships>`);
+
+    // 3. visio/document.xml
+    zip.file("visio/document.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<VisioDocument xmlns="http://schemas.microsoft.com/visio/2010/drawings">
+  <Pages>
+    <Page ID="0" Name="Page-1">
+      <Shapes>
+        <Shape ID="1" Type="Shape">
+          <Cell N="Width" V="${img.width / 96}"/>
+          <Cell N="Height" V="${img.height / 96}"/>
+          <Rel ID="rId1" N="Image"/>
+        </Shape>
+      </Shapes>
+    </Page>
+  </Pages>
+</VisioDocument>`);
+
+    // 4. visio/_rels/document.xml.rels
+    zip.file("visio/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.jpg"/>
+</Relationships>`);
+
+    // 5. the image data
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(img, 0, 0);
+      const imgBlob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), "image/jpeg", quality));
+      zip.file("visio/media/image1.jpg", await imgBlob.arrayBuffer());
+    }
+
+    return await zip.generateAsync({ type: "blob" });
   }
+
+  // SVG output logic (Wraps image in SVG tag)
+  if (targetFormat === "image/svg+xml") {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not get canvas context");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    const dataUrl = canvas.toDataURL("image/png");
+
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${img.width}" height="${img.height}">
+  <image href="${dataUrl}" width="${img.width}" height="${img.height}" />
+</svg>`;
+    return new Blob([svgString], { type: "image/svg+xml" });
+  }
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) throw new Error("Could not get canvas context");
 
   canvas.width = img.width;
   canvas.height = img.height;
 
-  // For JPEG and BMP, fill with white background (no transparency)
-  if (targetFormat === 'image/jpeg' || targetFormat === 'image/bmp') {
-    ctx.fillStyle = '#FFFFFF';
+  // JPEG/BMP er jonno white background (karoon eigulo transparency support kore na)
+  if (targetFormat === "image/jpeg" || targetFormat === "image/bmp") {
+    ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   ctx.drawImage(img, 0, 0);
 
+  // PDF output logic
+  if (targetFormat === "application/pdf") {
+    const imgData = canvas.toDataURL("image/jpeg", quality);
+    const pdf = new jsPDF({
+      orientation: img.width > img.height ? "l" : "p",
+      unit: "px",
+      format: [img.width, img.height],
+    });
+    pdf.addImage(imgData, "JPEG", 0, 0, img.width, img.height);
+    return pdf.output("blob");
+  }
+
+  // Standard image logic
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error('Failed to create blob'));
-        }
+        if (blob) resolve(blob);
+        else reject(new Error("Failed to create blob"));
       },
       targetFormat,
       quality
@@ -173,11 +349,21 @@ export async function convertImageFormat(
   });
 }
 
+// Helper to handle SVG conversion
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function rotateImage(file: File, degrees: number): Promise<Blob> {
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -212,7 +398,7 @@ export async function flipImage(file: File, direction: 'horizontal' | 'vertical'
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -247,7 +433,7 @@ export async function compressImage(file: File, quality: number = 0.7): Promise<
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -256,8 +442,8 @@ export async function compressImage(file: File, quality: number = 0.7): Promise<
   canvas.height = img.height;
 
   // For better compression, convert to JPEG if not already
-  const outputType = file.type === 'image/png' || file.type === 'image/jpeg' 
-    ? file.type 
+  const outputType = file.type === 'image/png' || file.type === 'image/jpeg'
+    ? file.type
     : 'image/jpeg';
 
   if (outputType === 'image/jpeg') {
@@ -285,7 +471,7 @@ export async function compressImage(file: File, quality: number = 0.7): Promise<
 export function calculateAspectRatio(width: number, height: number): { ratio: number; formatted: string } {
   const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
   const divisor = gcd(width, height);
-  
+
   return {
     ratio: width / height,
     formatted: `${width / divisor}:${height / divisor}`,
@@ -354,7 +540,7 @@ export async function applyFilters(file: File, filters: FilterOptions): Promise<
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -364,31 +550,31 @@ export async function applyFilters(file: File, filters: FilterOptions): Promise<
 
   // Build filter string
   const filterParts: string[] = [];
-  
+
   if (filters.brightness !== undefined && filters.brightness !== 100) {
     filterParts.push(`brightness(${filters.brightness}%)`);
   }
-  
+
   if (filters.contrast !== undefined && filters.contrast !== 100) {
     filterParts.push(`contrast(${filters.contrast}%)`);
   }
-  
+
   if (filters.saturation !== undefined && filters.saturation !== 100) {
     filterParts.push(`saturate(${filters.saturation}%)`);
   }
-  
+
   if (filters.blur !== undefined && filters.blur > 0) {
     filterParts.push(`blur(${filters.blur}px)`);
   }
-  
+
   if (filters.grayscale) {
     filterParts.push('grayscale(100%)');
   }
-  
+
   if (filters.sepia) {
     filterParts.push('sepia(100%)');
   }
-  
+
   if (filters.invert) {
     filterParts.push('invert(100%)');
   }
@@ -436,7 +622,7 @@ export async function addTextWatermark(
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -533,7 +719,7 @@ export async function addImageWatermark(
   const watermarkImg = await loadImage(watermarkFile);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -627,7 +813,7 @@ export async function addBorder(
   const totalPadding = borderWidth + padding;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -667,7 +853,7 @@ export async function extractColors(file: File, colorCount: number = 5): Promise
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -727,7 +913,7 @@ export async function upscaleImage(
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -789,7 +975,7 @@ export async function removeWatermark(
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
@@ -844,7 +1030,7 @@ export async function removeWatermark(
             Math.abs(sampleY - y),
             Math.abs(sampleY - (y + height))
           );
-          
+
           // Higher weight for pixels closer to watermark edge (just outside)
           const edgeWeight = distToWatermarkEdge < 5 ? 3 : 1;
           const distanceWeight = 1 / (1 + dist * 0.1);
@@ -874,10 +1060,10 @@ export async function removeWatermark(
               const sampleX = px + dx;
               const sampleY = py + dy;
               if (sampleX < 0 || sampleX >= canvas.width || sampleY < 0 || sampleY >= canvas.height) continue;
-              
+
               const isInsideWatermark = sampleX >= x && sampleX < x + width && sampleY >= y && sampleY < y + height;
               if (isInsideWatermark) continue;
-              
+
               const sampleIdx = (sampleY * canvas.width + sampleX) * 4;
               data[idx] = originalData[sampleIdx];
               data[idx + 1] = originalData[sampleIdx + 1];
