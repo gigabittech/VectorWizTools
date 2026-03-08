@@ -7,12 +7,11 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import docxPdf from "docx-pdf";
 import { promisify } from "util";
 import { createRequire } from "module";
+
 const require = createRequire(import.meta.url);
-const { PDFParse } = require("pdf-parse");
+const pdf = require("pdf-parse");
 
 const docxToPdfAsync = promisify(docxPdf);
-
-
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -34,8 +33,7 @@ export class PdfToolsController {
             const dataBuffer = fs.readFileSync(filePath as string);
 
             // Extract text from PDF using pdf-parse
-            const parser = new PDFParse({ data: dataBuffer });
-            const pdfData = await parser.getText();
+            const pdfData = await pdf(dataBuffer);
             const text = pdfData.text;
 
             // Create a New DOCX Document
