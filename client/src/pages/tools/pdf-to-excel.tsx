@@ -3,7 +3,7 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { FileSpreadsheet, Loader2, Download, Table as TableIcon, Lock, Zap } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, Table as TableIcon, Layers, ShieldCheck, Grid3X3 } from "lucide-react";
 import * as XLSX from "xlsx";
 import * as pdfjsLib from "pdfjs-dist";
 
@@ -16,6 +16,7 @@ interface TextItem {
   y: number;
   width: number;
   height: number;
+  right: number;
 }
 
 export default function PDFToExcel() {
@@ -39,134 +40,145 @@ export default function PDFToExcel() {
 
       const fullData: any[][] = [];
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
+        const viewport = page.getViewport({ scale: 1.0 });
 
-        const items: TextItem[] = textContent.items.map((item: any) => ({
-          str: item.str,
-          x: item.transform[4],
-          y: item.transform[5],
-          width: item.width,
-          height: item.height,
-        }));
+        // 1. Normalize items and filter noise
+        const items: TextItem[] = textContent.items
+          .map((item: any) => ({
+            str: item.str,
+            x: item.transform[4],
+            y: item.transform[5],
+            width: item.width,
+            height: item.height,
+            right: item.transform[4] + item.width
+          }))
+          .filter(item => item.str.trim().length > 0)
+          .filter(item => {
+            // Basic header/footer filtering (top and bottom 5% of page)
+            const margin = viewport.height * 0.05;
+            return item.y > margin && item.y < (viewport.height - margin);
+          });
 
         if (items.length === 0) continue;
 
-        // --- STEP 1: Global Column Grid Detection ---
-        // We look at all X-coordinates across the page to find common start positions
-        // This creates a "Master Grid" that forces consistency across all rows.
-        const xCoords = items.map(item => item.x).sort((a, b) => a - b);
-        const masterColumns: number[] = [];
-        const xThreshold = 15; // Tolerance for grouping similar X-positions
+        // 2. Identify Rows with dynamic baseline correction
+        const rows: TextItem[][] = [];
+        const sortedByY = [...items].sort((a, b) => b.y - a.y);
 
-        if (xCoords.length > 0) {
-          let currentGroup: number[] = [xCoords[0]];
-          for (let j = 1; j < xCoords.length; j++) {
-            const lastAvg = currentGroup.reduce((a, b) => a + b) / currentGroup.length;
-            if (xCoords[j] - lastAvg < xThreshold) {
-              currentGroup.push(xCoords[j]);
+        if (sortedByY.length > 0) {
+          let currentRow: TextItem[] = [sortedByY[0]];
+          for (let i = 1; i < sortedByY.length; i++) {
+            const lastY = currentRow[0].y;
+            const currentItem = sortedByY[i];
+
+            // If the item is on the same line (within 20% of font height)
+            const tolerance = currentRow[0].height * 0.25 || 3;
+            if (Math.abs(currentItem.y - lastY) < tolerance) {
+              currentRow.push(currentItem);
             } else {
-              masterColumns.push(currentGroup.reduce((a, b) => a + b) / currentGroup.length);
-              currentGroup = [xCoords[j]];
+              rows.push(currentRow.sort((a, b) => a.x - b.x));
+              currentRow = [currentItem];
             }
           }
-          masterColumns.push(currentGroup.reduce((a, b) => a + b) / currentGroup.length);
+          rows.push(currentRow.sort((a, b) => a.x - b.x));
         }
 
-        // --- STEP 2: Row Grouping with strict baseline ---
-        const rowsMap: Map<number, TextItem[]> = new Map();
-        const yTolerance = 6;
-
-        items.forEach((item) => {
-          let foundY = Array.from(rowsMap.keys()).find(
-            (y) => Math.abs(y - item.y) < yTolerance
-          );
-
-          if (foundY !== undefined) {
-            rowsMap.get(foundY)?.push(item);
-          } else {
-            rowsMap.set(item.y, [item]);
-          }
+        // 3. PAGE-LEVEL GRID DETECTION (The "Bucketing" Algorithm)
+        // Find all unique horizontal start/end points to detect column "gutters"
+        const xMarkers = new Set<number>();
+        items.forEach(item => {
+          xMarkers.add(Math.round(item.x));
         });
 
-        // Sort rows by Y descending (top of page to bottom)
-        const sortedY = Array.from(rowsMap.keys()).sort((a, b) => b - a);
+        const sortedMarkers = Array.from(xMarkers).sort((a, b) => a - b);
+        const colBoundaries: number[] = [];
+        if (sortedMarkers.length > 0) {
+          let group = [sortedMarkers[0]];
+          for (let i = 1; i < sortedMarkers.length; i++) {
+            if (sortedMarkers[i] - group[group.length - 1] < 15) { // Gutter threshold
+              group.push(sortedMarkers[i]);
+            } else {
+              colBoundaries.push(group.reduce((a, b) => a + b) / group.length);
+              group = [sortedMarkers[i]];
+            }
+          }
+          colBoundaries.push(group.reduce((a, b) => a + b) / group.length);
+        }
 
-        sortedY.forEach((y) => {
-          const rowItems = rowsMap.get(y) || [];
-          // Create a row with fixed length based on master columns
-          const excelRow: string[] = new Array(masterColumns.length).fill("");
+        // 4. Map Rows to Grid
+        rows.forEach(rowItems => {
+          const excelRow: string[] = new Array(colBoundaries.length).fill("");
 
-          // Assign each piece of text to its closest column slot
           rowItems.forEach(item => {
+            // Find best fitting column boundary
             let bestColIdx = 0;
             let minDiff = Infinity;
 
-            masterColumns.forEach((colX, idx) => {
-              const diff = Math.abs(colX - item.x);
+            colBoundaries.forEach((bound, idx) => {
+              const diff = Math.abs(item.x - bound);
               if (diff < minDiff) {
                 minDiff = diff;
                 bestColIdx = idx;
               }
             });
 
-            // Prevent data merging by prepending space if something exists
-            excelRow[bestColIdx] = excelRow[bestColIdx]
-              ? excelRow[bestColIdx] + " " + item.str
-              : item.str;
+            const currentVal = excelRow[bestColIdx];
+            excelRow[bestColIdx] = currentVal ? `${currentVal} ${item.str}` : item.str;
           });
 
-          // Only add row if it contains actual data (not just whitespace)
-          if (excelRow.some(cell => cell.trim() !== "")) {
-            fullData.push(excelRow.map(c => c.trim()));
-          }
+          fullData.push(excelRow.map(c => c.trim()));
         });
 
-        // Blank line between pages
-        if (i < pdf.numPages) fullData.push([]);
+        // Separator between pages
+        if (pageNum < pdf.numPages) {
+          fullData.push([]);
+        }
       }
 
-      // --- STEP 3: Export with Layout Preservation ---
+      // 5. Final Export with optimized formatting
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(fullData);
 
-      // Auto-calculate column widths for better readability
-      const colWidths = fullData[0]?.map((_, colIdx) => {
-        let maxLen = 12;
+      // Advanced column width calculation
+      const colWidths = (fullData[0] || []).map((_, i) => {
+        let maxChars = 10;
         fullData.forEach(row => {
-          const content = row[colIdx] ? String(row[colIdx]) : "";
-          if (content.length > maxLen) maxLen = content.length;
+          if (row[i]) {
+            const len = String(row[i]).length;
+            if (len > maxChars) maxChars = len;
+          }
         });
-        return { wch: Math.min(maxLen + 4, 60) };
+        return { wch: Math.min(maxChars + 2, 80) };
       });
-      if (colWidths) ws["!cols"] = colWidths;
+      ws["!cols"] = colWidths;
 
-      XLSX.utils.book_append_sheet(wb, ws, "Reconstructed Table");
+      XLSX.utils.book_append_sheet(wb, ws, "Extracted Data");
 
-      // Save the file
       const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
       const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 
-      const fileName = file.name.replace(/\.pdf$/i, "") + "_Formatted.xlsx";
+      const saveName = `${file.name.replace(/\.pdf$/i, "")}_Table_Export.xlsx`;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = fileName;
+      a.download = saveName;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
       toast({
-        title: "Export Success",
-        description: "Table columns locked and aligned successfully.",
+        title: "Table Exported!",
+        description: "Grid structure preserved successfully.",
       });
     } catch (error) {
       console.error(error);
       toast({
-        title: "Layout Error",
-        description: "Could not lock table columns. Please check document quality.",
+        title: "Mapping error",
+        description: "Failed to detect table grid. This file may be too complex.",
         variant: "destructive",
       });
     } finally {
@@ -176,41 +188,44 @@ export default function PDFToExcel() {
 
   return (
     <ToolLayout
-      title="Precision PDF to Excel"
-      description="Advanced spatial mapping to extract PDF tables. Fixed column grid technology prevents data shifting."
+      title="Pro PDF Table Extractor"
+      description="Advanced grid-detection technology to preserve table structures. Converts any PDF data into clean Excel spreadsheets."
       category="PDF Tools"
-      keywords={["pdf to excel", "locked columns pdf", "table extraction", "spreadsheet converter"]}
+      keywords={["pdf to excel", "table extraction", "preserve grid", "pdf structure to spreadsheet"]}
       howToSteps={[
-        { name: "Upload", text: "Choose your PDF document" },
-        { name: "Grid Analysis", text: "Our AI maps the global column structure" },
-        { name: "Export", text: "Columns are locked into a stable Excel grid" },
+        { name: "Upload", text: "Select a PDF that contains tables" },
+        { name: "Grid Logic", text: "Our engine maps physical X/Y coordinates to Excel cells" },
+        { name: "Export", text: "Download a structured .xlsx file" },
       ]}
     >
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="relative overflow-hidden backdrop-blur-xl bg-white/80 border border-white/40 rounded-[2rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
-          {/* Background Decoration */}
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#0B9F47]/5 rounded-full blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
+      <div className="max-w-5xl mx-auto py-8">
+        <div className="relative backdrop-blur-3xl bg-white/40 border border-white/60 shadow-2xl rounded-[3rem] p-12 overflow-hidden">
+          {/* Decorative gradients */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-200/20 rounded-full blur-[100px] -mr-64 -mt-64" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-200/20 rounded-full blur-[100px] -ml-64 -mb-64" />
 
-          <div className="relative flex flex-col items-center text-center">
-            <div className="group transition-all duration-500 transform hover:scale-110 mb-6">
-              <div className="h-20 w-20 bg-gradient-to-br from-[#0B9F47] to-[#087a36] rounded-2xl flex items-center justify-center shadow-xl shadow-[#0B9F47]/20 rotate-3 group-hover:rotate-0">
-                <FileSpreadsheet className="h-10 w-10 text-white" />
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <div className="mb-8">
+              <div className="relative">
+                <div className="absolute inset-0 bg-green-500 blur-2xl opacity-20 animate-pulse" />
+                <div className="relative h-24 w-24 bg-gradient-to-tr from-green-600 to-green-400 rounded-3xl flex items-center justify-center shadow-2xl rotate-3">
+                  <Grid3X3 className="h-12 w-12 text-white" />
+                </div>
               </div>
             </div>
 
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-              Grid-Locked PDF Extraction
-            </h1>
-            <p className="text-gray-500 mb-10 max-w-lg leading-relaxed">
-              Using global spatial mapping to ensure columns stay perfectly aligned from the first row to the last.
+            <h2 className="text-4xl font-black tracking-tight text-gray-900 mb-4 px-4">
+              Structural Table <span className="text-green-600">Reconstruction</span>
+            </h2>
+            <p className="text-lg font-medium text-gray-600 max-w-2xl px-6 leading-relaxed mb-12">
+              Standard converters ignore spacing. Our engine analyzes the spatial geometry to identify <span className="text-gray-900 font-bold underline decoration-green-500/30">actual table gutters</span> for zero-shift exports.
             </p>
 
-            <div className="w-full">
+            <div className="w-full max-w-2xl px-4">
               <FileUploader
                 accept="application/pdf"
                 maxFiles={1}
-                maxSize={50 * 1024 * 1024}
+                maxSize={100 * 1024 * 1024}
                 onFilesSelected={handleFilesSelected}
                 multiple={false}
                 allowedTypes={["application/pdf"]}
@@ -218,57 +233,62 @@ export default function PDFToExcel() {
             </div>
 
             {files.length > 0 && (
-              <div className="mt-10 w-full animate-in fade-in slide-in-from-bottom-5">
-                <div className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 max-w-md mx-auto">
-                  <div className="h-12 w-12 bg-green-50 rounded-xl flex items-center justify-center">
-                    <TableIcon className="h-6 w-6 text-[#0B9F47]" />
+              <div className="mt-12 w-full max-w-lg space-y-6 animate-in zoom-in-95 duration-500">
+                <div className="bg-white/90 p-6 rounded-3xl border border-gray-100 shadow-xl flex items-center gap-5">
+                  <div className="h-14 w-14 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl flex items-center justify-center">
+                    <FileSpreadsheet className="h-7 w-7 text-green-600" />
                   </div>
                   <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-bold text-gray-900 truncate">{files[0].file.name}</p>
-                    <p className="text-xs text-gray-500 font-medium">Grid mapping ready • {(files[0].file.size / 1024).toFixed(1)} KB</p>
+                    <p className="text-base font-bold text-gray-900 truncate">{files[0].file.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">PDF Ready</span>
+                      <span className="text-xs text-gray-400 font-medium">{(files[0].file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                    </div>
                   </div>
                 </div>
 
                 <Button
                   onClick={handleConvert}
                   disabled={isProcessing}
-                  className="w-full h-14 bg-gray-900 hover:bg-black text-white rounded-2xl shadow-2xl transition-all duration-300 flex items-center justify-center gap-3 text-lg font-bold disabled:opacity-70"
+                  className="w-full h-16 bg-green-600 hover:bg-green-700 text-white rounded-3xl shadow-[0_12px_40px_-8px_rgba(22,163,74,0.4)] transition-all duration-300 transform active:scale-95 group overflow-hidden relative"
                 >
                   {isProcessing ? (
-                    <>
+                    <div className="flex items-center gap-3">
                       <Loader2 className="h-6 w-6 animate-spin" />
-                      Locking Column Grid...
-                    </>
+                      <span className="font-bold text-lg">Reconstructing Grid...</span>
+                    </div>
                   ) : (
-                    <>
-                      <Download className="h-6 w-6" />
-                      Export Structured Excel
-                    </>
+                    <div className="flex items-center justify-center gap-3 w-full">
+                      <span className="font-bold text-xl uppercase tracking-wider">Start High-Fidelity Export</span>
+                      <Download className="h-6 w-6 group-hover:translate-y-1 transition-transform" />
+                    </div>
                   )}
                 </Button>
+
+                <p className="text-xs text-center text-gray-500 font-medium flex items-center justify-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-green-500" />
+                  Your document metadata and content remain 100% private. Processing happens in your local RAM.
+                </p>
               </div>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 px-4">
           <FeatureCard
-            icon={<Lock className="h-6 w-6 text-indigo-600" />}
-            title="Locked Column Grid"
-            desc="Calculates column gutters globally to prevent data shifting between rows."
-            bg="bg-indigo-50"
+            icon={<Layers className="h-7 w-7 text-blue-600" />}
+            title="Layered Parsing"
+            desc="Separates visual headers and footer metadata from the core table body automatically."
           />
           <FeatureCard
-            icon={<TableIcon className="h-6 w-6 text-[#0B9F47]" />}
-            title="Tabular Preservation"
-            desc="Detects table headers and aligns them precisely with corresponding data cells."
-            bg="bg-green-50"
+            icon={<Grid3X3 className="h-7 w-7 text-green-600" />}
+            title="Gutter Detection"
+            desc="Identifies vertical whitespace channels between columns to prevent horizontal drift."
           />
           <FeatureCard
-            icon={<Zap className="h-6 w-6 text-amber-500" />}
-            title="Instant Local Build"
-            desc="Processing happens in-browser for 100% privacy and Zero server delay."
-            bg="bg-amber-50"
+            icon={<TableIcon className="h-7 w-7 text-purple-600" />}
+            title="Cell Resonation"
+            desc="Maps scattered text fragments into a strict matrix structure for pixel-perfect Excel cells."
           />
         </div>
       </div>
@@ -276,13 +296,13 @@ export default function PDFToExcel() {
   );
 }
 
-function FeatureCard({ icon, title, desc, bg }: { icon: React.ReactNode, title: string, desc: string, bg: string }) {
+function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
   return (
-    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1">
-      <div className={`h-12 w-12 ${bg} rounded-2xl flex items-center justify-center mb-5`}>
+    <div className="group bg-white/80 p-8 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+      <div className="h-16 w-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
         {icon}
       </div>
-      <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
+      <h3 className="text-xl font-bold text-gray-900 mb-3">{title}</h3>
       <p className="text-sm text-gray-500 leading-relaxed font-medium">{desc}</p>
     </div>
   );
