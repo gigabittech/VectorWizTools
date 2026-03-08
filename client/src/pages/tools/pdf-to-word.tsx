@@ -5,6 +5,9 @@ import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FileText } from "lucide-react";
+import * as pdfjsLib from "pdfjs-dist";
+import { Document, Packer, Paragraph } from "docx";
+import { saveAs } from "file-saver";
 
 export default function PDFToWord() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -25,13 +28,77 @@ export default function PDFToWord() {
       return;
     }
 
-    setStatus("processing");
-    toast({
-      title: "Server Processing Required",
-      description: "PDF to Word conversion requires server-side processing. This feature will be available soon.",
-      variant: "default",
-    });
-    setStatus("idle");
+    try {
+      setStatus("processing");
+
+      const file = files[0].file;
+      const arrayBuffer = await file.arrayBuffer();
+
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+      const paragraphs: any[] = [];
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+
+        let lastY: number | null = null;
+        let line = "";
+
+        textContent.items.forEach((item: any) => {
+          const str = item.str;
+          const y = item.transform[5];
+
+          if (lastY === null) {
+            lastY = y;
+          }
+
+          // new line detect
+          if (lastY !== null && Math.abs(lastY - y) > 5) {
+            paragraphs.push(new Paragraph(line));
+            line = str;
+            lastY = y;
+          } else {
+            line += " " + str;
+          }
+        });
+
+        if (line) {
+          paragraphs.push(new Paragraph(line));
+        }
+
+        paragraphs.push(new Paragraph(""));
+      }
+
+      const doc = new Document({
+        sections: [
+          {
+            children: paragraphs,
+          },
+        ],
+      });
+
+      const blob = await Packer.toBlob(doc);
+
+      saveAs(blob, file.name.replace(".pdf", ".docx"));
+
+      toast({
+        title: "Success",
+        description: "PDF converted to Word successfully",
+      });
+
+      setStatus("idle");
+    } catch (error) {
+      console.error(error);
+
+      toast({
+        title: "Conversion Failed",
+        description: "Unable to convert PDF",
+        variant: "destructive",
+      });
+
+      setStatus("idle");
+    }
   };
 
   return (
