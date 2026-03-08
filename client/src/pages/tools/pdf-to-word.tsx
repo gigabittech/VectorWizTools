@@ -31,56 +31,28 @@ export default function PDFToWord() {
     try {
       setStatus("processing");
 
-      const file = files[0].file;
-      const arrayBuffer = await file.arrayBuffer();
+      const formData = new FormData();
+      formData.append("file", files[0].file);
 
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-      const paragraphs: any[] = [];
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-
-        let lastY: number | null = null;
-        let line = "";
-
-        textContent.items.forEach((item: any) => {
-          const str = item.str;
-          const y = item.transform[5];
-
-          if (lastY === null) {
-            lastY = y;
-          }
-
-          // new line detect
-          if (lastY !== null && Math.abs(lastY - y) > 5) {
-            paragraphs.push(new Paragraph(line));
-            line = str;
-            lastY = y;
-          } else {
-            line += " " + str;
-          }
-        });
-
-        if (line) {
-          paragraphs.push(new Paragraph(line));
-        }
-
-        paragraphs.push(new Paragraph(""));
-      }
-
-      const doc = new Document({
-        sections: [
-          {
-            children: paragraphs,
-          },
-        ],
+      const res = await fetch("/api/tools/pdf-to-word", {
+        method: "POST",
+        body: formData,
       });
 
-      const blob = await Packer.toBlob(doc);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Conversion failed");
+      }
 
-      saveAs(blob, file.name.replace(".pdf", ".docx"));
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = files[0].file.name.replace(".pdf", ".docx");
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
 
       toast({
         title: "Success",
@@ -88,18 +60,19 @@ export default function PDFToWord() {
       });
 
       setStatus("idle");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
 
       toast({
         title: "Conversion Failed",
-        description: "Unable to convert PDF",
+        description: error.message || "Unable to convert PDF. Please ensure LibreOffice is installed on the server.",
         variant: "destructive",
       });
 
       setStatus("idle");
     }
   };
+
 
   return (
     <ToolLayout
@@ -127,11 +100,7 @@ export default function PDFToWord() {
             multiple={false}
             allowedTypes={["application/pdf"]}
           />
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-900">
-              <strong>Note:</strong> PDF to Word conversion requires server-side processing. This feature is coming soon with full document conversion support.
-            </p>
-          </div>
+
         </div>
 
         {files.length > 0 && (

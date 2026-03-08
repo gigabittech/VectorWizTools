@@ -334,7 +334,6 @@ export default function ChangeBackground() {
 
                   {processedUrl && (
                     <Button
-                      fullWidth
                       size="lg"
                       className="bg-[#09183a] hover:bg-[#1a2b4a] text-white mt-4 shadow-lg"
                       onClick={handleDownload}
