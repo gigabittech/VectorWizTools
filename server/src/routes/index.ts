@@ -8,6 +8,7 @@ import { generateAIImage } from "../services/aiImageService";
 import { comparePassword, generateToken } from "../utils/auth";
 import { protect } from "../middlewares/auth";
 import { toolController } from "../controllers/toolController";
+import { pdfToolsController, upload } from "../controllers/pdfToolsController";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // --- Auth Routes ---
@@ -265,6 +266,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tools", protect, toolController.createTool);
   app.patch("/api/tools/:id", protect, toolController.updateTool);
   app.delete("/api/tools/:id", protect, toolController.deleteTool);
+
+  // --- pdf tools route ---
+  app.post("/api/tools/pdf-to-word", upload.single("file"), pdfToolsController.convertPdfToWord);
+  app.post("/api/tools/word-to-pdf", upload.single("file"), pdfToolsController.convertWordToPdf);
 
   // --- CMS Management Routes ---
   app.patch("/api/tools/:id/seo", protect, async (req, res) => {

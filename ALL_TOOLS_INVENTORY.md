@@ -56,29 +56,30 @@
 | 38 | Vector Simplifier | `/tools/vector-simplifier` | ✅ Working |
 | 39 | Aspect Ratio Calculator | `/tools/aspect-ratio-calculator` | ✅ Working |
 | 40 | Font to Vector | `/tools/font-to-vector` | ✅ Working |
+| 41 | Change Background | `/tools/change-background` | ✅ Working |
+| 42 | Remove Background | `/tools/change-background` | ✅ Working |
+| 43 | Blur Background Tool | `/tools/change-background` | ✅ Working |
+| 44 | Make Background Transparent | `/tools/change-background` | ✅ Working |
 
 ### ⏳ Coming Soon Tools (18 tools)
 
 | # | Tool Name | Description |
 |---|-----------|-------------|
 | 1 | AI Image Generator | Create AI generated images |
-| 2 | Remove Background | Remove background from an image |
-| 3 | PDF to JPG | Convert PDF pages to JPG images |
-| 4 | Upscale Image | Increase image resolution and quality |
-| 5 | Remove Watermark | Remove watermarks from photos |
-| 6 | Image To Text | Extract text from images (OCR) |
-| 7 | Remove Objects From Photo | Erase unwanted objects |
-| 8 | Profile Photo Maker | Create professional profile photos |
-| 9 | Blur Background Tool | Blur image backgrounds |
-| 10 | Colorize Photo | Add color to black & white photos |
-| 11 | Combine Images | Merge multiple images together |
-| 12 | Make Background Transparent | Create transparent backgrounds |
-| 13 | File to SVG | Convert files to SVG vector format |
-| 14 | Translate Image | Translate text within images |
-| 15 | Postable Image | Create social media ready images |
-| 16 | Collage Maker | Create photo collages online |
-| 17 | Chart Maker | Create charts and graphs |
-| 18 | Image Splitter | Split images into pieces |
+| 2 | PDF to JPG | Convert PDF pages to JPG images |
+| 3 | Upscale Image | Increase image resolution and quality |
+| 4 | Remove Watermark | Remove watermarks from photos |
+| 5 | Image To Text | Extract text from images (OCR) |
+| 6 | Remove Objects From Photo | Erase unwanted objects |
+| 7 | Profile Photo Maker | Create professional profile photos |
+| 8 | Colorize Photo | Add color to black & white photos |
+| 9 | Combine Images | Merge multiple images together |
+| 10 | File to SVG | Convert files to SVG vector format |
+| 11 | Translate Image | Translate text within images |
+| 12 | Postable Image | Create social media ready images |
+| 13 | Collage Maker | Create photo collages online |
+| 14 | Chart Maker | Create charts and graphs |
+| 15 | Image Splitter | Split images into pieces |
 
 **Note**: Some tools like "PDF to JPG" appear in both Image Tools and PDF Tools categories with different descriptions.
 

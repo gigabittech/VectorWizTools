@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { downloadFile } from "@/lib/fileUtils";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, degrees } from "pdf-lib";
 import { RotateCw } from "lucide-react";
 
 const rotationOptions = [
@@ -48,11 +48,11 @@ export default function RotatePDF() {
       const rotationValue = Number(rotation);
 
       pages.forEach((page) => {
-        page.setRotation(page.getRotation().angle + rotationValue);
+        page.setRotation(degrees(page.getRotation().angle + rotationValue));
       });
 
       const rotatedBytes = await pdf.save();
-      const blob = new Blob([rotatedBytes], { type: 'application/pdf' });
+      const blob = new Blob([rotatedBytes as any], { type: 'application/pdf' });
       setProcessedBlob(blob);
       setStatus("success");
       toast({

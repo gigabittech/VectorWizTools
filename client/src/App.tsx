@@ -37,17 +37,16 @@ import ImageComparison from "@/pages/tools/image-comparison";
 import AddTextToImage from "@/pages/tools/add-text-to-image";
 import MakeRoundImage from "@/pages/tools/make-round-image";
 import AIImageGenerator from "@/pages/tools/ai-image-generator";
-import RemoveBackgroundTool from "@/pages/tools/remove-background";
+// Unified background tool
 import PDFToJPG from "@/pages/tools/pdf-to-jpg";
 import ImageUpscale from "@/pages/tools/image-upscale";
 import RemoveWatermark from "@/pages/tools/remove-watermark";
 import ImageToText from "@/pages/tools/image-to-text";
 import RemoveObjects from "@/pages/tools/remove-objects";
 import ProfilePhotoMaker from "@/pages/tools/profile-photo-maker";
-import BlurBackground from "@/pages/tools/blur-background";
+import ChangeBackground from "@/pages/tools/change-background";
 import ColorizePhoto from "@/pages/tools/colorize-photo";
 import CombineImages from "@/pages/tools/combine-images";
-import MakeBackgroundTransparent from "@/pages/tools/make-background-transparent";
 import FileToSVG from "@/pages/tools/file-to-svg";
 import TranslateImage from "@/pages/tools/translate-image";
 import PostableImage from "@/pages/tools/postable-image";
@@ -62,7 +61,6 @@ import ProtectPDF from "@/pages/tools/protect-pdf";
 import RotatePDF from "@/pages/tools/rotate-pdf";
 import EditPDF from "@/pages/tools/edit-pdf";
 import PDFToWord from "@/pages/tools/pdf-to-word";
-import ChangeBackground from "@/pages/tools/change-background";
 import WordToPDF from "@/pages/tools/word-to-pdf";
 import UnlockPDF from "@/pages/tools/unlock-pdf";
 import PDFToExcel from "@/pages/tools/pdf-to-excel";
@@ -168,17 +166,17 @@ const COMPONENT_MAP: Record<string, React.ComponentType> = {
   AddTextToImage,
   MakeRoundImage,
   AIImageGenerator,
-  RemoveBackgroundTool,
+  RemoveBackgroundTool: ChangeBackground,
   PDFToJPG,
   ImageUpscale,
   RemoveWatermark,
   ImageToText,
   RemoveObjects,
   ProfilePhotoMaker,
-  BlurBackground,
+  BlurBackground: ChangeBackground,
   ColorizePhoto,
   CombineImages,
-  MakeBackgroundTransparent,
+  MakeBackgroundTransparent: ChangeBackground,
   FileToSVG,
   TranslateImage,
   PostableImage,
