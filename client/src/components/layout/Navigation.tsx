@@ -29,7 +29,7 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
-              <Link href="/" className="flex items-center" data-testid="logo-link">
+              <Link href="/tools" className="flex items-center" data-testid="logo-link">
                 <img
                   src={logoImage}
                   alt="VectorWiz"
@@ -54,12 +54,11 @@ export default function Navigation() {
                   Services
                 </a>
                 <Link
-                  href="/"
-                  className={`transition-colors text-sm font-medium ${
-                    isActive("/")
-                      ? "text-[#0B9F47]"
-                      : "text-white/90 hover:text-white"
-                  }`}
+                  href="/tools"
+                  className={`transition-colors text-sm font-medium ${isActive("/tools")
+                    ? "text-[#0B9F47]"
+                    : "text-white/90 hover:text-white"
+                    }`}
                   data-testid="nav-tools"
                 >
                   Tools
@@ -100,7 +99,7 @@ export default function Navigation() {
 
       {/* Mobile Navigation Sheet with Glassmorphism */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent 
+        <SheetContent
           side="right"
           className="backdrop-blur-xl bg-[#06183C]/95 border-white/20 text-white w-[280px] sm:w-[320px]"
           data-testid="mobile-navigation-sheet"
@@ -114,7 +113,7 @@ export default function Navigation() {
               />
             </SheetTitle>
           </SheetHeader>
-          
+
           <nav className="flex flex-col space-y-2">
             <a
               href="https://vectorwiz.com/"
@@ -133,11 +132,10 @@ export default function Navigation() {
             <Link
               href="/"
               onClick={() => setMobileMenuOpen(false)}
-              className={`px-4 py-3 rounded-lg transition-all backdrop-blur-sm ${
-                isActive("/")
-                  ? "bg-[#0B9F47]/20 text-[#0B9F47] border border-[#0B9F47]/30"
-                  : "text-white/90 hover:text-white hover:bg-white/10"
-              }`}
+              className={`px-4 py-3 rounded-lg transition-all backdrop-blur-sm ${isActive("/")
+                ? "bg-[#0B9F47]/20 text-[#0B9F47] border border-[#0B9F47]/30"
+                : "text-white/90 hover:text-white hover:bg-white/10"
+                }`}
               data-testid="mobile-nav-tools"
             >
               Tools
@@ -169,7 +167,7 @@ export default function Navigation() {
 
       {/* Quote Request Dialog with Glassmorphism */}
       <Dialog open={quoteDialogOpen} onOpenChange={setQuoteDialogOpen}>
-        <DialogContent 
+        <DialogContent
           className="max-w-3xl max-h-[90vh] overflow-y-auto text-white border-white/20 backdrop-blur-xl shadow-2xl"
           style={{
             background: "linear-gradient(75deg, rgba(6, 24, 60, 0.95) 0%, rgba(32, 68, 139, 0.95) 100%)"
@@ -191,13 +189,13 @@ export default function Navigation() {
 // Export the hook for other components to use
 export function useQuoteDialog() {
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  
+
   return {
     openQuoteDialog: () => setQuoteDialogOpen(true),
     closeQuoteDialog: () => setQuoteDialogOpen(false),
     QuoteDialog: () => (
       <Dialog open={quoteDialogOpen} onOpenChange={setQuoteDialogOpen}>
-        <DialogContent 
+        <DialogContent
           className="max-w-3xl max-h-[90vh] overflow-y-auto text-white border-white/20 backdrop-blur-xl shadow-2xl"
           style={{
             background: "linear-gradient(75deg, rgba(6, 24, 60, 0.95) 0%, rgba(32, 68, 139, 0.95) 100%)"
