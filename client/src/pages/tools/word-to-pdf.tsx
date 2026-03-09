@@ -25,14 +25,51 @@ export default function WordToPDF() {
       return;
     }
 
-    setStatus("processing");
-    toast({
-      title: "Server Processing Required",
-      description: "Word to PDF conversion requires server-side processing. This feature will be available soon.",
-      variant: "default",
-    });
-    setStatus("idle");
+    try {
+      setStatus("processing");
+
+      const formData = new FormData();
+      formData.append("file", files[0].file);
+
+      const res = await fetch("/api/tools/word-to-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Conversion failed");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = files[0].file.name.replace(/\.(docx|doc)$/, ".pdf");
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Word document converted to PDF successfully",
+      });
+
+      setStatus("idle");
+    } catch (error: any) {
+      console.error(error);
+
+      toast({
+        title: "Conversion Failed",
+        description: error.message || "Unable to convert Word to PDF. Please ensure LibreOffice is installed on the server.",
+        variant: "destructive",
+      });
+
+      setStatus("idle");
+    }
   };
+
 
   return (
     <ToolLayout
@@ -60,11 +97,7 @@ export default function WordToPDF() {
             multiple={false}
             allowedTypes={["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]}
           />
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-900">
-              <strong>Note:</strong> Word to PDF conversion requires server-side processing. This feature is coming soon with full document conversion support.
-            </p>
-          </div>
+
         </div>
 
         {files.length > 0 && (
