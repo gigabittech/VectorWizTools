@@ -54,14 +54,14 @@ export default function AddTextPDF() {
       const pdfBytes = await files[0].file.arrayBuffer();
       const pdf = await PDFDocument.load(pdfBytes);
       const pageCount = pdf.getPageCount();
-      
+
       if (pageNumber < 1 || pageNumber > pageCount) {
         throw new Error(`Page number must be between 1 and ${pageCount}`);
       }
 
       const page = pdf.getPage(pageNumber - 1);
       const { width, height } = page.getSize();
-      
+
       page.drawText(text, {
         x: (width * x) / 100,
         y: height - (height * y) / 100,
@@ -70,7 +70,7 @@ export default function AddTextPDF() {
       });
 
       const newPdfBytes = await pdf.save();
-      const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([newPdfBytes.buffer as any], { type: 'application/pdf' });
       setProcessedBlob(blob);
       setStatus("success");
       toast({

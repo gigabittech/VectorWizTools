@@ -283,7 +283,7 @@ function Router() {
       <Route>
         <Layout>
           <Switch>
-            <Route path="/" component={ToolsLandingPage} />
+            <Route path="/tools" component={ToolsLandingPage} />
 
             {/* Dynamic Tool Routes */}
             {tools?.map((tool) => {

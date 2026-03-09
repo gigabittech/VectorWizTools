@@ -323,7 +323,7 @@ export default function AdvancedPDFEditor() {
         if (pageData.isDeleted) continue;
 
         const [copiedPage] = await exportPdf.copyPages(pdfDoc, [i]);
-        const { width, height } = copiedPage.getSize();
+        const { width: pdfWidth, height: pdfHeight } = copiedPage.getSize();
 
         if (pageData.rotation !== 0) {
           copiedPage.setRotation(degrees(pageData.rotation));
@@ -331,69 +331,73 @@ export default function AdvancedPDFEditor() {
 
         const canvas = fabricCanvases.current[i];
         if (canvas) {
+          // 0. White out original positions of modified text objects
           const objects = canvas.getObjects();
-          const scaleX = width / pageData.width;
-          const scaleY = height / pageData.height;
+          const scaleX = pdfWidth / pageData.width;
+          const scaleY = pdfHeight / pageData.height;
 
           for (const obj of objects) {
-            const fabricX = obj.left || 0;
-            const fabricY = obj.top || 0;
-            const scaleX = width / pageData.width;
-            const scaleY = height / pageData.height;
-            const pdfX = fabricX * scaleX;
-            // PDF Y is from bottom. Fabric Y is from top.
-            const objHeight = (obj.height || 0) * (obj.scaleY || 1);
-            const pdfY = height - ((fabricY + objHeight) * scaleY);
-
-            if (obj instanceof IText) {
-              if (obj.fill === "transparent" && !(obj as any).isModified) {
-                continue; // Don't draw original text if it wasn't edited
-              }
-
-              // If it's modified, we should white out the original position
-              if ((obj as any).isModified && (obj as any).originalPos) {
-                const orig = (obj as any).originalPos;
-                copiedPage.drawRectangle({
-                  x: orig.x * scaleX,
-                  y: height - ((orig.y + orig.h) * scaleY),
-                  width: orig.w * scaleX,
-                  height: orig.h * scaleY,
-                  color: rgb(1, 1, 1),
-                });
-              }
-
-              copiedPage.drawText(obj.text || "", {
-                x: pdfX,
-                y: pdfY + (2 * scaleY), // Minor baseline adjustment
-                size: (obj.fontSize || 12) * scaleY,
-                font,
-                color: rgb(0, 0, 0),
+            if ((obj as any).isModified && (obj as any).originalPos) {
+              const orig = (obj as any).originalPos;
+              copiedPage.drawRectangle({
+                x: orig.x * scaleX,
+                y: pdfHeight - ((orig.y + orig.h) * scaleY),
+                width: orig.w * scaleX,
+                height: orig.h * scaleY,
+                color: rgb(1, 1, 1),
               });
-            } else if (obj instanceof Rect) {
-              if ((obj as any).isCropRect) {
-                copiedPage.setCropBox(
-                  pdfX,
-                  pdfY,
-                  (obj.width || 0) * (obj.scaleX || 1) * scaleX,
-                  (obj.height || 0) * (obj.scaleY || 1) * scaleY
-                );
-              } else {
-                copiedPage.drawRectangle({
-                  x: pdfX,
-                  y: pdfY,
-                  width: (obj.width || 0) * (obj.scaleX || 1) * scaleX,
-                  height: (obj.height || 0) * (obj.scaleY || 1) * scaleY,
-                  color: rgb(1, 1, 1),
-                });
-              }
             }
           }
+
+          // 1. Hide background image to capture ONLY annotations
+          const bg = canvas.backgroundImage;
+          canvas.backgroundImage = undefined;
+
+          // 2. Capture at original resolution (the scale we rendered at, which is scale: 2)
+          // We need to temporarily reset zoom to 1 to get full resolution capture
+          const originalZoom = canvas.getZoom();
+          canvas.setZoom(1);
+          canvas.setDimensions({ width: pageData.width, height: pageData.height });
+
+          const annotationsDataUrl = canvas.toDataURL({
+            format: "png",
+            multiplier: 1,
+          });
+
+          // 3. Restore canvas state
+          canvas.setZoom(originalZoom);
+          canvas.setDimensions({
+            width: pageData.width * originalZoom,
+            height: pageData.height * originalZoom
+          });
+          canvas.backgroundImage = bg;
+          canvas.renderAll();
+
+          // 4. Embed and Draw Overlay
+          const base64Data = annotationsDataUrl.split(',')[1];
+          const binaryData = atob(base64Data);
+          const bytes = new Uint8Array(binaryData.length);
+          for (let j = 0; j < binaryData.length; j++) {
+            bytes[j] = binaryData.charCodeAt(j);
+          }
+
+          const annotationImage = await exportPdf.embedPng(bytes);
+
+          // Draw the overlay. PDF-lib (0,0) is bottom-left.
+          // Since our PNG represents the whole page, drawing it at (0,0) with page size 
+          // will align it perfectly.
+          copiedPage.drawImage(annotationImage, {
+            x: 0,
+            y: 0,
+            width: pdfWidth,
+            height: pdfHeight,
+          });
         }
 
         if (watermark) {
           copiedPage.drawText(watermark.text, {
-            x: width / 6,
-            y: height / 3,
+            x: pdfWidth / 6,
+            y: pdfHeight / 3,
             size: 60,
             font,
             color: rgb(0.7, 0.7, 0.7),
@@ -405,7 +409,7 @@ export default function AdvancedPDFEditor() {
       }
 
       const pdfBytes = await exportPdf.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const blob = new Blob([pdfBytes.buffer as any], { type: "application/pdf" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = `edited_${file.file.name}`;
