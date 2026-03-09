@@ -3,19 +3,48 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Presentation } from "lucide-react";
+import { Presentation, Loader2, Download } from "lucide-react";
+import { convertPdfToPptx } from "@/lib/pdf-to-pptx";
+import { saveAs } from "file-saver";
 
 export default function PDFToPowerpoint() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertedFile, setConvertedFile] = useState<Blob | null>(null);
   const { toast } = useToast();
 
   const handleFilesSelected = (uploadedFiles: UploadedFile[]) => {
     setFiles(uploadedFiles);
-    toast({
-      title: "Server Processing Required",
-      description: "PDF to Powerpoint conversion requires server-side processing. This feature is coming soon.",
-      variant: "default",
-    });
+    setConvertedFile(null);
+  };
+
+  const handleConvert = async () => {
+    if (files.length === 0) return;
+
+    setIsConverting(true);
+    try {
+      const resultBlob = await convertPdfToPptx(files[0].file);
+      setConvertedFile(resultBlob);
+      toast({
+        title: "Conversion Successful",
+        description: "Your PowerPoint file is ready for download.",
+      });
+    } catch (error: any) {
+      console.error("Conversion error:", error);
+      toast({
+        title: "Conversion Failed",
+        description: error.message || "An error occurred during conversion.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!convertedFile) return;
+    const fileName = files[0].file.name.replace(/\.pdf$/i, "") + ".pptx";
+    saveAs(convertedFile, fileName);
   };
 
   return (
@@ -43,15 +72,47 @@ export default function PDFToPowerpoint() {
             onFilesSelected={handleFilesSelected}
             multiple={false}
             allowedTypes={["application/pdf"]}
+            disabled={isConverting}
           />
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-900">
-              <strong>Note:</strong> PDF to Powerpoint conversion requires server-side processing. This feature is coming soon.
-            </p>
+
+          <div className="mt-6 flex flex-col sm:flex-row gap-4">
+            <Button
+              onClick={handleConvert}
+              disabled={files.length === 0 || isConverting || !!convertedFile}
+              className="flex-1 bg-[#0B9F47] hover:bg-[#098a3e] text-white"
+            >
+              {isConverting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Converting...
+                </>
+              ) : (
+                "Convert to Powerpoint"
+              )}
+            </Button>
+
+            {convertedFile && (
+              <Button
+                onClick={handleDownload}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download PPTX
+              </Button>
+            )}
           </div>
+
+          {!convertedFile && !isConverting && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-900">
+                <strong>Note:</strong> Conversion is performed entirely in your browser. Your files are never uploaded to our server.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </ToolLayout>
   );
 }
+
 

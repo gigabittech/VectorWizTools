@@ -1,5 +1,16 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// When deployed at a subpath (e.g., abc.com/tools), BASE_PATH = "/tools"
+// so all /api calls are correctly sent to abc.com/tools/api/...
+export const BASE_PATH = (import.meta.env.VITE_BASE_PATH || "").replace(/\/$/, "");
+
+function prefixUrl(url: string): string {
+  if (BASE_PATH && url.startsWith("/api")) {
+    return `${BASE_PATH}${url}`;
+  }
+  return url;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let errorMessage = res.statusText;
@@ -23,7 +34,7 @@ async function throwIfResNotOk(res: Response) {
       // If reading fails, use status text
       errorMessage = res.statusText;
     }
-    
+
     const error: any = new Error(errorMessage);
     error.status = res.status;
     error.response = errorMessage;
@@ -36,7 +47,7 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const res = await fetch(prefixUrl(url), {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -52,18 +63,19 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
+    async ({ queryKey }) => {
+      const urlStr = queryKey.join("/") as string;
+      const res = await fetch(prefixUrl(urlStr), {
+        credentials: "include",
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
 
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
+      await throwIfResNotOk(res);
+      return await res.json();
+    };
 
 export const queryClient = new QueryClient({
   defaultOptions: {

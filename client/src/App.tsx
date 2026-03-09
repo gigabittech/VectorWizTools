@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, BASE_PATH } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -133,7 +133,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   if (!user) {
-    setTimeout(() => setLocation("/login"), 0);
+    setTimeout(() => setLocation(`${BASE_PATH}/login`), 0);
     return null;
   }
 
@@ -266,7 +266,7 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/login" component={LoginPage} />
+      <Route path={`${BASE_PATH}/login`} component={LoginPage} />
 
       {/* Admin Routes (Uses separate AdminLayout internally) */}
       <Route path="/tools/admin/dashboard">
@@ -283,7 +283,7 @@ function Router() {
       <Route>
         <Layout>
           <Switch>
-            <Route path="/tools" component={ToolsLandingPage} />
+            <Route path="/" component={ToolsLandingPage} />
 
             {/* Dynamic Tool Routes */}
             {tools?.map((tool) => {
