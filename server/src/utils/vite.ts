@@ -84,14 +84,28 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "..", "..", "..", "dist", "public");
+  const distPath = path.resolve(process.cwd(), "dist", "public");
 
   if (!fs.existsSync(distPath)) {
+    // Fallback for different deployment structures
+    const fallbackPath = path.resolve(import.meta.dirname, "..", "..", "..", "dist", "public");
+    const bundledPath = path.resolve(import.meta.dirname, "public");
+
+    if (fs.existsSync(fallbackPath)) {
+      return doServe(app, fallbackPath);
+    } else if (fs.existsSync(bundledPath)) {
+      return doServe(app, bundledPath);
+    }
+
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
   }
 
+  doServe(app, distPath);
+}
+
+function doServe(app: Express, distPath: string) {
   // Serve static files (excluding API routes)
   const staticMiddleware = express.static(distPath);
   app.use((req, res, next) => {
