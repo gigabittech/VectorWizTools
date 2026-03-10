@@ -54,10 +54,10 @@ export default function AddPageNumbersPDF() {
         const { width, height } = page.getSize();
         const pageNumber = i + 1;
         const text = `${pageNumber}`;
-        
+
         let x = 0;
         let y = 0;
-        
+
         switch (position) {
           case "bottom-center":
             x = width / 2;
@@ -94,7 +94,7 @@ export default function AddPageNumbersPDF() {
       }
 
       const newPdfBytes = await pdf.save();
-      const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([newPdfBytes as any], { type: 'application/pdf' });
       setProcessedBlob(blob);
       setStatus("success");
       toast({
