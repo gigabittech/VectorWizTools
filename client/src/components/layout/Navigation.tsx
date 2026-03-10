@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { queryClient, BASE_PATH } from "../../lib/queryClient";
 import { FileText, Menu as MenuIcon, X } from "lucide-react";
 import { useState } from "react";
 import QuoteRequestForm from "../QuoteRequestForm";
@@ -14,10 +15,11 @@ export default function Navigation() {
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
 
   const isActive = (href: string) => {
-    if (href === "/") {
-      return location === "/";
+    const normalizedHref = href === "/" ? (BASE_PATH || "/") : href;
+    if (normalizedHref === "/" || normalizedHref === BASE_PATH) {
+      return location === "/" || location === BASE_PATH;
     }
-    return location === href || location.startsWith(href);
+    return location === normalizedHref || location.startsWith(normalizedHref);
   };
 
   return (
@@ -29,7 +31,7 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
-              <Link href="/tools" className="flex items-center" data-testid="logo-link">
+              <Link href={BASE_PATH || "/"} className="flex items-center" data-testid="logo-link">
                 <img
                   src={logoImage}
                   alt="VectorWiz"
@@ -54,8 +56,8 @@ export default function Navigation() {
                   Services
                 </a>
                 <Link
-                  href="/tools"
-                  className={`transition-colors text-sm font-medium ${isActive("/tools")
+                  href={BASE_PATH || "/"}
+                  className={`transition-colors text-sm font-medium ${isActive("/")
                     ? "text-[#0B9F47]"
                     : "text-white/90 hover:text-white"
                     }`}
@@ -130,7 +132,7 @@ export default function Navigation() {
               Services
             </a>
             <Link
-              href="/"
+              href={BASE_PATH || "/"}
               onClick={() => setMobileMenuOpen(false)}
               className={`px-4 py-3 rounded-lg transition-all backdrop-blur-sm ${isActive("/")
                 ? "bg-[#0B9F47]/20 text-[#0B9F47] border border-[#0B9F47]/30"

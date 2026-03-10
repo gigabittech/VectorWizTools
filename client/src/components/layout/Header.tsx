@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { BASE_PATH } from "../../lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Wrench, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -20,7 +21,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3" data-testid="header-logo">
+          <Link href={BASE_PATH || "/"} className="flex items-center space-x-3" data-testid="header-logo">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <Wrench className="h-5 w-5 text-white" />
             </div>
@@ -53,8 +54,8 @@ export default function Header() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-blue-600 text-blue-600 hover:bg-blue-50"
                 data-testid="get-quote-button"
               >
@@ -66,7 +67,7 @@ export default function Header() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Button 
+              <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white"
                 data-testid="order-now-button"
               >
@@ -109,8 +110,8 @@ export default function Header() {
                   rel="noopener noreferrer"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
                     data-testid="mobile-get-quote-button"
                   >
@@ -123,7 +124,7 @@ export default function Header() {
                   rel="noopener noreferrer"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Button 
+                  <Button
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                     data-testid="mobile-order-now-button"
                   >

@@ -14,6 +14,9 @@ const pdf = require("pdf-parse");
 
 const docxToPdfAsync = promisify(docxPdf);
 
+const libre = require("libreoffice-convert");
+const libreConvertAsync = promisify(libre.convert);
+
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -23,48 +26,63 @@ if (!fs.existsSync(uploadDir)) {
 export const upload = multer({ dest: "uploads/" });
 
 export class PdfToolsController {
-    async convertPdfToWord(req: any, res: any) {
+    async convertPdfToPptx(req: any, res: any) {
         let filePath: string | undefined;
         try {
-            if (!req.file) {
+            if (!req.file || !req.file.path) {
                 return res.status(400).json({ error: "No file uploaded" });
             }
 
             filePath = req.file.path;
             const dataBuffer = fs.readFileSync(filePath as string);
 
-            // Extract text from PDF using pdf-parse
-            const pdfData = await pdf(dataBuffer);
-            const text = pdfData.text;
+            // Convert PDF to PPTX using LibreOffice for superior structure and clear text
+            const pptxBuffer = await libreConvertAsync(dataBuffer, ".pptx", undefined);
 
-            // Create a New DOCX Document
-            const doc = new Document({
-                sections: [
-                    {
-                        properties: {},
-                        children: text.split('\n').map((line: string) =>
-                            new Paragraph({
-                                children: [new TextRun(line)],
-                            })
-                        ),
-                    },
-                ],
-            });
-
-            // Generate buffer
-            const b64string = await Packer.toBase64String(doc);
-            const buffer = Buffer.from(b64string, 'base64');
-
-            res.setHeader(
-                "Content-Type",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            );
+            res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=converted.docx`
+                `attachment; filename=converted_from_pdf.pptx`
             );
 
-            res.send(buffer);
+            res.send(pptxBuffer);
+        } catch (error: any) {
+            console.error("PDF to PPTX conversion error:", error);
+            res.status(500).json({
+                error: "Conversion failed",
+                message: error.message,
+            });
+        } finally {
+            if (filePath && fs.existsSync(filePath)) {
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (e) {
+                    console.error("Failed to delete temp file:", e);
+                }
+            }
+        }
+    }
+
+    async convertPdfToWord(req: any, res: any) {
+        let filePath: string | undefined;
+        try {
+            if (!req.file || !req.file.path) {
+                return res.status(400).json({ error: "No file uploaded" });
+            }
+
+            filePath = req.file.path;
+            const dataBuffer = fs.readFileSync(filePath as string);
+
+            // Convert PDF to DOCX using LibreOffice for better results
+            const wordBuffer = await libreConvertAsync(dataBuffer, ".docx", undefined);
+
+            res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename=converted_from_pdf.docx`
+            );
+
+            res.send(wordBuffer);
         } catch (error: any) {
             console.error("PDF to Word conversion error:", error);
             res.status(500).json({
@@ -75,8 +93,8 @@ export class PdfToolsController {
             if (filePath && fs.existsSync(filePath)) {
                 try {
                     fs.unlinkSync(filePath);
-                } catch (unlinkError) {
-                    console.error("Failed to delete temp file:", unlinkError);
+                } catch (e) {
+                    console.error("Failed to delete temp file:", e);
                 }
             }
         }
@@ -84,24 +102,21 @@ export class PdfToolsController {
 
     async convertWordToPdf(req: any, res: any) {
         let filePath: string | undefined;
-        let outputFilePath: string | undefined;
         try {
-            if (!req.file) {
+            if (!req.file || !req.file.path) {
                 return res.status(400).json({ error: "No file uploaded" });
             }
 
             filePath = req.file.path;
-            outputFilePath = path.join(uploadDir, `${Date.now()}_converted.pdf`);
+            const dataBuffer = fs.readFileSync(filePath as string);
 
-            // Convert Word to PDF using docx-pdf
-            await docxToPdfAsync(filePath, outputFilePath);
-
-            const pdfBuffer = fs.readFileSync(outputFilePath);
+            // Convert using libreoffice-convert for much better results
+            const pdfBuffer = await libreConvertAsync(dataBuffer, ".pdf", undefined);
 
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=converted.pdf`
+                `attachment; filename=converted_from_word.pdf`
             );
 
             res.send(pdfBuffer);
@@ -112,16 +127,50 @@ export class PdfToolsController {
                 message: error.message,
             });
         } finally {
-            // Clean up files
-            [filePath, outputFilePath].forEach(p => {
-                if (p && fs.existsSync(p)) {
-                    try {
-                        fs.unlinkSync(p);
-                    } catch (e) {
-                        console.error("Failed to delete temp file:", e);
-                    }
+            if (filePath && fs.existsSync(filePath)) {
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (e) {
+                    console.error("Failed to delete temp file:", e);
                 }
+            }
+        }
+    }
+
+    async convertPptxToPdf(req: any, res: any) {
+        let filePath: string | undefined;
+        try {
+            if (!req.file || !req.file.path) {
+                return res.status(400).json({ error: "No file uploaded" });
+            }
+
+            filePath = req.file.path;
+            const dataBuffer = fs.readFileSync(filePath as string);
+
+            // Convert PPTX to PDF using LibreOffice
+            const pdfBuffer = await libreConvertAsync(dataBuffer, ".pdf", undefined);
+
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename=converted_from_pptx.pdf`
+            );
+
+            res.send(pdfBuffer);
+        } catch (error: any) {
+            console.error("PPTX to PDF conversion error:", error);
+            res.status(500).json({
+                error: "Conversion failed",
+                message: error.message,
             });
+        } finally {
+            if (filePath && fs.existsSync(filePath)) {
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (e) {
+                    console.error("Failed to delete temp file:", e);
+                }
+            }
         }
     }
 
