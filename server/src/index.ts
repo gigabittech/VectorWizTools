@@ -6,10 +6,23 @@ import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./utils/vite";
 
+// Support subpath deployment (e.g., BASE_PATH=/tools for abc.com/tools)
+const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// If deployed at a subpath, trust the proxy and re-map /BASE_PATH/... -> /...
+if (BASE_PATH) {
+    app.use((req, _res, next) => {
+        if (req.path.startsWith(BASE_PATH + "/")) {
+            req.url = req.url.slice(BASE_PATH.length);
+        }
+        next();
+    });
+}
 
 app.use((req, res, next) => {
     const start = Date.now();
