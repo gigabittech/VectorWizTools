@@ -2,7 +2,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 // When deployed at a subpath (e.g., abc.com/tools), BASE_PATH = "/tools"
 // so all /api calls are correctly sent to abc.com/tools/api/...
-export const BASE_PATH = (import.meta.env.VITE_BASE_PATH || "").replace(/\/$/, "");
+export const BASE_PATH = (import.meta.env.VITE_BASE_PATH || "/").replace(/\/$/, "");
 
 function prefixUrl(url: string): string {
   if (BASE_PATH && url.startsWith("/api")) {
