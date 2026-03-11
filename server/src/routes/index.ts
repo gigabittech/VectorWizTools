@@ -273,6 +273,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tools/word-to-pdf", upload.single("file"), pdfToolsController.convertWordToPdf);
   app.post("/api/tools/pptx-to-pdf", upload.single("file"), pdfToolsController.convertPptxToPdf);
   app.post("/api/tools/remove-pdf-watermark", upload.single("file"), pdfToolsController.removeWatermark);
+  app.post("/api/tools/mobi-to-pdf", upload.single("file"), pdfToolsController.convertMobiToPdf);
+  app.post("/api/tools/pdf-to-mobi", upload.single("file"), pdfToolsController.convertPdfToMobi);
 
   // --- CMS Management Routes ---
   app.patch("/api/tools/:id/seo", protect, async (req, res) => {
