@@ -270,6 +270,140 @@ export class CloudConvertController {
             message: "Converting images to VSDX is not supported. Visio files can be converted to images, but not the other way around."
         });
     }
+
+    convertOutlookToPdf = async (req: Request, res: Response) => {
+        let filePath: string | undefined;
+        try {
+            if (!req.file || !req.file.path) {
+                return res.status(400).json({ error: "No file uploaded" });
+            }
+
+            filePath = req.file.path;
+            const originalName = req.file.originalname;
+            const inputFormat = originalName.split('.').pop()?.toLowerCase() || 'msg';
+
+            console.log(`Starting Outlook conversion: ${originalName} to PDF`);
+
+            if (!process.env.CLOUDCONVERT_API_KEY) {
+                throw new Error("CloudConvert API Key is missing.");
+            }
+
+            const cc = this.getClient();
+            const job = await cc.jobs.create({
+                tasks: {
+                    "import-my-file": { operation: "import/upload" },
+                    "convert-my-file": {
+                        operation: "convert",
+                        input: "import-my-file",
+                        input_format: inputFormat as any,
+                        output_format: "pdf",
+                    },
+                    "export-my-file": { operation: "export/url", input: "convert-my-file" }
+                }
+            });
+
+            const uploadTask = job.tasks.find(task => task.name === "import-my-file");
+            if (!uploadTask) throw new Error("Import task not found");
+
+            await cc.tasks.upload(uploadTask, fs.createReadStream(filePath), originalName);
+            const finishedJob = await cc.jobs.wait(job.id);
+
+            if (finishedJob.status === 'error') {
+                const errorTask = finishedJob.tasks.find(t => t.status === 'error');
+                throw new Error(errorTask?.message || "CloudConvert Job Failed");
+            }
+
+            const exportTask = finishedJob.tasks.find(task => task.name === "export-my-file");
+            const fileUrl = exportTask?.result?.files?.[0]?.url;
+
+            if (fileUrl) {
+                const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
+                res.setHeader("Content-Type", "application/pdf");
+                res.setHeader("Content-Disposition", `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.pdf`);
+                return downloadResponse.data.pipe(res);
+            } else {
+                throw new Error("No output file URL found");
+            }
+        } catch (error: any) {
+            console.error("Outlook to PDF error:", error);
+            if (!res.headersSent) {
+                res.status(500).json({ error: "Conversion failed", message: error.message });
+            }
+        } finally {
+            if (filePath && fs.existsSync(filePath)) {
+                try { fs.unlinkSync(filePath); } catch (e) {}
+            }
+        }
+    }
+
+    convertImage = async (req: Request, res: Response) => {
+        let filePath: string | undefined;
+        try {
+            if (!req.file || !req.file.path) {
+                return res.status(400).json({ error: "No file uploaded" });
+            }
+
+            filePath = req.file.path;
+            const originalName = req.file.originalname;
+            const outputFormat = req.body.format || "jpg";
+            const quality = req.body.quality;
+            const inputFormat = originalName.split('.').pop()?.toLowerCase() || 'tiff';
+
+            console.log(`Starting Image conversion: ${originalName} (${inputFormat}) to ${outputFormat} with quality ${quality || 'default'}`);
+
+            if (!process.env.CLOUDCONVERT_API_KEY) {
+                throw new Error("CloudConvert API Key is missing.");
+            }
+
+            const cc = this.getClient();
+            const job = await cc.jobs.create({
+                tasks: {
+                    "import-my-file": { operation: "import/upload" },
+                    "convert-my-file": {
+                        operation: "convert",
+                        input: "import-my-file",
+                        input_format: inputFormat as any,
+                        output_format: outputFormat,
+                        ...(quality ? { quality: parseInt(quality) } : {})
+                    },
+                    "export-my-file": { operation: "export/url", input: "convert-my-file" }
+                }
+            });
+
+            const uploadTask = job.tasks.find(task => task.name === "import-my-file");
+            if (!uploadTask) throw new Error("Import task not found");
+
+            await cc.tasks.upload(uploadTask, fs.createReadStream(filePath), originalName);
+            const finishedJob = await cc.jobs.wait(job.id);
+
+            if (finishedJob.status === 'error') {
+                const errorTask = finishedJob.tasks.find(t => t.status === 'error');
+                throw new Error(errorTask?.message || "CloudConvert Job Failed");
+            }
+
+            const exportTask = finishedJob.tasks.find(task => task.name === "export-my-file");
+            const fileUrl = exportTask?.result?.files?.[0]?.url;
+
+            if (fileUrl) {
+                const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
+                const mimeType = outputFormat === 'pdf' ? 'application/pdf' : `image/${outputFormat === 'jpg' ? 'jpeg' : outputFormat}`;
+                res.setHeader("Content-Type", mimeType);
+                res.setHeader("Content-Disposition", `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
+                return downloadResponse.data.pipe(res);
+            } else {
+                throw new Error("No output file URL found");
+            }
+        } catch (error: any) {
+            console.error("Image conversion error:", error);
+            if (!res.headersSent) {
+                res.status(500).json({ error: "Conversion failed", message: error.message });
+            }
+        } finally {
+            if (filePath && fs.existsSync(filePath)) {
+                try { fs.unlinkSync(filePath); } catch (e) {}
+            }
+        }
+    }
 }
 
 export const cloudConvertController = new CloudConvertController();

@@ -284,6 +284,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tools/pdf-to-mobi", upload.single("file"), cloudConvertController.convertPdfToMobi);
   app.post("/api/tools/azw3-to-pdf", upload.single("file"), cloudConvertController.convertAzw3ToPdf);
   app.post("/api/tools/pdf-to-azw3", upload.single("file"), cloudConvertController.convertPdfToAzw3);
+  app.post("/api/tools/outlook-to-pdf", upload.single("file"), cloudConvertController.convertOutlookToPdf);
+  app.post("/api/tools/tiff-to-jpg", upload.single("file"), cloudConvertController.convertImage);
 
   // --- CMS Management Routes ---
   app.patch("/api/tools/:id/seo", protect, async (req, res) => {
