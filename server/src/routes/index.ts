@@ -9,6 +9,7 @@ import { comparePassword, generateToken } from "../utils/auth";
 import { protect } from "../middlewares/auth";
 import { toolController } from "../controllers/toolController";
 import { pdfToolsController, upload } from "../controllers/pdfToolsController";
+import { cloudConvertController } from "../controllers/cloudConvertController";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // --- Auth Routes ---
@@ -273,8 +274,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tools/word-to-pdf", upload.single("file"), pdfToolsController.convertWordToPdf);
   app.post("/api/tools/pptx-to-pdf", upload.single("file"), pdfToolsController.convertPptxToPdf);
   app.post("/api/tools/remove-pdf-watermark", upload.single("file"), pdfToolsController.removeWatermark);
-  app.post("/api/tools/mobi-to-pdf", upload.single("file"), pdfToolsController.convertMobiToPdf);
-  app.post("/api/tools/pdf-to-mobi", upload.single("file"), pdfToolsController.convertPdfToMobi);
+
+  // --- CloudConvert routes ---
+  app.post("/api/tools/vsdx-to-jpg", upload.single("file"), cloudConvertController.convertVsdxToJpg);
+  app.post("/api/tools/jpg-to-vsdx", upload.single("file"), cloudConvertController.convertJpgToVsdx);
+  app.post("/api/tools/epub-to-pdf", upload.single("file"), cloudConvertController.convertEpubToPdf);
+  app.post("/api/tools/pdf-to-epub", upload.single("file"), cloudConvertController.convertPdfToEpub);
+  app.post("/api/tools/mobi-to-pdf", upload.single("file"), cloudConvertController.convertMobiToPdf);
+  app.post("/api/tools/pdf-to-mobi", upload.single("file"), cloudConvertController.convertPdfToMobi);
+  app.post("/api/tools/azw3-to-pdf", upload.single("file"), cloudConvertController.convertAzw3ToPdf);
+  app.post("/api/tools/pdf-to-azw3", upload.single("file"), cloudConvertController.convertPdfToAzw3);
 
   // --- CMS Management Routes ---
   app.patch("/api/tools/:id/seo", protect, async (req, res) => {
