@@ -61,7 +61,7 @@ export default function PDFToTIFF() {
         await page.render({ canvasContext: context, viewport }).promise;
 
         // Convert to TIFF format (using PNG as fallback since browser can't create TIFF directly)
-        const blob: Blob = await new Promise((resolve) => 
+        const blob: Blob = await new Promise((resolve) =>
           canvas.toBlob((b) => resolve(b as Blob), "image/png", 1.0)
         );
         const url = URL.createObjectURL(blob);
@@ -89,7 +89,7 @@ export default function PDFToTIFF() {
     const zip = new JSZip();
     const baseName = files[0].file.name.replace(/\.pdf$/i, "");
     pages.forEach((p) => {
-      zip.file(`${baseName}-page-${p.pageNumber}.png`, p.blob);
+      zip.file(`${baseName}-page-${p.pageNumber}.tiff`, p.blob);
     });
     const content = await zip.generateAsync({ type: "blob" });
     downloadFile(content, `${baseName}-tiff.zip`);

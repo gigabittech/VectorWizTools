@@ -262,8 +262,6 @@ function Router() {
     );
   }
 
-  console.log(tools, "heres are tools");
-
   return (
     <Switch>
       <Route path={`${BASE_PATH}/login`} component={LoginPage} />
@@ -283,7 +281,8 @@ function Router() {
       <Route>
         <Layout>
           <Switch>
-            <Route path="/" component={ToolsLandingPage} />
+            {/* <Route path={`${BASE_PATH}`} component={ToolsLandingPage} /> */}
+            <Route path="/tools" component={ToolsLandingPage} />
 
             {/* Dynamic Tool Routes */}
             {tools?.map((tool) => {

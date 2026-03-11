@@ -9,10 +9,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 /**
  * Client-side PDF to PPTX conversion.
- * Logic: Renders high-res page graphics as a background and overlays searchable/editable text.
+ *
+ * Strategy: Each PDF page is rendered as a high-resolution JPEG image
+ * and placed as a full-slide background. No text layer is overlaid,
+ * which eliminates all text overlap / jumbling issues entirely.
+ *
+ * The resulting slides are pixel-perfect visual copies of the PDF pages.
  */
 export async function convertPdfToPptx(file: File): Promise<Blob> {
     const arrayBuffer = await file.arrayBuffer();
+
     const loadingTask = pdfjs.getDocument({
         data: arrayBuffer,
         useSystemFonts: true,
@@ -21,119 +27,73 @@ export async function convertPdfToPptx(file: File): Promise<Blob> {
 
     const pptx = new pptxgen();
 
-    // Set the presentation layout based on the first page
-    const firstPage = await pdf.getPage(1);
-    const firstViewport = firstPage.getViewport({ scale: 1.0 });
-    const slideWidthIn = firstViewport.width / 72;
-    const slideHeightIn = firstViewport.height / 72;
-
-    pptx.defineLayout({
-        name: "PDF_ADAPTIVE",
-        width: slideWidthIn,
-        height: slideHeightIn,
-    });
-    pptx.layout = "PDF_ADAPTIVE";
+    // ── Pass 1: collect all pages and find max dimensions ──
+    let maxW = 0;
+    let maxH = 0;
+    const pages: pdfjs.PDFPageProxy[] = [];
 
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const viewportBase = page.getViewport({ scale: 1.0 });
+        const vp = page.getViewport({ scale: 1.0 });
+        maxW = Math.max(maxW, vp.width);
+        maxH = Math.max(maxH, vp.height);
+        pages.push(page);
+    }
 
-        // High-res (4x) render for crystalline graphics
-        const renderScale = 4.0;
-        const viewportRender = page.getViewport({ scale: renderScale });
+    // Convert points to inches  (1 pt = 1/72 inch)
+    const slideW = maxW / 72;
+    const slideH = maxH / 72;
+
+    pptx.defineLayout({ name: "PDF_LAYOUT", width: slideW, height: slideH });
+    pptx.layout = "PDF_LAYOUT";
+
+    // ── Pass 2: render each page and add as a slide ──
+    for (const page of pages) {
+        const vpBase = page.getViewport({ scale: 1.0 });
+
+        // Center smaller pages on the slide
+        const offsetX = (maxW - vpBase.width) / 2 / 72;
+        const offsetY = (maxH - vpBase.height) / 2 / 72;
+        const pageW = vpBase.width / 72;
+        const pageH = vpBase.height / 72;
+
+        // Render at 3x for sharp output
+        const SCALE = 3;
+        const vpRender = page.getViewport({ scale: SCALE });
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d")!;
+        canvas.width = vpRender.width;
+        canvas.height = vpRender.height;
+
+        // White background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        await page.render({
+            canvasContext: ctx,
+            viewport: vpRender,
+            intent: "print",
+        }).promise;
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
         const slide = pptx.addSlide();
+        slide.background = { color: "FFFFFF" };
 
-        // 1. Render Background Graphics/Images
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        if (context) {
-            canvas.width = viewportRender.width;
-            canvas.height = viewportRender.height;
-
-            // Note: We render with high quality settings
-            await page.render({
-                canvasContext: context,
-                viewport: viewportRender,
-                intent: "display",
-            }).promise;
-
-            const imageUrl = canvas.toDataURL("image/png");
-
-            slide.addImage({
-                data: imageUrl,
-                x: 0,
-                y: 0,
-                w: slideWidthIn,
-                h: slideHeightIn,
-            });
-        }
-
-        // 2. Extract and Overlay Structured Text
-        const textContent = await page.getTextContent();
-        const textItems = textContent.items as any[];
-
-        // Group text items by line (using Y-coordinate) to improve structure
-        const lines: Record<number, any[]> = {};
-        textItems.forEach((item) => {
-            if (!item.str || !item.str.trim()) return;
-
-            const translateY = Math.round(item.transform[5]);
-            if (!lines[translateY]) lines[translateY] = [];
-            lines[translateY].push(item);
+        slide.addImage({
+            data: dataUrl,
+            x: offsetX,
+            y: offsetY,
+            w: pageW,
+            h: pageH,
         });
 
-        Object.keys(lines).sort((a, b) => Number(b) - Number(a)).forEach((yCoord) => {
-            const lineItems = lines[Number(yCoord)].sort((a, b) => a.transform[4] - b.transform[4]);
-
-            // Combine adjacent fragments on the same line if they are close
-            let currentText = "";
-            let startX = lineItems[0].transform[4];
-            let fontSize = Math.abs(lineItems[0].transform[0]);
-
-            lineItems.forEach((item, idx) => {
-                currentText += item.str;
-
-                // If it's the last item or there's a big gap, add the text block
-                const nextItem = lineItems[idx + 1];
-                const isLast = !nextItem;
-                const hasGap = nextItem && (nextItem.transform[4] - (item.transform[4] + (item.width || 0)) > 5);
-
-                if (isLast || hasGap) {
-                    const pdfX = startX;
-                    const pdfY = viewportBase.height - Number(yCoord);
-
-                    // Positioning in absolute inches for maximum precision
-                    const xIn = (pdfX / 72);
-                    const yIn = ((pdfY - fontSize) / 72);
-
-                    slide.addText(currentText, {
-                        x: xIn,
-                        y: yIn,
-                        w: "auto",
-                        h: "auto",
-                        fontSize: fontSize,
-                        color: "000000",
-                        valign: "top",
-                        align: "left",
-                        margin: 0,
-                        transparent: true, // Key for clarity; text doesn't have a white box
-                    } as any);
-
-                    if (nextItem) {
-                        currentText = "";
-                        startX = nextItem.transform[4];
-                        fontSize = Math.abs(nextItem.transform[0]);
-                    }
-                }
-            });
-        });
-
-        // Cleanup
+        // Free canvas memory immediately
         canvas.width = 0;
         canvas.height = 0;
     }
 
-    const out = await pptx.write({ outputType: "blob" });
-    return out as Blob;
+    const blob = await pptx.write({ outputType: "blob" });
+    return blob as Blob;
 }
