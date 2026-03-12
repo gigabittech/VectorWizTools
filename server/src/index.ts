@@ -16,7 +16,15 @@ app.use(cookieParser());
 
 // If deployed at a subpath, trust the proxy and re-map /BASE_PATH/... -> /...
 if (BASE_PATH) {
-    app.use((req, _res, next) => {
+    app.use((req, res, next) => {
+        // Redirect /tools to /tools/
+        if (req.path === BASE_PATH) {
+            return res.redirect(BASE_PATH + "/");
+        }
+        // Redirect root / to /tools/
+        if (req.path === "/") {
+            return res.redirect(BASE_PATH + "/");
+        }
         if (req.path.startsWith(BASE_PATH + "/")) {
             req.url = req.url.slice(BASE_PATH.length);
         }
@@ -82,6 +90,6 @@ app.use((req, res, next) => {
     // Use 127.0.0.1 (IPv4) instead of 0.0.0.0 or localhost to avoid IPv6 resolution issues on macOS
     const host = process.env.HOST || '127.0.0.1';
     server.listen(port, host, () => {
-        log(`serving on url http://${host}:${port}`);
+        log(`serving on url http://${host}:${port}${BASE_PATH || ""}`);
     });
 })();
