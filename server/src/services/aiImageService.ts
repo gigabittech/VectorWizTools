@@ -226,8 +226,6 @@ async function generateWithFreeModel(options: {
   const { prompt, size = "1024x1024" } = options;
 
   const encodedPrompt = encodeURIComponent(prompt);
-
-  // Fix: proper size parsing
   const parts = size.split("x");
   const width = parts[0] || "1024";
   const height = parts[1] || "1024";
@@ -239,48 +237,44 @@ async function generateWithFreeModel(options: {
       responseType: 'arraybuffer',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'image/*',
+        'Accept': 'image/png,image/jpeg,image/*',
       },
-      timeout: 60000, // Fix: increased to 60s
+      timeout: 60000,
       maxRedirects: 5,
     });
 
-    // Fix: strip charset from content-type (e.g. "image/png; charset=utf-8" → "image/png")
     const rawContentType = response.headers['content-type'] || 'image/png';
     const mimeType = rawContentType.split(';')[0].trim();
 
-    // Validate it's actually an image
+    // ⚠️ Critical check: যদি image না আসে তাহলে error throw করো
     if (!mimeType.startsWith('image/')) {
-      throw new Error(`Unexpected content type: ${mimeType}`);
+      const responseText = Buffer.from(response.data as ArrayBuffer).toString('utf-8').substring(0, 200);
+      console.error("Non-image response from Pollinations:", responseText);
+      throw new Error(`Expected image but got: ${mimeType}`);
     }
 
-    const base64 = Buffer.from(response.data as ArrayBuffer).toString('base64');
+    // ⚠️ Check minimum size (valid image হলে কমপক্ষে 1KB হবে)
+    const dataBuffer = Buffer.from(response.data as ArrayBuffer);
+    if (dataBuffer.length < 1024) {
+      console.error("Response too small, likely an error:", dataBuffer.toString('utf-8'));
+      throw new Error("Response too small to be a valid image");
+    }
+
+    const base64 = dataBuffer.toString('base64');
     const dataUrl = `data:${mimeType};base64,${base64}`;
+
+    console.log(`✅ Image generated: ${mimeType}, size: ${dataBuffer.length} bytes`);
 
     return { imageUrl: dataUrl };
 
   } catch (error: any) {
     console.error("Free model generation error:", error.message);
-
-    // Fix: don't return raw URL as fallback (CORS issue on client)
-    // Instead retry once with a different seed
-    try {
-      const retryUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
-      const retryResponse = await axios.get(retryUrl, {
-        responseType: 'arraybuffer',
-        headers: { 'Accept': 'image/*' },
-        timeout: 60000,
-      });
-
-      const mimeType = (retryResponse.headers['content-type'] || 'image/png').split(';')[0].trim();
-      const base64 = Buffer.from(retryResponse.data as ArrayBuffer).toString('base64');
-      return { imageUrl: `data:${mimeType};base64,${base64}` };
-
-    } catch (retryError: any) {
-      throw new Error(`Free model failed after retry: ${retryError.message}`);
-    }
+    throw new Error(`Image generation failed: ${error.message}`);
   }
 }
+
+
+
 
 /**
  * Generate image using Google Gemini (Imagen 3/4)

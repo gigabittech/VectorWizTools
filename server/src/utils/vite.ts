@@ -33,9 +33,9 @@ export async function setupVite(app: Express, server: Server) {
       ...viteLogger,
       error: (msg, options) => {
         viteLogger.error(msg, options);
-        process.exit(1);
       },
     },
+    base: "/", // Important: set to / because Express strips the BASE_PATH prefix
     server: serverOptions,
     appType: "custom",
   });
@@ -60,19 +60,17 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const clientTemplate = path.resolve(
-        import.meta.dirname,
-        "..",
-        "..",
-        "..",
+        process.cwd(),
         "client",
         "index.html",
       );
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      const basePath = (process.env.BASE_PATH || "").replace(/\/$/, "");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
+        `src="${basePath}/src/main.tsx?v=${nanoid()}"`,
       );
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
