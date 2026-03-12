@@ -51,14 +51,34 @@ export default function TIFFtoJPG() {
         setStatus("processing");
 
         try {
-            const qualityValue = quality[0] / 100;
-            // Note: If TIFF handling requires specific logic not in convertImageFormat, 
-            // the user's browser must support TIFF natively for this to work.
-            const blob = await convertImageFormat(files[0].file, targetFormat, qualityValue);
+            const formData = new FormData();
+            formData.append("file", files[0].file);
 
+            // Map MIME type to extension for backend
+            const extension = formatOptions.find(f => f.value === targetFormat)?.extension || "jpg";
+            formData.append("format", extension);
+            formData.append("quality", quality[0].toString());
+
+            const response = await fetch("/api/tools/tiff-to-jpg", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to convert file");
+            }
+
+            const blob = await response.blob();
             setConvertedBlob(blob);
-            const previewUrl = URL.createObjectURL(blob);
-            setConvertedPreview(previewUrl);
+
+            // Only show preview if it's an image
+            if (targetFormat.startsWith("image/")) {
+                const previewUrl = URL.createObjectURL(blob);
+                setConvertedPreview(previewUrl);
+            } else {
+                setConvertedPreview(null);
+            }
 
             setStatus("success");
 
@@ -67,11 +87,12 @@ export default function TIFFtoJPG() {
                 title: "Success!",
                 description: `File converted to ${formatName}`,
             });
-        } catch (error) {
+        } catch (error: any) {
+            console.error("Conversion error:", error);
             setStatus("error");
             toast({
                 title: "Conversion Failed",
-                description: "Failed to convert. TIFF support depends on your browser.",
+                description: error.message || "Failed to convert. An error occurred.",
                 variant: "destructive",
             });
         }
@@ -85,7 +106,14 @@ export default function TIFFtoJPG() {
         const targetExt = formatOptions.find(f => f.value === targetFormat)?.extension || 'jpg';
         const newFilename = `${baseName}.${targetExt}`;
 
-        downloadFile(convertedBlob, newFilename);
+        const url = window.URL.createObjectURL(convertedBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = newFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
     };
 
     const quickConversions = [

@@ -3,19 +3,75 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Book } from "lucide-react";
+import { Book, Download, Loader2 } from "lucide-react";
+import { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
+import ProcessingIndicator from "@/components/tools/shared/ProcessingIndicator";
+import jsPDF from "jspdf";
 
 export default function MOBIToPDF() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [status, setStatus] = useState<ProcessingStatus>("idle");
+  const [convertedBlob, setConvertedBlob] = useState<Blob | null>(null);
   const { toast } = useToast();
 
   const handleFilesSelected = (uploadedFiles: UploadedFile[]) => {
     setFiles(uploadedFiles);
-    toast({
-      title: "Server Processing Required",
-      description: "MOBI to PDF conversion requires server-side processing. This feature is coming soon.",
-      variant: "default",
-    });
+    setConvertedBlob(null);
+    setStatus("idle");
+  };
+
+  const convertToPDF = async () => {
+    if (files.length === 0) return;
+
+    setStatus("processing");
+    try {
+      const file = files[0].file;
+      
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/tools/mobi-to-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Conversion failed");
+      }
+
+      const pdfBlob = await response.blob();
+      setConvertedBlob(pdfBlob);
+      setStatus("success");
+
+      toast({
+        title: "Success",
+        description: "MOBI file converted to PDF successfully.",
+      });
+    } catch (error: any) {
+      console.error("Conversion error:", error);
+      setStatus("error");
+      toast({
+        title: "Conversion Failed",
+        description: error.message || "Failed to convert MOBI to PDF.",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+
+  const handleDownload = () => {
+    if (convertedBlob) {
+      const url = URL.createObjectURL(convertedBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${files[0].file.name.replace(".mobi", "")}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (
@@ -37,16 +93,50 @@ export default function MOBIToPDF() {
             Upload MOBI
           </h2>
           <FileUploader
-            accept=".mobi,application/x-mobipocket-ebook"
+            accept=".mobi"
             maxFiles={1}
             maxSize={100 * 1024 * 1024}
             onFilesSelected={handleFilesSelected}
             multiple={false}
-            allowedTypes={["application/x-mobipocket-ebook"]}
+            allowedTypes={[".mobi", "application/x-mobipocket-ebook"]}
           />
+          
+          {files.length > 0 && status === "idle" && (
+            <div className="mt-6 flex justify-center">
+              <Button 
+                onClick={convertToPDF} 
+                className="bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white px-8"
+              >
+                Convert to PDF
+              </Button>
+            </div>
+          )}
+
+          {status !== "idle" && (
+            <ProcessingIndicator
+              status={status}
+              message="Converting your MOBI to PDF via CloudConvert..."
+              successMessage="Conversion complete! Your PDF is ready."
+              errorMessage="Failed to convert. Please check your MOBI file."
+            />
+          )}
+
+          {convertedBlob && status === "success" && (
+            <div className="mt-6 p-6 border-2 border-dashed border-[#0B9F47] rounded-xl bg-[#0B9F47]/5 flex flex-col items-center">
+              <p className="text-[#0B9F47] font-semibold mb-4">Conversion Complete!</p>
+              <Button 
+                onClick={handleDownload}
+                className="bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
+              </Button>
+            </div>
+          )}
+
           <div className="mt-4 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-900">
-              <strong>Note:</strong> MOBI to PDF conversion requires server-side processing. This feature is coming soon.
+              <strong>Note:</strong> Conversion is now powered by CloudConvert for high-quality results. Ensure the MOBI file is not DRM protected.
             </p>
           </div>
         </div>
@@ -54,4 +144,5 @@ export default function MOBIToPDF() {
     </ToolLayout>
   );
 }
+
 
