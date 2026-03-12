@@ -12,7 +12,7 @@ export default function TurnaroundEstimator() {
 
   const estimateMutation = useMutation({
     mutationFn: async (data: { service: string; complexity: string; fileCount: number }) => {
-      const response = await apiRequest("POST", "/api/tools/turnaround", data);
+      const response = await apiRequest("POST", "/tools/api/tools/turnaround", data);
       return response.json();
     },
   });
@@ -37,7 +37,7 @@ export default function TurnaroundEstimator() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      
+
       <Container size="xl" py="xl">
         <div className="mb-8">
           <Link href="/tools">
@@ -45,7 +45,7 @@ export default function TurnaroundEstimator() {
               Back to Tools
             </Button>
           </Link>
-          
+
           <Group align="flex-start" gap="lg" mb="xl">
             <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
               <Clock className="h-8 w-8 text-purple-600" />
@@ -101,8 +101,8 @@ export default function TurnaroundEstimator() {
                   data-testid="file-count"
                 />
 
-                <Button 
-                  onClick={handleEstimate} 
+                <Button
+                  onClick={handleEstimate}
                   fullWidth
                   size="lg"
                   color="green"
@@ -175,7 +175,7 @@ export default function TurnaroundEstimator() {
               </Grid.Col>
             ))}
           </Grid>
-            
+
           <Paper p="lg" className="bg-blue-50 dark:bg-blue-950/20" mt="lg">
             <Group gap="sm" mb="md">
               <Zap className="h-5 w-5 text-blue-600" />
@@ -194,11 +194,11 @@ export default function TurnaroundEstimator() {
             <Grid.Col span={{ base: 12, md: 6 }}>
               <Stack gap="md">
                 <Text>
-                  Our turnaround estimator provides <strong>accurate delivery predictions</strong> based on real-time queue status, 
+                  Our turnaround estimator provides <strong>accurate delivery predictions</strong> based on real-time queue status,
                   project complexity, and our team's current workload. We pride ourselves on meeting or beating our estimated delivery times.
                 </Text>
                 <Text>
-                  Each project is handled by professional vector artists with years of experience in logo design, illustration, 
+                  Each project is handled by professional vector artists with years of experience in logo design, illustration,
                   and technical drawings. Quality is never compromised for speed.
                 </Text>
                 <List spacing="xs" size="sm" icon={<CheckCircle size={16} className="text-green-500" />}>
@@ -288,7 +288,7 @@ export default function TurnaroundEstimator() {
         <Paper withBorder shadow="md" p="xl" mt="xl" className="text-center">
           <Title order={2} mb="md">Ready to Start Your Vector Project?</Title>
           <Text size="lg" c="dimmed" mb="xl" maw={600} mx="auto">
-            Get your project started today and receive professional vector graphics that exceed your expectations. 
+            Get your project started today and receive professional vector graphics that exceed your expectations.
             Our team is ready to bring your vision to life.
           </Text>
           <Group justify="center" gap="md">

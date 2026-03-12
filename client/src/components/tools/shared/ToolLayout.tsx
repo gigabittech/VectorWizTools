@@ -52,7 +52,7 @@ export default function ToolLayout({
   }, [location, slug]);
 
   // Fetch CMS data if toolId or slug is provided
-  const queryKey = toolId ? `/api/tools/tool_id/${toolId}` : derivedSlug ? `/api/tools/slug/${derivedSlug}` : null;
+  const queryKey = toolId ? `/tools/api/tools/tool_id/${toolId}` : derivedSlug ? `/tools/api/tools/slug/${derivedSlug}` : null;
   const { data: cmsData, isLoading: isCmsLoading } = useQuery<any>({
     queryKey: [queryKey],
     enabled: !!queryKey,
@@ -60,7 +60,7 @@ export default function ToolLayout({
 
   // Fetch global SEO settings for fallback
   const { data: seoSettings, isLoading: isSeoSettingsLoading } = useQuery<any>({
-    queryKey: ["/api/seo-settings"],
+    queryKey: ["/tools/api/seo-settings"],
   });
 
   const isLoading = isCmsLoading || isSeoSettingsLoading;
@@ -236,13 +236,13 @@ export default function ToolLayout({
         <div className="max-w-7xl mx-auto">
           <ol className="flex items-center space-x-2 text-sm">
             <li>
-              <Link href="/" className="flex items-center text-gray-500 hover:text-[#0B9F47] transition-colors duration-300" data-testid="breadcrumb-home">
+              <Link href="/tools" className="flex items-center text-gray-500 hover:text-[#0B9F47] transition-colors duration-300" data-testid="breadcrumb-home">
                 <Home className="h-4 w-4" />
               </Link>
             </li>
             <li className="flex items-center">
               <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
-              <Link href="/" className="text-gray-500 hover:text-[#0B9F47] transition-colors duration-300" data-testid="breadcrumb-tools">
+              <Link href="/tools" className="text-gray-500 hover:text-[#0B9F47] transition-colors duration-300" data-testid="breadcrumb-tools">
                 Tools
               </Link>
             </li>

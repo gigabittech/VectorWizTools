@@ -23,11 +23,11 @@ export default function EPUBToPDF() {
 
     try {
       const file = files[0].file;
-      
+
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/tools/epub-to-pdf", {
+      const response = await fetch("/tools/api/tools/epub-to-pdf", {
         method: "POST",
         body: formData,
       });

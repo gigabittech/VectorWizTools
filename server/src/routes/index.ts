@@ -170,9 +170,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (!model || !["dall-e-3", "dall-e-2", "stable-diffusion"].includes(model)) {
+      if (!model || !["dall-e-3", "dall-e-2", "stable-diffusion", "gemini", "free-model"].includes(model)) {
         return res.status(400).json({
-          error: "Invalid model. Must be one of: dall-e-3, dall-e-2, stable-diffusion"
+          error: "Invalid model. Must be one of: dall-e-3, dall-e-2, stable-diffusion, gemini, free-model"
         });
       }
 
@@ -188,7 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.imageUrl) {
         try {
           const provider = model.startsWith("dall-e") ? "openai" :
-            model === "stable-diffusion" ? "stability-ai" : "replicate";
+            model === "stable-diffusion" || model === "free-model" ? "stability-ai" :
+              model === "gemini" ? "google" : "replicate";
 
           let costCents: number | undefined;
           if (model === "dall-e-3") {
@@ -235,7 +236,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid URL format" });
       }
 
-      const imageResponse = await fetch(imageUrl);
+      const imageResponse = await fetch(imageUrl, {
+        headers: {
+          'Accept': 'image/*',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
 
       if (!imageResponse.ok) {
         return res.status(imageResponse.status).json({
@@ -319,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tools/:id/faqs", protect, async (req, res) => {
+  app.post(" /api/tools/:id/faqs", protect, async (req, res) => {
     try {
       const data = { ...req.body, toolId: req.params.id };
       const result = await storage.createToolFaq(data);

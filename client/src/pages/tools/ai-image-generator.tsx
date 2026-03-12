@@ -30,7 +30,7 @@ export default function AIImageGenerator() {
   const [status, setStatus] = useState<ProcessingStatus>("idle");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
-  const [model, setModel] = useState("dall-e-3");
+  const [model, setModel] = useState("gemini");
   const [size, setSize] = useState("1024x1024");
   const [quality, setQuality] = useState("standard");
   const [style, setStyle] = useState("vivid");
@@ -38,9 +38,11 @@ export default function AIImageGenerator() {
   const { toast } = useToast();
 
   const modelOptions = [
-    { value: "dall-e-3", label: "DALL-E 3", description: "Highest quality, most detailed", badge: "Recommended", cost: "$0.04-0.08" },
+    { value: "gemini", label: "Google Gemini (Imagen 4)", description: "State-of-the-art image generation", badge: "New & Best", cost: "Free" },
+    { value: "dall-e-3", label: "DALL-E 3", description: "Highest quality, most detailed", cost: "$0.04-0.08" },
     { value: "dall-e-2", label: "DALL-E 2", description: "Fast and cost-effective", badge: "Budget", cost: "$0.02" },
     { value: "stable-diffusion", label: "Stable Diffusion", description: "Open source alternative", badge: "Open Source", cost: "Varies" },
+    { value: "free-model", label: "Free Model", description: "Fast and free generation", badge: "Free", cost: "Free" },
   ];
 
   const sizeOptions = [
@@ -83,7 +85,7 @@ export default function AIImageGenerator() {
     setImageBlob(null);
 
     try {
-      const response = await apiRequest("POST", "/api/tools/ai-image-generator", {
+      const response = await apiRequest("POST", "/tools/api/tools/ai-image-generator", {
         prompt: prompt.trim(),
         model,
         size,
@@ -95,28 +97,36 @@ export default function AIImageGenerator() {
       const data = await response.json();
 
       if (data.imageUrl) {
-        console.log('get image url', data.imageUrl)
         setGeneratedImage(data.imageUrl);
 
+        // If it's a data URL, we can convert to blob directly or via fetch
+        // If it's a remote URL, we might need a proxy or no-referrer
+        // If it's a data URL, we use it directly. For remote URLs, we use no-referrer.
         try {
-          const imageResponse = await fetch(data.imageUrl);
-          if (imageResponse.ok) {
-            const blob = await imageResponse.blob();
+          if (data.imageUrl.startsWith('data:')) {
+            // Convert data URL to blob
+            const response = await fetch(data.imageUrl);
+            const blob = await response.blob();
             setImageBlob(blob);
           } else {
-            console.warn("Direct image fetch failed, will use proxy for download");
-            setImageBlob(null);
+            const imageResponse = await fetch(data.imageUrl, { referrerPolicy: 'no-referrer' });
+            if (imageResponse.ok) {
+              const blob = await imageResponse.blob();
+              setImageBlob(blob);
+            } else {
+              setImageBlob(null);
+            }
           }
         } catch (fetchError) {
-          console.warn("Image fetch error (likely CORS):", fetchError);
+          console.warn("Image fetch/blob error:", fetchError);
           setImageBlob(null);
         }
 
         setStatus("success");
 
         toast({
-          title: "Image Generated Successfully!",
-          description: "Your AI-generated image is ready to download",
+          title: "Success",
+          description: "Image generated successfully!",
         });
       } else if (data.images && data.images.length > 0) {
         const firstImage = data.images[0];
@@ -202,8 +212,19 @@ export default function AIImageGenerator() {
         description: "Your image is being downloaded",
       });
     } else if (generatedImage) {
+      // If it's a data URL, download it directly
+      if (generatedImage.startsWith('data:')) {
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `ai-generated-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
       try {
-        const proxyResponse = await apiRequest("GET", `/api/tools/ai-image-proxy?url=${encodeURIComponent(generatedImage)}`);
+        const proxyResponse = await apiRequest("GET", `/tools/api/tools/ai-image-proxy?url=${encodeURIComponent(generatedImage)}`);
         const blob = await proxyResponse.blob();
         const filename = `ai-generated-${Date.now()}.png`;
         downloadFile(blob, filename);
@@ -611,7 +632,7 @@ export default function AIImageGenerator() {
                 <Stack gap="lg">
                   <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 shadow-inner" style={{ borderColor: '#489c51' }}>
                     <img
-                      src={generatedImage}
+                      src={generatedImage?.startsWith('data:') ? generatedImage : `/tools/api/tools/ai-image-proxy?url=${encodeURIComponent(generatedImage || '')}`}
                       alt="AI Generated"
                       className="w-full h-full object-contain p-2"
                     />
