@@ -225,54 +225,65 @@ async function generateWithFreeModel(options: {
 }): Promise<ImageGenerationResult> {
   const { prompt, size = "1024x1024" } = options;
 
-  const encodedPrompt = encodeURIComponent(prompt);
-  const parts = size.split("x");
-  const width = parts[0] || "1024";
-  const height = parts[1] || "1024";
-
-  const pollinationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
-
-  try {
-    const response = await axios.get(pollinationUrl, {
-      responseType: 'arraybuffer',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'image/png,image/jpeg,image/*',
-      },
-      timeout: 60000,
-      maxRedirects: 5,
-    });
-
-    const rawContentType = response.headers['content-type'] || 'image/png';
-    const mimeType = rawContentType.split(';')[0].trim();
-
-    // ⚠️ Critical check: যদি image না আসে তাহলে error throw করো
-    if (!mimeType.startsWith('image/')) {
-      const responseText = Buffer.from(response.data as ArrayBuffer).toString('utf-8').substring(0, 200);
-      console.error("Non-image response from Pollinations:", responseText);
-      throw new Error(`Expected image but got: ${mimeType}`);
-    }
-
-    // ⚠️ Check minimum size (valid image হলে কমপক্ষে 1KB হবে)
-    const dataBuffer = Buffer.from(response.data as ArrayBuffer);
-    if (dataBuffer.length < 1024) {
-      console.error("Response too small, likely an error:", dataBuffer.toString('utf-8'));
-      throw new Error("Response too small to be a valid image");
-    }
-
-    const base64 = dataBuffer.toString('base64');
-    const dataUrl = `data:${mimeType};base64,${base64}`;
-
-    console.log(`✅ Image generated: ${mimeType}, size: ${dataBuffer.length} bytes`);
-
-    return { imageUrl: dataUrl };
-
-  } catch (error: any) {
-    console.error("Free model generation error:", error.message);
-    throw new Error(`Image generation failed: ${error.message}`);
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured");
   }
-}
 
+  // Size → aspectRatio mapping
+  const aspectRatioMap: Record<string, string> = {
+    "1024x1024": "1:1",
+    "1792x1024": "16:9",
+    "1024x1792": "9:16",
+  };
+  const aspectRatio = aspectRatioMap[size] || "1:1";
+
+  // Imagen 4 API endpoint (Imagen 3 shut down হয়ে গেছে)
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+
+  const body = {
+    instances: [{ prompt }],
+    parameters: {
+      sampleCount: 1,
+      aspectRatio,
+      personGeneration: "ALLOW_ADULT",
+      safetyFilterLevel: "BLOCK_MEDIUM_AND_ABOVE",
+    },
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Gemini Imagen API error:", errText);
+    throw new Error(`Gemini API error ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+
+  // Response format: data.predictions[].bytesBase64Encoded
+  if (!data.predictions || data.predictions.length === 0) {
+    console.error("Empty predictions from Gemini:", JSON.stringify(data));
+    throw new Error("No image returned from Gemini API");
+  }
+
+  const prediction = data.predictions[0];
+  const base64 = prediction.bytesBase64Encoded;
+  const mimeType = prediction.mimeType || "image/png";
+
+  if (!base64) {
+    console.error("No bytesBase64Encoded in prediction:", JSON.stringify(prediction));
+    throw new Error("No image bytes in Gemini response");
+  }
+
+  console.log(`✅ Gemini image generated: ${mimeType}, base64 length: ${base64.length}`);
+
+  return { imageUrl: `data:${mimeType};base64,${base64}` };
+}
 
 
 
