@@ -59,7 +59,7 @@ export default function TIFFtoJPG() {
             formData.append("format", extension);
             formData.append("quality", quality[0].toString());
 
-            const response = await fetch("/api/tools/tiff-to-jpg", {
+            const response = await fetch("/tools/api/tools/tiff-to-jpg", {
                 method: "POST",
                 body: formData,
             });

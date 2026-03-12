@@ -8,11 +8,11 @@ import { format } from "date-fns";
 
 export default function Dashboard() {
     const { data: quoteRequests, isLoading: loadingQuotes } = useQuery<QuoteRequest[]>({
-        queryKey: ["/api/quote-requests"],
+        queryKey: ["/tools/api/quote-requests"],
     });
 
     const { data: aiGenerations, isLoading: loadingAI } = useQuery<AIImageGeneration[]>({
-        queryKey: ["/api/ai-generations"],
+        queryKey: ["/tools/api/ai-generations"],
     });
 
     useEffect(() => {

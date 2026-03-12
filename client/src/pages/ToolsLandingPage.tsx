@@ -127,11 +127,11 @@ export default function ToolsLandingPage() {
   const [activeCategory, setActiveCategory] = useState<"all" | "Image Tools" | "PDF Tools">("all");
 
   const { data: dbTools, isLoading } = useQuery<DbTool[]>({
-    queryKey: ["/api/tools?onlyActive=true"],
+    queryKey: ["/tools/api/tools?onlyActive=true"],
   });
 
   const { data: seoSettings } = useQuery<SeoSettings>({
-    queryKey: ["/api/seo-settings"],
+    queryKey: ["/tools/api/seo-settings"],
   });
 
   useEffect(() => {

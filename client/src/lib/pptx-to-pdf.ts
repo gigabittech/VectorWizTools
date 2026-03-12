@@ -2,7 +2,7 @@ export async function convertPptxToPdf(file: File): Promise<Blob> {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/api/tools/pptx-to-pdf", {
+    const response = await fetch("/tools/api/tools/pptx-to-pdf", {
         method: "POST",
         body: formData,
     });

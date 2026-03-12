@@ -26,11 +26,11 @@ export default function MOBIToPDF() {
     setStatus("processing");
     try {
       const file = files[0].file;
-      
+
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/tools/mobi-to-pdf", {
+      const response = await fetch("/tools/api/tools/mobi-to-pdf", {
         method: "POST",
         body: formData,
       });
@@ -100,11 +100,11 @@ export default function MOBIToPDF() {
             multiple={false}
             allowedTypes={[".mobi", "application/x-mobipocket-ebook"]}
           />
-          
+
           {files.length > 0 && status === "idle" && (
             <div className="mt-6 flex justify-center">
-              <Button 
-                onClick={convertToPDF} 
+              <Button
+                onClick={convertToPDF}
                 className="bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white px-8"
               >
                 Convert to PDF
@@ -124,7 +124,7 @@ export default function MOBIToPDF() {
           {convertedBlob && status === "success" && (
             <div className="mt-6 p-6 border-2 border-dashed border-[#0B9F47] rounded-xl bg-[#0B9F47]/5 flex flex-col items-center">
               <p className="text-[#0B9F47] font-semibold mb-4">Conversion Complete!</p>
-              <Button 
+              <Button
                 onClick={handleDownload}
                 className="bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white flex items-center gap-2"
               >
