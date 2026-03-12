@@ -1,21 +1,82 @@
 import { useState } from "react";
 import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
+import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
+import DownloadButton from "@/components/tools/shared/DownloadButton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Mail } from "lucide-react";
+import { Mail, ArrowRight } from "lucide-react";
 
 export default function MSOutlookToPDF() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [status, setStatus] = useState<ProcessingStatus>("idle");
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string>("");
   const { toast } = useToast();
 
   const handleFilesSelected = (uploadedFiles: UploadedFile[]) => {
     setFiles(uploadedFiles);
-    toast({
-      title: "Server Processing Required",
-      description: "Outlook to PDF conversion requires server-side processing. This feature is coming soon.",
-      variant: "default",
-    });
+    setDownloadUrl(null);
+    setStatus("idle");
+  };
+
+  const handleConvert = async () => {
+    if (files.length === 0) {
+      toast({
+        title: "No File",
+        description: "Please upload an Outlook file (.msg or .eml) first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setStatus("processing");
+    const formData = new FormData();
+    formData.append("file", files[0].file);
+
+    try {
+      const response = await fetch("/tools/api/tools/outlook-to-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to convert file");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const originalName = files[0].file.name;
+      const targetName = originalName.replace(/\.[^/.]+$/, "") + ".pdf";
+
+      setDownloadUrl(url);
+      setFileName(targetName);
+      setStatus("success");
+
+      toast({
+        title: "Success!",
+        description: "Your Outlook file has been converted to PDF.",
+      });
+    } catch (error: any) {
+      console.error("Conversion error:", error);
+      setStatus("error");
+      toast({
+        title: "Conversion Failed",
+        description: error.message || "An error occurred during conversion.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownload = () => {
+    if (!downloadUrl) return;
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -42,14 +103,44 @@ export default function MSOutlookToPDF() {
             maxSize={100 * 1024 * 1024}
             onFilesSelected={handleFilesSelected}
             multiple={false}
-            allowedTypes={["application/vnd.ms-outlook", "message/rfc822"]}
+            allowedTypes={["application/vnd.ms-outlook", "message/rfc822", "application/octet-stream"]}
           />
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-900">
-              <strong>Note:</strong> Outlook to PDF conversion requires server-side processing. This feature is coming soon.
-            </p>
-          </div>
+
+          {files.length > 0 && status === "idle" && (
+            <div className="mt-6">
+              <Button
+                onClick={handleConvert}
+                className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
+                size="lg"
+              >
+                Convert to PDF
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+          )}
         </div>
+
+        {status !== "idle" && (
+          <ProcessingIndicator
+            status={status}
+            message="Converting your Outlook file to PDF..."
+            successMessage="Conversion complete!"
+            errorMessage="Failed to convert. Please try again."
+          />
+        )}
+
+        {status === "success" && downloadUrl && (
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6">
+            <h2 className="text-xl font-bold mb-4">Ready for Download</h2>
+            <DownloadButton
+              onClick={handleDownload}
+              className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
+              size="lg"
+            >
+              Download PDF
+            </DownloadButton>
+          </div>
+        )}
       </div>
     </ToolLayout>
   );

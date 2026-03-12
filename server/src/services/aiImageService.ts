@@ -1,11 +1,9 @@
-/**
- * AI Image Generation Service
- * Supports multiple providers: OpenAI DALL-E, Stability AI, Replicate
- */
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from "axios";
 
 interface GenerateImageOptions {
   prompt: string;
-  model: "dall-e-3" | "dall-e-2" | "stable-diffusion" | "free-model";
+  model: "dall-e-3" | "dall-e-2" | "stable-diffusion" | "free-model" | "gemini";
   size?: string;
   quality?: "standard" | "hd";
   style?: "vivid" | "natural";
@@ -30,17 +28,26 @@ export async function generateAIImage(options: GenerateImageOptions): Promise<Im
   switch (model) {
     case "dall-e-3":
     case "dall-e-2":
-      console.log('here give the error')
-      return await generateWithOpenAI({ prompt, model, size, quality, style, n });
+      try {
+        return await generateWithOpenAI({ prompt, model, size, quality, style, n });
+      } catch (error) {
+        console.error("OpenAI failed, falling back to Gemini:", error);
+        return await generateWithGemini({ prompt, size });
+      }
+
+    case "gemini":
+      return await generateWithGemini({ prompt, size });
 
     case "stable-diffusion":
       return await generateWithFreeModel({ prompt, size });
     // return await generateWithStabilityAI({ prompt, size });                     
 
     case "free-model":
+      return await generateWithFreeModel({ prompt, size });
 
     default:
-      throw new Error(`Unsupported model: ${model}`);
+      // Default to Gemini if model not recognized
+      return await generateWithGemini({ prompt, size });
   }
 }
 
@@ -218,18 +225,121 @@ async function generateWithFreeModel(options: {
 }): Promise<ImageGenerationResult> {
   const { prompt, size = "1024x1024" } = options;
 
-  // স্পেস এবং স্পেশাল ক্যারেক্টারগুলো URL-এর জন্য এনকোড করা
   const encodedPrompt = encodeURIComponent(prompt);
 
-  // Pollinations সরাসরি URL-এর মাধ্যমেই ছবি রিটার্ন করে
-  // সাইজ সেট করা (যেমন: width ও height আলাদা করা)
-  const [width, height] = size.split("x").map(s => s || "1024");
+  // Fix: proper size parsing
+  const parts = size.split("x");
+  const width = parts[0] || "1024";
+  const height = parts[1] || "1024";
 
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true`;
+  const pollinationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
 
-  // এখানে কোনো await fetch করার দরকার নেই, কারণ URL টাই নিজেই ইমেজ সোর্স
-  return {
-    imageUrl: imageUrl,
-  };
+  try {
+    const response = await axios.get(pollinationUrl, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'image/*',
+      },
+      timeout: 60000, // Fix: increased to 60s
+      maxRedirects: 5,
+    });
+
+    // Fix: strip charset from content-type (e.g. "image/png; charset=utf-8" → "image/png")
+    const rawContentType = response.headers['content-type'] || 'image/png';
+    const mimeType = rawContentType.split(';')[0].trim();
+
+    // Validate it's actually an image
+    if (!mimeType.startsWith('image/')) {
+      throw new Error(`Unexpected content type: ${mimeType}`);
+    }
+
+    const base64 = Buffer.from(response.data as ArrayBuffer).toString('base64');
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+
+    return { imageUrl: dataUrl };
+
+  } catch (error: any) {
+    console.error("Free model generation error:", error.message);
+
+    // Fix: don't return raw URL as fallback (CORS issue on client)
+    // Instead retry once with a different seed
+    try {
+      const retryUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
+      const retryResponse = await axios.get(retryUrl, {
+        responseType: 'arraybuffer',
+        headers: { 'Accept': 'image/*' },
+        timeout: 60000,
+      });
+
+      const mimeType = (retryResponse.headers['content-type'] || 'image/png').split(';')[0].trim();
+      const base64 = Buffer.from(retryResponse.data as ArrayBuffer).toString('base64');
+      return { imageUrl: `data:${mimeType};base64,${base64}` };
+
+    } catch (retryError: any) {
+      throw new Error(`Free model failed after retry: ${retryError.message}`);
+    }
+  }
+}
+
+/**
+ * Generate image using Google Gemini (Imagen 3/4)
+ */
+async function generateWithGemini(options: {
+  prompt: string;
+  size?: string;
+}): Promise<ImageGenerationResult> {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Gemini API key not configured. Please set GEMINI_API_KEY environment variable.");
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    // Try multiple model names as availability varies by region and API key
+    const modelNames = [
+      "imagen-3.0-generate-001",
+      "imagen-3.0-fast-generate-001",
+      "imagen-3.0-v1",
+      "gemini-2.5-flash-image",
+      "imagen-4.0-generate-001"
+    ];
+    let lastError = "";
+
+    for (const modelName of modelNames) {
+      try {
+        console.log(`Trying Gemini model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(options.prompt);
+        const response = await result.response;
+
+        const candidates = response.candidates;
+        if (candidates && candidates.length > 0) {
+          const content = candidates[0].content;
+          if (content && content.parts && content.parts.length > 0) {
+            const part = content.parts[0];
+            if (part.inlineData) {
+              const base64Image = part.inlineData.data;
+              const mimeType = part.inlineData.mimeType || "image/png";
+              return {
+                imageUrl: `data:${mimeType};base64,${base64Image}`,
+              };
+            }
+          }
+        }
+      } catch (e: any) {
+        lastError = e.message;
+        console.warn(`Failed with ${modelName}: ${e.message}`);
+        continue; // Try next model
+      }
+    }
+
+    throw new Error(lastError || "Gemini did not return an image in the expected format.");
+  } catch (error: any) {
+    console.error("Gemini image generation error:", error);
+    throw new Error(error.message || "Failed to generate image with Gemini");
+  }
 }
 

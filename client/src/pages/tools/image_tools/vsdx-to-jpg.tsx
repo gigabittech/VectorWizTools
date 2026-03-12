@@ -50,14 +50,49 @@ export default function VSDXtoJPG() {
         setStatus("processing");
 
         try {
-            const qualityValue = quality[0] / 100;
-            const blob = await convertImageFormat(files[0].file, targetFormat, qualityValue);
+            const file = files[0].file;
+            const originalExtension = file.name.split('.').pop()?.toLowerCase();
+            const targetExt = formatOptions.find(f => f.value === targetFormat)?.extension || 'jpg';
+
+            let blob: Blob;
+
+            // Use server-side CloudConvert for VSDX files for high-quality conversion
+            if (originalExtension === 'vsdx' || originalExtension === 'vsd') {
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("format", targetExt);
+
+                const response = await fetch("/tools/api/tools/vsdx-to-jpg", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || "Server-side conversion failed");
+                }
+
+                blob = await response.blob();
+            } else {
+                // Use client-side conversion for other formats
+                const qualityValue = quality[0] / 100;
+                blob = await convertImageFormat(file, targetFormat, qualityValue);
+            }
 
             setConvertedBlob(blob);
 
             // Preview logic
-            const previewUrl = URL.createObjectURL(blob);
-            setConvertedPreview(previewUrl);
+            if (targetFormat.startsWith("image/") && targetFormat !== "image/svg+xml") {
+                const previewUrl = URL.createObjectURL(blob);
+                setConvertedPreview(previewUrl);
+            } else {
+                // If we can't preview the output, but it was an image originally, show that
+                if (file.type.startsWith("image/")) {
+                    setConvertedPreview(URL.createObjectURL(file));
+                } else {
+                    setConvertedPreview(null);
+                }
+            }
 
             setStatus("success");
 

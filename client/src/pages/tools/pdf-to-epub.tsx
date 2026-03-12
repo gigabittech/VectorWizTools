@@ -4,12 +4,12 @@ import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUpload
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Book, FileText, Download, Loader2 } from "lucide-react";
-import { convertPdfToEpub } from "@/lib/pdf-to-epub";
+import { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
+import ProcessingIndicator from "@/components/tools/shared/ProcessingIndicator";
 
 export default function PDFToEPUB() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [isConverting, setIsConverting] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState<ProcessingStatus>("idle");
   const { toast } = useToast();
 
   const handleFilesSelected = (uploadedFiles: UploadedFile[]) => {
@@ -19,14 +19,25 @@ export default function PDFToEPUB() {
   const handleConvert = async () => {
     if (files.length === 0) return;
 
-    setIsConverting(true);
-    setProgress(0);
+    setStatus("processing");
 
     try {
       const file = files[0].file;
-      const epubBlob = await convertPdfToEpub(file, (percent) => {
-        setProgress(Math.round(percent));
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/tools/api/tools/pdf-to-epub", {
+        method: "POST",
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Conversion failed");
+      }
+
+      const epubBlob = await response.blob();
 
       // Download the file
       const url = URL.createObjectURL(epubBlob);
@@ -39,19 +50,19 @@ export default function PDFToEPUB() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
+      setStatus("success");
       toast({
         title: "Success",
         description: "PDF converted to EPUB successfully!",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Conversion error:", error);
+      setStatus("error");
       toast({
         title: "Error",
-        description: "Failed to convert PDF to EPUB. Please try again.",
+        description: error.message || "Failed to convert PDF to EPUB. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsConverting(false);
     }
   };
 
@@ -84,27 +95,12 @@ export default function PDFToEPUB() {
 
           {files.length > 0 && (
             <div className="mt-6 flex flex-col items-center gap-4">
-              {isConverting && (
-                <div className="w-full space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Converting...</span>
-                    <span>{progress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-[#0B9F47] h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
               <Button
                 onClick={handleConvert}
-                disabled={isConverting}
+                disabled={status === "processing"}
                 className="w-full md:w-auto px-8 bg-[#0B9F47] hover:bg-[#098a3e] text-white"
               >
-                {isConverting ? (
+                {status === "processing" ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Converting...
@@ -119,6 +115,15 @@ export default function PDFToEPUB() {
             </div>
           )}
         </div>
+
+        {status !== "idle" && (
+          <ProcessingIndicator
+            status={status}
+            message="Converting your PDF to EPUB via CloudConvert..."
+            successMessage="Conversion complete! Your EPUB is downloading."
+            errorMessage="Failed to convert. Please check your PDF file."
+          />
+        )}
 
         <div className="bg-[#0B9F47]/5 border border-[#0B9F47]/10 rounded-xl p-6">
           <h3 className="font-semibold text-lg mb-3">Why convert PDF to EPUB?</h3>

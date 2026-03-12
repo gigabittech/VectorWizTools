@@ -49,9 +49,9 @@ export const insertAIImageGenerationSchema = createInsertSchema(aiImageGeneratio
   createdAt: true,
 }).extend({
   prompt: z.string().min(10, "Prompt must be at least 10 characters"),
-  model: z.enum(["dall-e-3", "dall-e-2", "stable-diffusion"]),
-  imageUrl: z.string().url("Valid image URL is required"),
-  provider: z.enum(["openai", "stability-ai", "replicate"]),
+  model: z.string(),
+  imageUrl: z.string(),
+  provider: z.string(),
 });
 
 // Users table for authentication

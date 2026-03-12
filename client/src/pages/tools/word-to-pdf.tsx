@@ -31,7 +31,7 @@ export default function WordToPDF() {
       const formData = new FormData();
       formData.append("file", files[0].file);
 
-      const res = await fetch("/api/tools/word-to-pdf", {
+      const res = await fetch("/tools/api/tools/word-to-pdf", {
         method: "POST",
         body: formData,
       });

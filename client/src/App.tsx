@@ -251,7 +251,7 @@ const COMPONENT_MAP: Record<string, React.ComponentType> = {
 
 function Router() {
   const { data: tools, isLoading } = useQuery<any[]>({
-    queryKey: ["/api/tools"],
+    queryKey: ["/tools/api/tools"],
   });
 
   if (isLoading) {

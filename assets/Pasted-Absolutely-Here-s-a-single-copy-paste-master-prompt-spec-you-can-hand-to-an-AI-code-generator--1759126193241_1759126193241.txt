@@ -24,7 +24,7 @@ You are building a production-grade full-stack web app that runs under the **/po
 * **Routing:**
 
   * `/*` → WordPress (existing host)
-  * `/portal/*` and `/api/*` → Next.js (Node, Vercel) via **reverse proxy**
+  * `/portal/*` and `/tools/api/*` → Next.js (Node, Vercel) via **reverse proxy**
 * **Reverse proxy** (choose one):
 
 ### Cloudflare (preferred)
@@ -313,7 +313,7 @@ export default function robots() {
 
 * httpOnly, Secure cookies; SameSite=Lax.
 * CSRF: use double-submit token on POST forms for logged-in pages.
-* Rate-limit `/api/auth/login`, `/api/orders`.
+* Rate-limit `/tools/api/auth/login`, `/tools/api/orders`.
 * Validate all inputs with **Zod**; sanitize filenames; virus scan uploads.
 * Audit log table (who changed what & when on orders).
 

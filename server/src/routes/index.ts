@@ -9,6 +9,7 @@ import { comparePassword, generateToken } from "../utils/auth";
 import { protect } from "../middlewares/auth";
 import { toolController } from "../controllers/toolController";
 import { pdfToolsController, upload } from "../controllers/pdfToolsController";
+import { cloudConvertController } from "../controllers/cloudConvertController";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // --- Auth Routes ---
@@ -169,9 +170,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (!model || !["dall-e-3", "dall-e-2", "stable-diffusion"].includes(model)) {
+      if (!model || !["dall-e-3", "dall-e-2", "stable-diffusion", "gemini", "free-model"].includes(model)) {
         return res.status(400).json({
-          error: "Invalid model. Must be one of: dall-e-3, dall-e-2, stable-diffusion"
+          error: "Invalid model. Must be one of: dall-e-3, dall-e-2, stable-diffusion, gemini, free-model"
         });
       }
 
@@ -187,7 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.imageUrl) {
         try {
           const provider = model.startsWith("dall-e") ? "openai" :
-            model === "stable-diffusion" ? "stability-ai" : "replicate";
+            model === "stable-diffusion" || model === "free-model" ? "stability-ai" :
+              model === "gemini" ? "google" : "replicate";
 
           let costCents: number | undefined;
           if (model === "dall-e-3") {
@@ -234,7 +236,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid URL format" });
       }
 
-      const imageResponse = await fetch(imageUrl);
+      const imageResponse = await fetch(imageUrl, {
+        headers: {
+          'Accept': 'image/*',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
 
       if (!imageResponse.ok) {
         return res.status(imageResponse.status).json({
@@ -274,6 +281,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tools/pptx-to-pdf", upload.single("file"), pdfToolsController.convertPptxToPdf);
   app.post("/api/tools/remove-pdf-watermark", upload.single("file"), pdfToolsController.removeWatermark);
 
+  // --- CloudConvert routes ---
+  app.post("/api/tools/vsdx-to-jpg", upload.single("file"), cloudConvertController.convertVsdxToJpg);
+  app.post("/api/tools/jpg-to-vsdx", upload.single("file"), cloudConvertController.convertJpgToVsdx);
+  app.post("/api/tools/epub-to-pdf", upload.single("file"), cloudConvertController.convertEpubToPdf);
+  app.post("/api/tools/pdf-to-epub", upload.single("file"), cloudConvertController.convertPdfToEpub);
+  app.post("/api/tools/mobi-to-pdf", upload.single("file"), cloudConvertController.convertMobiToPdf);
+  app.post("/api/tools/pdf-to-mobi", upload.single("file"), cloudConvertController.convertPdfToMobi);
+  app.post("/api/tools/azw3-to-pdf", upload.single("file"), cloudConvertController.convertAzw3ToPdf);
+  app.post("/api/tools/pdf-to-azw3", upload.single("file"), cloudConvertController.convertPdfToAzw3);
+  app.post("/api/tools/outlook-to-pdf", upload.single("file"), cloudConvertController.convertOutlookToPdf);
+  app.post("/api/tools/tiff-to-jpg", upload.single("file"), cloudConvertController.convertImage);
+
   // --- CMS Management Routes ---
   app.patch("/api/tools/:id/seo", protect, async (req, res) => {
     try {
@@ -306,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tools/:id/faqs", protect, async (req, res) => {
+  app.post(" /api/tools/:id/faqs", protect, async (req, res) => {
     try {
       const data = { ...req.body, toolId: req.params.id };
       const result = await storage.createToolFaq(data);
