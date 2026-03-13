@@ -36,18 +36,25 @@ export async function generateAIImage(options: GenerateImageOptions): Promise<Im
       }
 
     case "gemini":
-      return await generateWithGemini({ prompt, size });
+      try {
+        return await generateWithGemini({ prompt, size });
+      } catch (error: any) {
+        if (error.message.includes("paid plan") || error.message.includes("quota")) {
+          console.log("Gemini requires paid plan, falling back to Free Model (Pollinations)...");
+          return await generateWithPollinations({ prompt, size });
+        }
+        throw error;
+      }
 
     case "stable-diffusion":
-      return await generateWithFreeModel({ prompt, size });
-    // return await generateWithStabilityAI({ prompt, size });                     
+      return await generateWithPollinations({ prompt, size });
 
     case "free-model":
-      return await generateWithFreeModel({ prompt, size });
+      return await generateWithPollinations({ prompt, size });
 
     default:
-      // Default to Gemini if model not recognized
-      return await generateWithGemini({ prompt, size });
+      // Default to Pollinations if model not recognized
+      return await generateWithPollinations({ prompt, size });
   }
 }
 
@@ -219,70 +226,26 @@ export async function generateWithReplicate(prompt: string, size?: string): Prom
   }
 }
 
-async function generateWithFreeModel(options: {
+/**
+ * Generate using Pollinations.ai (Truly FREE, no API key required)
+ * This is the best fallback for free users
+ */
+async function generateWithPollinations(options: {
   prompt: string;
   size?: string;
 }): Promise<ImageGenerationResult> {
   const { prompt, size = "1024x1024" } = options;
+  
+  // Parse size
+  const [width, height] = size.split("x").map(Number);
+  
+  // Pollinations.ai simple URL generation
+  const seed = Math.floor(Math.random() * 1000000);
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width || 1024}&height=${height || 1024}&seed=${seed}&nologo=true`;
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
-  }
-
-  // Size → aspectRatio mapping
-  const aspectRatioMap: Record<string, string> = {
-    "1024x1024": "1:1",
-    "1792x1024": "16:9",
-    "1024x1792": "9:16",
-  };
-  const aspectRatio = aspectRatioMap[size] || "1:1";
-
-  // Imagen 4 API endpoint (Imagen 3 shut down হয়ে গেছে)
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
-
-  const body = {
-    instances: [{ prompt }],
-    parameters: {
-      sampleCount: 1,
-      aspectRatio,
-      personGeneration: "ALLOW_ADULT",
-      safetyFilterLevel: "BLOCK_MEDIUM_AND_ABOVE",
-    },
-  };
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("Gemini Imagen API error:", errText);
-    throw new Error(`Gemini API error ${response.status}: ${errText}`);
-  }
-
-  const data = await response.json();
-
-  // Response format: data.predictions[].bytesBase64Encoded
-  if (!data.predictions || data.predictions.length === 0) {
-    console.error("Empty predictions from Gemini:", JSON.stringify(data));
-    throw new Error("No image returned from Gemini API");
-  }
-
-  const prediction = data.predictions[0];
-  const base64 = prediction.bytesBase64Encoded;
-  const mimeType = prediction.mimeType || "image/png";
-
-  if (!base64) {
-    console.error("No bytesBase64Encoded in prediction:", JSON.stringify(prediction));
-    throw new Error("No image bytes in Gemini response");
-  }
-
-  console.log(`✅ Gemini image generated: ${mimeType}, base64 length: ${base64.length}`);
-
-  return { imageUrl: `data:${mimeType};base64,${base64}` };
+  console.log(`✅ Success with Pollinations AI: ${imageUrl}`);
+  
+  return { imageUrl };
 }
 
 
@@ -306,10 +269,7 @@ async function generateWithGemini(options: {
     // Try multiple model names as availability varies by region and API key
     const modelNames = [
       "imagen-3.0-generate-001",
-      "imagen-3.0-fast-generate-001",
-      "imagen-3.0-v1",
-      "gemini-2.5-flash-image",
-      "imagen-4.0-generate-001"
+      "imagen-3.0-fast-generate-001"
     ];
     let lastError = "";
 
