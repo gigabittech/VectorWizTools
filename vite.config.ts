@@ -35,4 +35,7 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  define: {
+    'process.env.NODE_ENV': '"production"'
+  }
 });

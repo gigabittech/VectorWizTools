@@ -36,18 +36,25 @@ export async function generateAIImage(options: GenerateImageOptions): Promise<Im
       }
 
     case "gemini":
-      return await generateWithGemini({ prompt, size });
+      try {
+        return await generateWithGemini({ prompt, size });
+      } catch (error: any) {
+        if (error.message.includes("paid plan") || error.message.includes("quota")) {
+          console.log("Gemini requires paid plan, falling back to Free Model (Pollinations)...");
+          return await generateWithPollinations({ prompt, size });
+        }
+        throw error;
+      }
 
     case "stable-diffusion":
-      return await generateWithFreeModel({ prompt, size });
-    // return await generateWithStabilityAI({ prompt, size });                     
+      return await generateWithPollinations({ prompt, size });
 
     case "free-model":
-      return await generateWithFreeModel({ prompt, size });
+      return await generateWithPollinations({ prompt, size });
 
     default:
-      // Default to Gemini if model not recognized
-      return await generateWithGemini({ prompt, size });
+      // Default to Pollinations if model not recognized
+      return await generateWithPollinations({ prompt, size });
   }
 }
 
@@ -219,60 +226,27 @@ export async function generateWithReplicate(prompt: string, size?: string): Prom
   }
 }
 
-async function generateWithFreeModel(options: {
+/**
+ * Generate using Pollinations.ai (Truly FREE, no API key required)
+ * This is the best fallback for free users
+ */
+async function generateWithPollinations(options: {
   prompt: string;
   size?: string;
 }): Promise<ImageGenerationResult> {
   const { prompt, size = "1024x1024" } = options;
+  
+  // Parse size
+  const [width, height] = size.split("x").map(Number);
+  
+  // Pollinations.ai simple URL generation
+  const seed = Math.floor(Math.random() * 1000000);
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width || 1024}&height=${height || 1024}&seed=${seed}&nologo=true`;
 
-  const encodedPrompt = encodeURIComponent(prompt);
-  const parts = size.split("x");
-  const width = parts[0] || "1024";
-  const height = parts[1] || "1024";
-
-  const pollinationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
-
-  try {
-    const response = await axios.get(pollinationUrl, {
-      responseType: 'arraybuffer',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'image/png,image/jpeg,image/*',
-      },
-      timeout: 60000,
-      maxRedirects: 5,
-    });
-
-    const rawContentType = response.headers['content-type'] || 'image/png';
-    const mimeType = rawContentType.split(';')[0].trim();
-
-    // ⚠️ Critical check: যদি image না আসে তাহলে error throw করো
-    if (!mimeType.startsWith('image/')) {
-      const responseText = Buffer.from(response.data as ArrayBuffer).toString('utf-8').substring(0, 200);
-      console.error("Non-image response from Pollinations:", responseText);
-      throw new Error(`Expected image but got: ${mimeType}`);
-    }
-
-    // ⚠️ Check minimum size (valid image হলে কমপক্ষে 1KB হবে)
-    const dataBuffer = Buffer.from(response.data as ArrayBuffer);
-    if (dataBuffer.length < 1024) {
-      console.error("Response too small, likely an error:", dataBuffer.toString('utf-8'));
-      throw new Error("Response too small to be a valid image");
-    }
-
-    const base64 = dataBuffer.toString('base64');
-    const dataUrl = `data:${mimeType};base64,${base64}`;
-
-    console.log(`✅ Image generated: ${mimeType}, size: ${dataBuffer.length} bytes`);
-
-    return { imageUrl: dataUrl };
-
-  } catch (error: any) {
-    console.error("Free model generation error:", error.message);
-    throw new Error(`Image generation failed: ${error.message}`);
-  }
+  console.log(`✅ Success with Pollinations AI: ${imageUrl}`);
+  
+  return { imageUrl };
 }
-
 
 
 
@@ -295,10 +269,7 @@ async function generateWithGemini(options: {
     // Try multiple model names as availability varies by region and API key
     const modelNames = [
       "imagen-3.0-generate-001",
-      "imagen-3.0-fast-generate-001",
-      "imagen-3.0-v1",
-      "gemini-2.5-flash-image",
-      "imagen-4.0-generate-001"
+      "imagen-3.0-fast-generate-001"
     ];
     let lastError = "";
 

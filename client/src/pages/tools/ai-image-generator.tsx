@@ -1,13 +1,12 @@
 import { useState } from "react";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
+import { BASE_PATH, apiRequest } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import * as SelectPrimitive from "@radix-ui/react-select";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { downloadFile } from "@/lib/fileUtils";
 import {
   Sparkles,
@@ -30,7 +29,7 @@ export default function AIImageGenerator() {
   const [status, setStatus] = useState<ProcessingStatus>("idle");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
-  const [model, setModel] = useState("gemini");
+  const [model, setModel] = useState("free-model");
   const [size, setSize] = useState("1024x1024");
   const [quality, setQuality] = useState("standard");
   const [style, setStyle] = useState("vivid");
@@ -38,11 +37,11 @@ export default function AIImageGenerator() {
   const { toast } = useToast();
 
   const modelOptions = [
-    { value: "gemini", label: "Google Gemini (Imagen 4)", description: "State-of-the-art image generation", badge: "New & Best", cost: "Free" },
+    { value: "free-model", label: "Free Model (Pollinations AI)", description: "Truly free generation, no API key needed", badge: "Best for Free", cost: "Free" },
+    { value: "gemini", label: "Google Gemini (Imagen 3)", description: "Requires Gemini Paid/Billing enabled", badge: "Premium", cost: "Free/Paid" },
     { value: "dall-e-3", label: "DALL-E 3", description: "Highest quality, most detailed", cost: "$0.04-0.08" },
     { value: "dall-e-2", label: "DALL-E 2", description: "Fast and cost-effective", badge: "Budget", cost: "$0.02" },
-    { value: "stable-diffusion", label: "Stable Diffusion", description: "Open source alternative", badge: "Open Source", cost: "Varies" },
-    { value: "free-model", label: "Free Model", description: "Fast and free generation", badge: "Free", cost: "Free" },
+    { value: "stable-diffusion", label: "Stable Diffusion", description: "Standard free model", badge: "Free", cost: "Free" },
   ];
 
   const sizeOptions = [
@@ -505,8 +504,8 @@ export default function AIImageGenerator() {
                   size="lg"
                   className="w-full h-12 text-base font-semibold text-white shadow-lg hover:shadow-xl transition-all"
                   style={{ backgroundColor: '#489c51' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3d8a45'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#489c51'}
+                  onMouseEnter={(e: React.MouseEvent) => e.currentTarget instanceof HTMLButtonElement && (e.currentTarget.style.backgroundColor = '#3d8a45')}
+                  onMouseLeave={(e: React.MouseEvent) => e.currentTarget instanceof HTMLButtonElement && (e.currentTarget.style.backgroundColor = '#489c51')}
                   disabled={status === "processing" || !prompt.trim() || prompt.length < 10}
                 >
                   {status === "processing" ? (
@@ -632,9 +631,18 @@ export default function AIImageGenerator() {
                 <Stack gap="lg">
                   <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 shadow-inner" style={{ borderColor: '#489c51' }}>
                     <img
-                      src={generatedImage?.startsWith('data:') ? generatedImage : `/tools/api/tools/ai-image-proxy?url=${encodeURIComponent(generatedImage || '')}`}
+                      src={generatedImage?.startsWith('data:') || generatedImage?.includes('pollinations.ai') 
+                        ? generatedImage 
+                        : `${BASE_PATH}/api/tools/ai-image-proxy?url=${encodeURIComponent(generatedImage || '')}`}
                       alt="AI Generated"
                       className="w-full h-full object-contain p-2"
+                      onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                        // If proxy fails, try direct URL as last resort
+                        const target = e.currentTarget;
+                        if (generatedImage && !target.src.includes(generatedImage)) {
+                          target.src = generatedImage;
+                        }
+                      }}
                     />
                     <div className="absolute top-2 right-2">
                       <Badge variant="light" size="lg" style={{ backgroundColor: '#489c51', color: '#ffffff' }}>
@@ -649,8 +657,8 @@ export default function AIImageGenerator() {
                       onClick={handleDownload}
                       className="h-12 text-white shadow-lg hover:shadow-xl transition-all"
                       style={{ backgroundColor: '#489c51' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3d8a45'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#489c51'}
+                      onMouseEnter={(e: React.MouseEvent) => e.currentTarget instanceof HTMLButtonElement && (e.currentTarget.style.backgroundColor = '#3d8a45')}
+                      onMouseLeave={(e: React.MouseEvent) => e.currentTarget instanceof HTMLButtonElement && (e.currentTarget.style.backgroundColor = '#489c51')}
                       size="lg"
                     >
                       <Download className="mr-2 h-5 w-5" />
