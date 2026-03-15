@@ -1,0 +1,23 @@
+
+> rest-express@1.0.0 check
+> tsc
+
+client/src/components/tools/TurnaroundEstimator.tsx(49,15): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, option: ComboboxItem) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+client/src/components/tools/TurnaroundEstimator.tsx(60,15): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, option: ComboboxItem) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+client/src/hooks/use-websocket.ts(1,30): error TS2307: Cannot find module '@/lib/websocket' or its corresponding type declarations.
+client/src/pages/SeoRedirects.tsx(46,22): error TS7006: Parameter 'val' implicitly has an 'any' type.
+client/src/pages/SeoRedirects.tsx(47,22): error TS7006: Parameter 'val' implicitly has an 'any' type.
+client/src/pages/tools/extract-images-pdf.tsx(44,17): error TS2339: Property 'xObject' does not exist on type 'PDFDict | {}'.
+client/src/pages/tools/protect-pdf.tsx(78,18): error TS2802: Type 'Uint8Array' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+client/src/pages/tools/protect-pdf.tsx(273,28): error TS2802: Type 'Uint8Array' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+client/src/pages/tools/protect-pdf.tsx(292,28): error TS2802: Type 'Uint8Array' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+client/src/pages/tools/protect-pdf.tsx(394,30): error TS2802: Type 'MapIterator<number>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+client/src/pages/tools/remove-background.tsx(72,9): error TS2322: Type '"medium"' is not assignable to type '"isnet" | "isnet_fp16" | "isnet_quint8" | undefined'.
+client/src/pages/tools/url-to-pdf.tsx(142,14): error TS2802: Type 'Set<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+client/src/pages/toolsManagement.tsx(70,20): error TS7006: Parameter 'value' implicitly has an 'any' type.

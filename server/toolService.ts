@@ -1,4 +1,4 @@
-import { storage, ToolWithCms } from "../data/storage";
+import { storage, ToolWithCms } from "./storage";
 import { InsertTool, Tool } from "@shared/schema";
 
 export class ToolService {

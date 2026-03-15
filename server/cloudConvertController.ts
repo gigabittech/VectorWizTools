@@ -5,10 +5,12 @@ import path from "path";
 import axios from "axios";
 import { promisify } from "util";
 import { createRequire } from "module";
+import sharp from "sharp";
+import libre from "libreoffice-convert";
+
+const convertAsync = promisify(libre.convert);
 
 const require = createRequire(import.meta.url);
-
-console.log("CloudConvertController V3 Loaded");
 
 export class CloudConvertController {
     private getClient = () => {
@@ -20,14 +22,17 @@ export class CloudConvertController {
 
     convertVsdxToJpg = async (req: Request, res: Response) => {
         let filePath: string | undefined;
+        let originalName = "document.vsdx";
+        let outputFormat = "jpg";
+
         try {
             if (!req.file || !req.file.path) {
                 return res.status(400).json({ error: "No file uploaded" });
             }
 
             filePath = req.file.path;
-            const originalName = req.file.originalname;
-            const outputFormat = req.body.format || "jpg";
+            originalName = req.file.originalname;
+            outputFormat = req.body.format || "jpg";
             const inputFormat = originalName.split('.').pop()?.toLowerCase() || 'vsdx';
 
             console.log(`Starting conversion: ${originalName} (${inputFormat}) to ${outputFormat}`);
@@ -99,8 +104,17 @@ export class CloudConvertController {
                         return downloadResponse.data.pipe(res);
                     }
                 } catch (ccError: any) {
-                    // If we reached here, CloudConvert didn't work and we have NO fallback
-                    throw new Error("CloudConvert Failed and no local fallback is available: " + ccError.message);
+                    console.warn(`CloudConvert failed (${ccError.message}), attempting local LibreOffice fallback...`);
+                    try {
+                        const fileBuffer = fs.readFileSync(filePath);
+                        const resultBuffer = await convertAsync(fileBuffer, `.${outputFormat}`, undefined);
+                        const mimeType = outputFormat === 'pdf' ? 'application/pdf' : `image/${outputFormat === 'jpg' ? 'jpeg' : outputFormat}`;
+                        res.setHeader("Content-Type", mimeType);
+                        res.setHeader("Content-Disposition", `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
+                        return res.send(resultBuffer);
+                    } catch (fallbackError: any) {
+                        throw new Error(`CloudConvert Failed (${ccError.message}) and local fallback failed (${fallbackError.message})`);
+                    }
                 }
             } else {
                 throw new Error("CloudConvert API Key is missing. Conversion cannot proceed.");
@@ -123,13 +137,15 @@ export class CloudConvertController {
 
     convertEbook = async (req: Request, res: Response, inputFormat: string, outputFormat: string) => {
         let filePath: string | undefined;
+        let originalName = `document.${inputFormat}`;
+
         try {
             if (!req.file || !req.file.path) {
                 return res.status(400).json({ error: "No file uploaded" });
             }
 
             filePath = req.file.path;
-            const originalName = req.file.originalname;
+            originalName = req.file.originalname;
 
             console.log(`Starting conversion: ${originalName} (${inputFormat}) to ${outputFormat} via CloudConvert`);
 
@@ -208,12 +224,28 @@ export class CloudConvertController {
             }
 
         } catch (error: any) {
-            console.error(`${inputFormat.toUpperCase()} to ${outputFormat.toUpperCase()} conversion error:`, error);
-            if (!res.headersSent) {
-                res.status(500).json({
-                    error: "Conversion failed",
-                    message: error.message || "An unexpected error occurred during conversion",
-                });
+            console.warn(`CloudConvert failed (${error.message}), attempting local LibreOffice fallback for ${inputFormat} to ${outputFormat}...`);
+            try {
+                const fileBuffer = fs.readFileSync(filePath!);
+                const resultBuffer = await convertAsync(fileBuffer, `.${outputFormat}`, undefined);
+
+                const mimeTypes: Record<string, string> = {
+                    'pdf': 'application/pdf',
+                    'epub': 'application/epub+zip',
+                    'mobi': 'application/x-mobipocket-ebook',
+                    'azw3': 'application/vnd.amazon.ebook'
+                };
+                res.setHeader("Content-Type", mimeTypes[outputFormat] || "application/octet-stream");
+                res.setHeader("Content-Disposition", `attachment; filename=${req.file!.originalname.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
+                return res.send(resultBuffer);
+            } catch (fallbackError: any) {
+                console.error("Local fallback also failed:", fallbackError);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        error: "Conversion failed",
+                        message: `CloudConvert: ${error.message}. Local: ${fallbackError.message}`,
+                    });
+                }
             }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
@@ -255,13 +287,15 @@ export class CloudConvertController {
 
     convertOutlookToPdf = async (req: Request, res: Response) => {
         let filePath: string | undefined;
+        let originalName = "document.msg";
+
         try {
             if (!req.file || !req.file.path) {
                 return res.status(400).json({ error: "No file uploaded" });
             }
 
             filePath = req.file.path;
-            const originalName = req.file.originalname;
+            originalName = req.file.originalname;
             const inputFormat = originalName.split('.').pop()?.toLowerCase() || 'msg';
 
             console.log(`Starting Outlook conversion: ${originalName} to PDF`);
@@ -307,28 +341,41 @@ export class CloudConvertController {
                 throw new Error("No output file URL found");
             }
         } catch (error: any) {
-            console.error("Outlook to PDF error:", error);
-            if (!res.headersSent) {
-                res.status(500).json({ error: "Conversion failed", message: error.message });
+            console.warn(`CloudConvert failed (${error.message}), attempting local LibreOffice fallback for Outlook to PDF...`);
+            try {
+                const fileBuffer = fs.readFileSync(filePath!);
+                const resultBuffer = await convertAsync(fileBuffer, `.pdf`, undefined);
+                res.setHeader("Content-Type", "application/pdf");
+                res.setHeader("Content-Disposition", `attachment; filename=${req.file!.originalname.replace(/\.[^/.]+$/, '')}.pdf`);
+                return res.send(resultBuffer);
+            } catch (fallbackError: any) {
+                console.error("Local fallback also failed:", fallbackError);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: "Conversion failed", message: `CloudConvert: ${error.message}. Local: ${fallbackError.message}` });
+                }
             }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) {}
+                try { fs.unlinkSync(filePath); } catch (e) { }
             }
         }
     }
 
     convertImage = async (req: Request, res: Response) => {
         let filePath: string | undefined;
+        let originalName = "image.tiff";
+        let outputFormat = "jpg";
+        let quality: string | undefined;
+
         try {
             if (!req.file || !req.file.path) {
                 return res.status(400).json({ error: "No file uploaded" });
             }
 
             filePath = req.file.path;
-            const originalName = req.file.originalname;
-            const outputFormat = req.body.format || "jpg";
-            const quality = req.body.quality;
+            originalName = req.file.originalname;
+            outputFormat = req.body.format || "jpg";
+            quality = req.body.quality;
             const inputFormat = originalName.split('.').pop()?.toLowerCase() || 'tiff';
 
             console.log(`Starting Image conversion: ${originalName} (${inputFormat}) to ${outputFormat} with quality ${quality || 'default'}`);
@@ -376,13 +423,32 @@ export class CloudConvertController {
                 throw new Error("No output file URL found");
             }
         } catch (error: any) {
-            console.error("Image conversion error:", error);
-            if (!res.headersSent) {
-                res.status(500).json({ error: "Conversion failed", message: error.message });
+            console.warn(`CloudConvert failed (${error.message}), attempting local Sharp fallback for Image...`);
+            try {
+                const fileBuffer = fs.readFileSync(filePath!);
+                let sharpInstance = sharp(fileBuffer);
+                const outFormat = outputFormat === 'jpg' ? 'jpeg' : outputFormat;
+                if (outFormat === 'jpeg') {
+                    sharpInstance = sharpInstance.jpeg({ quality: quality ? parseInt(quality) : 100 });
+                } else if (outFormat === 'png') {
+                    sharpInstance = sharpInstance.png();
+                } else if (outFormat === 'webp') {
+                    sharpInstance = sharpInstance.webp({ quality: quality ? parseInt(quality) : 100 });
+                }
+                const resultBuffer = await sharpInstance.toBuffer();
+                const mimeType = `image/${outFormat}`;
+                res.setHeader("Content-Type", mimeType);
+                res.setHeader("Content-Disposition", `attachment; filename=${req.file!.originalname.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
+                return res.send(resultBuffer);
+            } catch (fallbackError: any) {
+                console.error("Local fallback also failed:", fallbackError);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: "Conversion failed", message: `CloudConvert: ${error.message}. Local: ${fallbackError.message}` });
+                }
             }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) {}
+                try { fs.unlinkSync(filePath); } catch (e) { }
             }
         }
     }

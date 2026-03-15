@@ -4,7 +4,7 @@ dotenv.config();
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./utils/vite";
+import { setupVite, serveStatic, log } from "./vite";
 
 // Support subpath deployment (e.g., BASE_PATH=/tools for abc.com/tools)
 const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");

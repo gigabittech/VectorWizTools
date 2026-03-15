@@ -5,6 +5,10 @@ import path from "path";
 import axios from "axios";
 import CloudConvert from "cloudconvert";
 import { PDFDocument, PDFName, PDFDict, PDFStream, PDFArray } from "pdf-lib";
+import libre from "libreoffice-convert";
+import { promisify } from "util";
+
+const convertAsync = promisify(libre.convert);
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -17,51 +21,6 @@ export const upload = multer({ dest: "uploads/" });
 export class PdfToolsController {
     
     private async convertWithCloudConvert(filePath: string, originalName: string, inputFormat: string, outputFormat: string, res: any) {
-        if (!process.env.CLOUDCONVERT_API_KEY) {
-            throw new Error("CloudConvert API Key is missing in .env");
-        }
-        const cc = new CloudConvert(process.env.CLOUDCONVERT_API_KEY);
-
-        const job = await cc.jobs.create({
-            tasks: {
-                "import-my-file": {
-                    operation: "import/upload"
-                },
-                "convert-my-file": {
-                    operation: "convert",
-                    input: "import-my-file",
-                    input_format: inputFormat as any,
-                    output_format: outputFormat,
-                },
-                "export-my-file": {
-                    operation: "export/url",
-                    input: "convert-my-file"
-                }
-            }
-        });
-
-        const uploadTask = job.tasks.find((task: any) => task.name === "import-my-file");
-        if (!uploadTask) throw new Error("Import task not found");
-
-        const uploadStream = fs.createReadStream(filePath);
-        await cc.tasks.upload(uploadTask, uploadStream, originalName);
-
-        const finishedJob = await cc.jobs.wait(job.id);
-
-        if (finishedJob.status === 'error') {
-            const errorTask = finishedJob.tasks.find((t: any) => t.status === 'error');
-            throw new Error(errorTask?.message || "CloudConvert Job Failed");
-        }
-
-        const exportTask = finishedJob.tasks.find((task: any) => task.name === "export-my-file");
-        const fileUrl = exportTask?.result?.files?.[0]?.url;
-
-        if (!fileUrl) {
-            throw new Error("No output file URL found in CloudConvert response");
-        }
-
-        const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
-
         const mimeTypes: Record<string, string> = {
             'pdf': 'application/pdf',
             'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -73,10 +32,72 @@ export class PdfToolsController {
 
         const convertedFileName = `converted_${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`;
 
-        res.setHeader("Content-Type", mimeTypes[outputFormat] || "application/octet-stream");
-        res.setHeader("Content-Disposition", `attachment; filename=${convertedFileName}`);
+        try {
+            if (!process.env.CLOUDCONVERT_API_KEY) {
+                throw new Error("CloudConvert API Key is missing in .env");
+            }
+            const cc = new CloudConvert(process.env.CLOUDCONVERT_API_KEY);
 
-        return downloadResponse.data.pipe(res);
+            const job = await cc.jobs.create({
+                tasks: {
+                    "import-my-file": {
+                        operation: "import/upload"
+                    },
+                    "convert-my-file": {
+                        operation: "convert",
+                        input: "import-my-file",
+                        input_format: inputFormat as any,
+                        output_format: outputFormat,
+                    },
+                    "export-my-file": {
+                        operation: "export/url",
+                        input: "convert-my-file"
+                    }
+                }
+            });
+
+            const uploadTask = job.tasks.find((task: any) => task.name === "import-my-file");
+            if (!uploadTask) throw new Error("Import task not found");
+
+            const uploadStream = fs.createReadStream(filePath);
+            await cc.tasks.upload(uploadTask, uploadStream, originalName);
+
+            const finishedJob = await cc.jobs.wait(job.id);
+
+            if (finishedJob.status === 'error') {
+                const errorTask = finishedJob.tasks.find((t: any) => t.status === 'error');
+                throw new Error(errorTask?.message || "CloudConvert Job Failed");
+            }
+
+            const exportTask = finishedJob.tasks.find((task: any) => task.name === "export-my-file");
+            const fileUrl = exportTask?.result?.files?.[0]?.url;
+
+            if (!fileUrl) {
+                throw new Error("No output file URL found in CloudConvert response");
+            }
+
+            const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
+
+            res.setHeader("Content-Type", mimeTypes[outputFormat] || "application/octet-stream");
+            res.setHeader("Content-Disposition", `attachment; filename=${convertedFileName}`);
+
+            return downloadResponse.data.pipe(res);
+        } catch (ccError: any) {
+            console.warn(`CloudConvert failed (${ccError.message}), attempting local LibreOffice fallback...`);
+            
+            try {
+                const fileBuffer = fs.readFileSync(filePath);
+                // The third argument is a filter, which is undefined for most simple cases
+                const resultBuffer = await convertAsync(fileBuffer, `.${outputFormat}`, undefined);
+                
+                res.setHeader("Content-Type", mimeTypes[outputFormat] || "application/octet-stream");
+                res.setHeader("Content-Disposition", `attachment; filename=${convertedFileName}`);
+                return res.send(resultBuffer);
+            } catch (fallbackError: any) {
+                console.error("Local fallback also failed:", fallbackError);
+                throw new Error(`Conversion failed. CloudConvert error: ${ccError.message}. Local fallback error: ${fallbackError.message}`);
+            }
+        }
     }
 
     convertPdfToPptx = async (req: any, res: any) => {
