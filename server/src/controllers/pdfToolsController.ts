@@ -2,23 +2,9 @@ import { Request, Response } from "express";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-import { Document, Packer, Paragraph, TextRun } from "docx";
-// @ts-ignore
-import docxPdf from "docx-pdf";
-import { promisify } from "util";
-import { createRequire } from "module";
+import axios from "axios";
+import CloudConvert from "cloudconvert";
 import { PDFDocument, PDFName, PDFDict, PDFStream, PDFArray } from "pdf-lib";
-
-const require = createRequire(import.meta.url);
-const pdfLib = require("pdf-parse");
-// @ts-ignore
-const PDFParser = (pdfLib.default && pdfLib.default.PDFParse) || pdfLib.PDFParse;
-
-const docxToPdfAsync = promisify(docxPdf);
-
-const libre = require("libreoffice-convert");
-const libreConvertAsync = promisify(libre.convert);
-
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -29,7 +15,71 @@ if (!fs.existsSync(uploadDir)) {
 export const upload = multer({ dest: "uploads/" });
 
 export class PdfToolsController {
-    async convertPdfToPptx(req: any, res: any) {
+    
+    private async convertWithCloudConvert(filePath: string, originalName: string, inputFormat: string, outputFormat: string, res: any) {
+        if (!process.env.CLOUDCONVERT_API_KEY) {
+            throw new Error("CloudConvert API Key is missing in .env");
+        }
+        const cc = new CloudConvert(process.env.CLOUDCONVERT_API_KEY);
+
+        const job = await cc.jobs.create({
+            tasks: {
+                "import-my-file": {
+                    operation: "import/upload"
+                },
+                "convert-my-file": {
+                    operation: "convert",
+                    input: "import-my-file",
+                    input_format: inputFormat as any,
+                    output_format: outputFormat,
+                },
+                "export-my-file": {
+                    operation: "export/url",
+                    input: "convert-my-file"
+                }
+            }
+        });
+
+        const uploadTask = job.tasks.find((task: any) => task.name === "import-my-file");
+        if (!uploadTask) throw new Error("Import task not found");
+
+        const uploadStream = fs.createReadStream(filePath);
+        await cc.tasks.upload(uploadTask, uploadStream, originalName);
+
+        const finishedJob = await cc.jobs.wait(job.id);
+
+        if (finishedJob.status === 'error') {
+            const errorTask = finishedJob.tasks.find((t: any) => t.status === 'error');
+            throw new Error(errorTask?.message || "CloudConvert Job Failed");
+        }
+
+        const exportTask = finishedJob.tasks.find((task: any) => task.name === "export-my-file");
+        const fileUrl = exportTask?.result?.files?.[0]?.url;
+
+        if (!fileUrl) {
+            throw new Error("No output file URL found in CloudConvert response");
+        }
+
+        const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
+
+        const mimeTypes: Record<string, string> = {
+            'pdf': 'application/pdf',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'epub': 'application/epub+zip',
+            'mobi': 'application/x-mobipocket-ebook',
+            'azw3': 'application/vnd.amazon.ebook'
+        };
+
+        const convertedFileName = `converted_${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`;
+
+        res.setHeader("Content-Type", mimeTypes[outputFormat] || "application/octet-stream");
+        res.setHeader("Content-Disposition", `attachment; filename=${convertedFileName}`);
+
+        return downloadResponse.data.pipe(res);
+    }
+
+    convertPdfToPptx = async (req: any, res: any) => {
         let filePath: string | undefined;
         try {
             if (!req.file || !req.file.path) {
@@ -37,36 +87,25 @@ export class PdfToolsController {
             }
 
             filePath = req.file.path;
-            const dataBuffer = fs.readFileSync(filePath as string);
+            const originalName = req.file.originalname || "document.pdf";
 
-            // Convert PDF to PPTX using LibreOffice for superior structure and clear text
-            const pptxBuffer = await libreConvertAsync(dataBuffer, ".pptx", undefined);
-
-            res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
-            res.setHeader(
-                "Content-Disposition",
-                `attachment; filename=converted_from_pdf.pptx`
-            );
-
-            res.send(pptxBuffer);
+            await this.convertWithCloudConvert(filePath as string, originalName, 'pdf', 'pptx', res);
         } catch (error: any) {
             console.error("PDF to PPTX conversion error:", error);
-            res.status(500).json({
-                error: "Conversion failed",
-                message: error.message,
-            });
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message,
+                });
+            }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
-                try {
-                    fs.unlinkSync(filePath);
-                } catch (e) {
-                    console.error("Failed to delete temp file:", e);
-                }
+                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
 
-    async convertPdfToWord(req: any, res: any) {
+    convertPdfToWord = async (req: any, res: any) => {
         let filePath: string | undefined;
         try {
             if (!req.file || !req.file.path) {
@@ -74,36 +113,25 @@ export class PdfToolsController {
             }
 
             filePath = req.file.path;
-            const dataBuffer = fs.readFileSync(filePath as string);
+            const originalName = req.file.originalname || "document.pdf";
 
-            // Convert PDF to DOCX using LibreOffice for better results
-            const wordBuffer = await libreConvertAsync(dataBuffer, ".docx", undefined);
-
-            res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-            res.setHeader(
-                "Content-Disposition",
-                `attachment; filename=converted_from_pdf.docx`
-            );
-
-            res.send(wordBuffer);
+            await this.convertWithCloudConvert(filePath as string, originalName, 'pdf', 'docx', res);
         } catch (error: any) {
             console.error("PDF to Word conversion error:", error);
-            res.status(500).json({
-                error: "Conversion failed",
-                message: error.message,
-            });
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message,
+                });
+            }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
-                try {
-                    fs.unlinkSync(filePath);
-                } catch (e) {
-                    console.error("Failed to delete temp file:", e);
-                }
+                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
 
-    async convertWordToPdf(req: any, res: any) {
+    convertWordToPdf = async (req: any, res: any) => {
         let filePath: string | undefined;
         try {
             if (!req.file || !req.file.path) {
@@ -111,36 +139,25 @@ export class PdfToolsController {
             }
 
             filePath = req.file.path;
-            const dataBuffer = fs.readFileSync(filePath as string);
+            const originalName = req.file.originalname || "document.docx";
 
-            // Convert using libreoffice-convert for much better results
-            const pdfBuffer = await libreConvertAsync(dataBuffer, ".pdf", undefined);
-
-            res.setHeader("Content-Type", "application/pdf");
-            res.setHeader(
-                "Content-Disposition",
-                `attachment; filename=converted_from_word.pdf`
-            );
-
-            res.send(pdfBuffer);
+            await this.convertWithCloudConvert(filePath as string, originalName, 'docx', 'pdf', res);
         } catch (error: any) {
             console.error("Word to PDF conversion error:", error);
-            res.status(500).json({
-                error: "Conversion failed",
-                message: error.message,
-            });
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message,
+                });
+            }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
-                try {
-                    fs.unlinkSync(filePath);
-                } catch (e) {
-                    console.error("Failed to delete temp file:", e);
-                }
+                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
 
-    async convertPptxToPdf(req: any, res: any) {
+    convertPptxToPdf = async (req: any, res: any) => {
         let filePath: string | undefined;
         try {
             if (!req.file || !req.file.path) {
@@ -148,36 +165,25 @@ export class PdfToolsController {
             }
 
             filePath = req.file.path;
-            const dataBuffer = fs.readFileSync(filePath as string);
+            const originalName = req.file.originalname || "document.pptx";
 
-            // Convert PPTX to PDF using LibreOffice
-            const pdfBuffer = await libreConvertAsync(dataBuffer, ".pdf", undefined);
-
-            res.setHeader("Content-Type", "application/pdf");
-            res.setHeader(
-                "Content-Disposition",
-                `attachment; filename=converted_from_pptx.pdf`
-            );
-
-            res.send(pdfBuffer);
+            await this.convertWithCloudConvert(filePath as string, originalName, 'pptx', 'pdf', res);
         } catch (error: any) {
             console.error("PPTX to PDF conversion error:", error);
-            res.status(500).json({
-                error: "Conversion failed",
-                message: error.message,
-            });
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message,
+                });
+            }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
-                try {
-                    fs.unlinkSync(filePath);
-                } catch (e) {
-                    console.error("Failed to delete temp file:", e);
-                }
+                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
 
-    async removeWatermark(req: any, res: any) {
+    removeWatermark = async (req: any, res: any) => {
         let filePath: string | undefined;
         try {
             if (!req.file || !req.file.path) {
@@ -287,10 +293,12 @@ export class PdfToolsController {
             res.send(Buffer.from(pdfBytes));
         } catch (error: any) {
             console.error("PDF watermark removal error:", error);
-            res.status(500).json({
-                error: "Failed to remove watermark",
-                message: error.message,
-            });
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Failed to remove watermark",
+                    message: error.message,
+                });
+            }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
                 try {
@@ -302,7 +310,7 @@ export class PdfToolsController {
         }
     }
 
-    async convertMobiToPdf(req: any, res: any) {
+    convertMobiToPdf = async (req: any, res: any) => {
         let filePath: string | undefined;
         try {
             if (!req.file || !req.file.path) {
@@ -310,130 +318,43 @@ export class PdfToolsController {
             }
 
             filePath = req.file.path;
-            const dataBuffer = fs.readFileSync(filePath as string);
+            const originalName = req.file.originalname || "document.mobi";
 
-            // MOBI to PDF conversion using LibreOffice if supported (unlikely) 
-            // or we use our fallback logic.
-            // Since we implemented a client-side version, this server-side version 
-            // will try to use LibreOffice which might work in some environments 
-            // if additional filters are installed.
-            const pdfBuffer = await libreConvertAsync(dataBuffer, ".pdf", undefined);
-
-            res.setHeader("Content-Type", "application/pdf");
-            res.setHeader(
-                "Content-Disposition",
-                `attachment; filename=converted_from_mobi.pdf`
-            );
-
-            res.send(pdfBuffer);
+            await this.convertWithCloudConvert(filePath as string, originalName, 'mobi', 'pdf', res);
         } catch (error: any) {
             console.error("MOBI to PDF conversion error:", error);
-            res.status(500).json({
-                error: "Conversion failed",
-                message: "MOBI to PDF conversion failed on server. Please try the client-side conversion instead.",
-            });
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message,
+                });
+            }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
-                try {
-                    fs.unlinkSync(filePath);
-                } catch (e) {
-                    console.error("Failed to delete temp file:", e);
-                }
+                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
 
-    async convertPdfToMobi(req: any, res: any) {
+    convertPdfToMobi = async (req: any, res: any) => {
         let filePath: string | undefined;
         try {
             if (!req.file || !req.file.path) {
-                console.error("PDF to MOBI: No file uploaded");
                 return res.status(400).json({ error: "No file uploaded" });
             }
 
             filePath = req.file.path;
-            console.log("PDF to MOBI: Manual conversion started for", req.file.originalname);
-            const dataBuffer = fs.readFileSync(filePath as string);
+            const originalName = req.file.originalname || "document.pdf";
 
-            // PDF to MOBI: Extract text and convert to MOBI format
-            let text = "";
-            try {
-                const parser = new PDFParser({ data: Uint8Array.from(dataBuffer) });
-                const pdfData = await parser.getText();
-                text = pdfData.text || "No text content found in PDF";
-                await parser.destroy();
-                console.log("PDF to MOBI: Text extraction successful, length:", text.length);
-            } catch (pErr: any) {
-                console.warn("PDF to MOBI: Parser error, attempting partial extraction", pErr);
-                text = dataBuffer.toString('utf8', 0, 10000); // Very rough fallback
-            }
-
-            // Basic HTML wrapper for the content
-            const htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${req.file.originalname.replace(".pdf", "")}</title>
-                </head>
-                <body>
-                    ${text.split('\n').map((line: string) => `<p>${line.trim()}</p>`).join('')}
-                </body>
-                </html>
-            `;
-
-            // PDF to MOBI conversion
-            // Note: Native MOBI generation requires kindlegen which is typically not available in cloud/serverless environments.
-            // We use the 'docx' library to generate a high-fidelity Microsoft Word document.
-            // Modern Kindle devices natively support DOCX and it preserves formatting much better than raw MOBI without kindlegen.
-
-            console.log("PDF to MOBI: Generating Kindle-compatible DOCX");
-
-            try {
-                // Split text into paragraphs and create document
-                const paragraphs = text.split('\n')
-                    .map(line => line.trim())
-                    .filter(line => line.length > 0)
-                    .map(line => new Paragraph({
-                        children: [new TextRun({
-                            text: line,
-                            size: 24, // 12pt
-                        })],
-                        spacing: { after: 200 },
-                    }));
-
-                const doc = new Document({
-                    sections: [{
-                        properties: {},
-                        children: [
-                            new Paragraph({
-                                children: [new TextRun({
-                                    text: req.file.originalname.replace(".pdf", ""),
-                                    bold: true,
-                                    size: 32,
-                                })],
-                                spacing: { after: 400 },
-                            }),
-                            ...paragraphs
-                        ],
-                    }],
-                });
-
-                const docxBuffer = await Packer.toBuffer(doc);
-                console.log("PDF to MOBI: DOCX generation successful");
-
-                // We send it with the correct DOCX mimetype
-                // The frontend will handle the extension correctly
-                res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-                res.setHeader("Content-Disposition", `attachment; filename=${req.file.originalname.replace(".pdf", "")}.docx`);
-                return res.send(docxBuffer);
-            } catch (docxErr: any) {
-                console.error("PDF to MOBI: DOCX generation failed", docxErr);
-                throw new Error(`Conversion failed: ${docxErr.message || "Unknown error"}`);
-            }
+            await this.convertWithCloudConvert(filePath as string, originalName, 'pdf', 'mobi', res);
         } catch (error: any) {
-            console.error("PDF to MOBI final error:", error);
-            res.status(500).json({ error: "Conversion failed", message: error.message });
+            console.error("PDF to MOBI conversion error:", error);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message,
+                });
+            }
         } finally {
             if (filePath && fs.existsSync(filePath)) {
                 try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
@@ -443,4 +364,3 @@ export class PdfToolsController {
 }
 
 export const pdfToolsController = new PdfToolsController();
-

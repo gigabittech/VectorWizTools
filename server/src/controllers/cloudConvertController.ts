@@ -7,10 +7,8 @@ import { promisify } from "util";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const libre = require("libreoffice-convert");
-const libreConvertAsync = promisify(libre.convert);
 
-console.log("CloudConvertController V3 Loaded with LibreOffice Fallback");
+console.log("CloudConvertController V3 Loaded");
 
 export class CloudConvertController {
     private getClient = () => {
@@ -101,28 +99,12 @@ export class CloudConvertController {
                         return downloadResponse.data.pipe(res);
                     }
                 } catch (ccError: any) {
-                    console.warn("CloudConvert failed, falling back to local conversion:", ccError.message);
+                    // If we reached here, CloudConvert didn't work and we have NO fallback
+                    throw new Error("CloudConvert Failed and no local fallback is available: " + ccError.message);
                 }
+            } else {
+                throw new Error("CloudConvert API Key is missing. Conversion cannot proceed.");
             }
-
-            // Option 2: Fallback to LibreOffice (Local)
-            console.log("Attempting local LibreOffice conversion...");
-            const dataBuffer = fs.readFileSync(filePath);
-
-            // Format mapping for LibreOffice
-            let targetExt = `.${outputFormat}`;
-            if (outputFormat === 'jpg') targetExt = '.jpg';
-
-            const convertedBuffer = await libreConvertAsync(dataBuffer, targetExt, undefined);
-
-            const mimeType = outputFormat === 'pdf' ? 'application/pdf' : `image/${outputFormat === 'jpg' ? 'jpeg' : outputFormat}`;
-            res.setHeader("Content-Type", mimeType);
-            res.setHeader(
-                "Content-Disposition",
-                `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`
-            );
-
-            res.send(convertedBuffer);
 
         } catch (error: any) {
             console.error("VSDX conversion error:", error);
