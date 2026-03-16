@@ -54,7 +54,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg" className="text-xs sm:text-sm">
                   Calculate optimal DPI for print projects and determine if vectorization is needed for professional quality.
                 </Text>
-                <Button component={Link} href="/tools/dpi-calculator" fullWidth color="blue" size="sm" data-testid="dpi-calculator-link">
+                <Button component={Link} href="/dpi-calculator" fullWidth color="blue" size="sm" data-testid="dpi-calculator-link">
                   Use DPI Calculator
                 </Button>
               </Paper>
@@ -74,7 +74,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg" className="text-xs sm:text-sm">
                   Get accurate delivery estimates based on service type, complexity, and current queue status.
                 </Text>
-                <Button component={Link} href="/tools/turnaround-estimator" fullWidth color="purple" size="sm" data-testid="turnaround-estimator-link">
+                <Button component={Link} href="/turnaround-estimator" fullWidth color="purple" size="sm" data-testid="turnaround-estimator-link">
                   Get Time Estimate
                 </Button>
               </Paper>
@@ -94,7 +94,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg" className="text-xs sm:text-sm">
                   Upload files to instantly verify if they're true vectors or raster images and get recommendations.
                 </Text>
-                <Button component={Link} href="/tools/vector-checker" fullWidth color="green" size="sm" data-testid="vector-checker-link">
+                <Button component={Link} href="/vector-checker" fullWidth color="green" size="sm" data-testid="vector-checker-link">
                   Check File Format
                 </Button>
               </Paper>
@@ -121,7 +121,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg">
                   Convert between SVG, PNG, JPG, WebP, PDF, and EPS formats instantly with professional quality.
                 </Text>
-                <Button component={Link} href="/tools/format-converter" fullWidth color="blue" data-testid="format-converter-link">
+                <Button component={Link} href="/format-converter" fullWidth color="blue" data-testid="format-converter-link">
                   Convert Formats
                 </Button>
               </Paper>
@@ -141,7 +141,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg">
                   Extract dominant colors from images and create professional color palettes for your brand.
                 </Text>
-                <Button component={Link} href="/tools/color-extractor" fullWidth color="purple" data-testid="color-extractor-link">
+                <Button component={Link} href="/color-extractor" fullWidth color="purple" data-testid="color-extractor-link">
                   Extract Colors
                 </Button>
               </Paper>
@@ -161,7 +161,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg">
                   Calculate estimated file sizes for different formats and compression settings.
                 </Text>
-                <Button component={Link} href="/tools/file-size-calculator" fullWidth color="orange" data-testid="file-size-calculator-link">
+                <Button component={Link} href="/file-size-calculator" fullWidth color="orange" data-testid="file-size-calculator-link">
                   Calculate Sizes
                 </Button>
               </Paper>
@@ -181,7 +181,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg">
                   Calculate maximum print dimensions and check compatibility with standard formats.
                 </Text>
-                <Button component={Link} href="/tools/print-size-calculator" fullWidth color="green" data-testid="print-size-calculator-link">
+                <Button component={Link} href="/print-size-calculator" fullWidth color="green" data-testid="print-size-calculator-link">
                   Calculate Print Size
                 </Button>
               </Paper>
@@ -201,7 +201,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg">
                   Complete guide for logo sizes across social media, business materials, and web platforms.
                 </Text>
-                <Button component={Link} href="/tools/logo-dimensions" fullWidth color="pink" data-testid="logo-dimensions-link">
+                <Button component={Link} href="/logo-dimensions" fullWidth color="pink" data-testid="logo-dimensions-link">
                   Get Logo Sizes
                 </Button>
               </Paper>
@@ -221,7 +221,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg">
                   Optimize SVG files for web performance by reducing file sizes without quality loss.
                 </Text>
-                <Button component={Link} href="/tools/vector-simplifier" fullWidth color="yellow" data-testid="vector-simplifier-link">
+                <Button component={Link} href="/vector-simplifier" fullWidth color="yellow" data-testid="vector-simplifier-link">
                   Simplify Vectors
                 </Button>
               </Paper>
@@ -241,7 +241,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg">
                   Calculate aspect ratios and resize images proportionally for any platform or use case.
                 </Text>
-                <Button component={Link} href="/tools/aspect-ratio-calculator" fullWidth color="teal" data-testid="aspect-ratio-calculator-link">
+                <Button component={Link} href="/aspect-ratio-calculator" fullWidth color="teal" data-testid="aspect-ratio-calculator-link">
                   Calculate Ratios
                 </Button>
               </Paper>
@@ -261,7 +261,7 @@ export default function Tools() {
                 <Text size="sm" c="dimmed" mb="lg">
                   Convert text and fonts into editable vector graphics for logo creation and sign making.
                 </Text>
-                <Button component={Link} href="/tools/font-to-vector" fullWidth color="red" data-testid="font-to-vector-link">
+                <Button component={Link} href="/font-to-vector" fullWidth color="red" data-testid="font-to-vector-link">
                   Convert Text
                 </Button>
               </Paper>

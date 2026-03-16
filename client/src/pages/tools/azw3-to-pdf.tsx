@@ -27,7 +27,7 @@ export default function AZW3ToPDF() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/tools/api/tools/azw3-to-pdf", {
+      const response = await fetch("/api/tools/azw3-to-pdf", {
         method: "POST",
         body: formData,
       });

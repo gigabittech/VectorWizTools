@@ -221,7 +221,7 @@ export default function ColorExtractorPage() {
             <Button component={Link} href="/order/new" size="md" color="green" radius="xl">
               Get Brand Color Consultation
             </Button>
-            <Button component={Link} href="/tools/logo-dimensions" variant="outline" size="md" radius="xl">
+            <Button component={Link} href="/logo-dimensions" variant="outline" size="md" radius="xl">
               Check Logo Dimensions
             </Button>
           </Group>

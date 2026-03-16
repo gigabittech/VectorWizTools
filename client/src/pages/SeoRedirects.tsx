@@ -18,11 +18,11 @@ export default function SeoRedirects() {
 
     // Queries
     const { data: seoSettings = {}, isLoading: seoLoading } = useQuery<any>({
-        queryKey: ["/tools/api/seo-settings"],
+        queryKey: ["/api/seo-settings"],
     });
 
     const { data: redirects = [], isLoading: redirectsLoading } = useQuery<any[]>({
-        queryKey: ["/tools/api/redirects"],
+        queryKey: ["/api/redirects"],
     });
 
     // Forms
@@ -63,17 +63,17 @@ export default function SeoRedirects() {
 
     // Mutations
     const updateSeoMutation = useMutation({
-        mutationFn: (data: any) => apiRequest("PATCH", "/tools/api/seo-settings", data),
+        mutationFn: (data: any) => apiRequest("PATCH", "/api/seo-settings", data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/seo-settings"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/seo-settings"] });
             toast({ title: "Success", description: "Global SEO settings updated" });
         }
     });
 
     const createRedirectMutation = useMutation({
-        mutationFn: (data: any) => apiRequest("POST", "/tools/api/redirects", data),
+        mutationFn: (data: any) => apiRequest("POST", "/api/redirects", data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/redirects"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/redirects"] });
             setRedirectModalOpened(false);
             redirectForm.reset();
             toast({ title: "Success", description: "Redirect created" });
@@ -81,9 +81,9 @@ export default function SeoRedirects() {
     });
 
     const updateRedirectMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string, data: any }) => apiRequest("PATCH", `/tools/api/redirects/${id}`, data),
+        mutationFn: ({ id, data }: { id: string, data: any }) => apiRequest("PATCH", `/api/redirects/${id}`, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/redirects"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/redirects"] });
             setRedirectModalOpened(false);
             setEditingRedirect(null);
             redirectForm.reset();
@@ -92,9 +92,9 @@ export default function SeoRedirects() {
     });
 
     const deleteRedirectMutation = useMutation({
-        mutationFn: (id: string) => apiRequest("DELETE", `/tools/api/redirects/${id}`),
+        mutationFn: (id: string) => apiRequest("DELETE", `/api/redirects/${id}`),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/redirects"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/redirects"] });
             toast({ title: "Success", description: "Redirect deleted" });
         }
     });
