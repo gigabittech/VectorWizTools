@@ -84,7 +84,7 @@ export default function AIImageGenerator() {
     setImageBlob(null);
 
     try {
-      const response = await apiRequest("POST", "/tools/api/tools/ai-image-generator", {
+      const response = await apiRequest("POST", "/api/tools/ai-image-generator", {
         prompt: prompt.trim(),
         model,
         size,
@@ -223,7 +223,7 @@ export default function AIImageGenerator() {
       }
 
       try {
-        const proxyResponse = await apiRequest("GET", `/tools/api/tools/ai-image-proxy?url=${encodeURIComponent(generatedImage)}`);
+        const proxyResponse = await apiRequest("GET", `/api/tools/ai-image-proxy?url=${encodeURIComponent(generatedImage)}`);
         const blob = await proxyResponse.blob();
         const filename = `ai-generated-${Date.now()}.png`;
         downloadFile(blob, filename);

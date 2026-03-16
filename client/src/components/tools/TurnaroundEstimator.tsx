@@ -19,7 +19,7 @@ export default function TurnaroundEstimator() {
 
   const estimateMutation = useMutation({
     mutationFn: async (data: { service: string; complexity: string; fileCount: number }) => {
-      const response = await apiRequest("POST", "/tools/api/tools/turnaround", data);
+      const response = await apiRequest("POST", "/api/tools/turnaround", data);
       return response.json();
     },
   });

@@ -1,15 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
-import { storage } from "../data/storage";
+import { storage } from "./storage";
 import { insertQuoteRequestSchema, loginSchema } from "@shared/schema";
-import { sendQuoteRequestNotification } from "../services/emailService";
-import { generateAIImage } from "../services/aiImageService";
-import { comparePassword, generateToken } from "../utils/auth";
-import { protect } from "../middlewares/auth";
-import { toolController } from "../controllers/toolController";
-import { pdfToolsController, upload } from "../controllers/pdfToolsController";
-import { cloudConvertController } from "../controllers/cloudConvertController";
+import { sendQuoteRequestNotification } from "./emailService";
+import { generateAIImage } from "./aiImageService";
+import { comparePassword, generateToken } from "./authUtils";
+import { protect } from "./authMiddleware";
+import { toolController } from "./toolController";
+import { pdfToolsController, upload } from "./pdfToolsController";
+import { cloudConvertController } from "./cloudConvertController";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // --- Auth Routes ---

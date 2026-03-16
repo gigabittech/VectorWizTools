@@ -30,7 +30,7 @@ export default function MOBIToPDF() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/tools/api/tools/mobi-to-pdf", {
+      const response = await fetch("/api/tools/mobi-to-pdf", {
         method: "POST",
         body: formData,
       });

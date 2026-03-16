@@ -1,5 +1,5 @@
-import { storage } from "../data/storage";
-import { hashPassword } from "../utils/auth";
+import { storage } from "./storage";
+import { hashPassword } from "./authUtils";
 
 const imageTools = [
     { name: "AI Image Generator", description: "Create AI generated images", category: "Image Tools", route: "/tools/ai-image-generator", icon: "🎨" },

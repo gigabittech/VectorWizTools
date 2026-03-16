@@ -31,17 +31,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const navItems = [
         {
             label: "Dashboard",
-            href: "/tools/admin/dashboard",
+            href: "/admin/dashboard",
             icon: LayoutDashboard
         },
         {
             label: "Tools Management",
-            href: "/tools/admin/management",
+            href: "/admin/management",
             icon: Settings
         },
         {
             label: "SEO & Redirects",
-            href: "/tools/admin/seo-redirects",
+            href: "/admin/seo-redirects",
             icon: Globe
         }
     ];

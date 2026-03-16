@@ -127,11 +127,11 @@ export default function ToolsLandingPage() {
   const [activeCategory, setActiveCategory] = useState<"all" | "Image Tools" | "PDF Tools">("all");
 
   const { data: dbTools, isLoading } = useQuery<DbTool[]>({
-    queryKey: ["/tools/api/tools?onlyActive=true"],
+    queryKey: ["/api/tools?onlyActive=true"],
   });
 
   const { data: seoSettings } = useQuery<SeoSettings>({
-    queryKey: ["/tools/api/seo-settings"],
+    queryKey: ["/api/seo-settings"],
   });
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export default function ToolsLandingPage() {
     name: t.name,
     description: t.description || "",
     category: t.category as "Image Tools" | "PDF Tools",
-    route: `/tools/${t.slug || t.tool_id}`,
+    route: `/${t.slug || t.tool_id}`,
     icon: (t.slug && toolIcons[t.slug]) || toolIcons[t.tool_id] || "🛠️",
     comingSoon: t.status === "coming-soon"
   }));

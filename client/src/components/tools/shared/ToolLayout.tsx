@@ -52,7 +52,7 @@ export default function ToolLayout({
   }, [location, slug]);
 
   // Fetch CMS data if toolId or slug is provided
-  const queryKey = toolId ? `/tools/api/tools/tool_id/${toolId}` : derivedSlug ? `/tools/api/tools/slug/${derivedSlug}` : null;
+  const queryKey = toolId ? `/api/tools/tool_id/${toolId}` : derivedSlug ? `/api/tools/slug/${derivedSlug}` : null;
   const { data: cmsData, isLoading: isCmsLoading } = useQuery<any>({
     queryKey: [queryKey],
     enabled: !!queryKey,
@@ -60,7 +60,7 @@ export default function ToolLayout({
 
   // Fetch global SEO settings for fallback
   const { data: seoSettings, isLoading: isSeoSettingsLoading } = useQuery<any>({
-    queryKey: ["/tools/api/seo-settings"],
+    queryKey: ["/api/seo-settings"],
   });
 
   const isLoading = isCmsLoading || isSeoSettingsLoading;

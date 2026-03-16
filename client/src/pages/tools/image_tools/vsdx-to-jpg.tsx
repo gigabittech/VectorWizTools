@@ -62,7 +62,7 @@ export default function VSDXtoJPG() {
                 formData.append("file", file);
                 formData.append("format", targetExt);
 
-                const response = await fetch("/tools/api/tools/vsdx-to-jpg", {
+                const response = await fetch("/api/tools/vsdx-to-jpg", {
                     method: "POST",
                     body: formData,
                 });

@@ -29,7 +29,7 @@ export default function QuoteRequestForm() {
 
   const submitMutation = useMutation({
     mutationFn: async (data: InsertQuoteRequest) => {
-      const response = await apiRequest("POST", "/tools/api/quote-requests", data);
+      const response = await apiRequest("POST", "/api/quote-requests", data);
       return response.json();
     },
     onSuccess: () => {

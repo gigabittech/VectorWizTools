@@ -235,7 +235,7 @@ export default function VectorCheckerPage() {
             <Button component={Link} href="/order/new" size="md" color="green" radius="xl">
               Get Vector Conversion
             </Button>
-            <Button component={Link} href="/tools/dpi-calculator" variant="outline" size="md" radius="xl">
+            <Button component={Link} href="/dpi-calculator" variant="outline" size="md" radius="xl">
               Check DPI First
             </Button>
           </Group>

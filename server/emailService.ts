@@ -1,6 +1,7 @@
 import * as brevo from '@getbrevo/brevo';
 
 // Initialize Brevo API client
+// Initialize Brevo API client
 let apiInstance: brevo.TransactionalEmailsApi | null = null;
 
 function initializeBrevo() {
@@ -23,7 +24,7 @@ export async function sendQuoteRequestNotification(quoteData: {
   turnaroundTime: string;
 }) {
   const api = initializeBrevo();
-  
+
   if (!api) {
     console.warn('Brevo API not configured. Skipping email notification.');
     return;

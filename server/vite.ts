@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../../../vite.config";
+import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
@@ -86,7 +86,7 @@ export function serveStatic(app: Express) {
 
   if (!fs.existsSync(distPath)) {
     // Fallback for different deployment structures
-    const fallbackPath = path.resolve(import.meta.dirname, "..", "..", "..", "dist", "public");
+    const fallbackPath = path.resolve(import.meta.dirname, "..", "dist", "public");
     const bundledPath = path.resolve(import.meta.dirname, "public");
 
     if (fs.existsSync(fallbackPath)) {
