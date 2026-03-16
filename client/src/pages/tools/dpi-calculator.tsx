@@ -320,7 +320,7 @@ export default function DPICalculator() {
             <Button component={Link} href="/order/new" size="md" color="green" radius="xl">
               Get Vector Conversion Quote
             </Button>
-            <Button component={Link} href="/tools/vector-checker" variant="outline" size="md" radius="xl">
+            <Button component={Link} href="/vector-checker" variant="outline" size="md" radius="xl">
               Check Vector Format
             </Button>
           </Group>

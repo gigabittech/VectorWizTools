@@ -12,7 +12,7 @@ export default function TurnaroundEstimator() {
 
   const estimateMutation = useMutation({
     mutationFn: async (data: { service: string; complexity: string; fileCount: number }) => {
-      const response = await apiRequest("POST", "/tools/api/tools/turnaround", data);
+      const response = await apiRequest("POST", "/api/tools/turnaround", data);
       return response.json();
     },
   });
@@ -295,7 +295,7 @@ export default function TurnaroundEstimator() {
             <Button component={Link} href="/order/new" size="lg" color="green" data-testid="start-project-cta">
               Start Your Project
             </Button>
-            <Button component={Link} href="/tools/vector-checker" variant="outline" size="lg">
+            <Button component={Link} href="/vector-checker" variant="outline" size="lg">
               Check File Format First
             </Button>
           </Group>

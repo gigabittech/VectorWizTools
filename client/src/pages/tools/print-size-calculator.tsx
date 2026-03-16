@@ -143,7 +143,7 @@ export default function PrintSizeCalculatorPage() {
             <Button component={Link} href="/order/new" size="md" color="green" radius="xl">
               Get Print Preparation Service
             </Button>
-            <Button component={Link} href="/tools/dpi-calculator" variant="outline" size="md" radius="xl">
+            <Button component={Link} href="/dpi-calculator" variant="outline" size="md" radius="xl">
               Check DPI First
             </Button>
           </Group>

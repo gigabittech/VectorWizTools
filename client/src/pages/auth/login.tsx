@@ -35,7 +35,7 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (user) {
-            setLocation("/tools/admin/dashboard");
+            setLocation("/admin/dashboard");
         }
     }, [user, setLocation]);
 

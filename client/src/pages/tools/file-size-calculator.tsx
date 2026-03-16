@@ -83,7 +83,7 @@ export default function FileSizeCalculatorPage() {
             <Button component={Link} href="/order/new" size="md" color="green" radius="xl">
               Get Professional Optimization
             </Button>
-            <Button component={Link} href="/tools/format-converter" variant="outline" size="md" radius="xl">
+            <Button component={Link} href="/format-converter" variant="outline" size="md" radius="xl">
               Convert File Formats
             </Button>
           </Group>

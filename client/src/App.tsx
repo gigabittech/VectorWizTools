@@ -251,7 +251,7 @@ const COMPONENT_MAP: Record<string, React.ComponentType> = {
 
 function Router() {
   const { data: tools, isLoading } = useQuery<any[]>({
-    queryKey: ["/tools/api/tools"],
+    queryKey: ["/api/tools"],
   });
 
   if (isLoading) {
@@ -262,18 +262,20 @@ function Router() {
     );
   }
 
+  console.log(tools, 'log consle');
+
   return (
     <Switch>
       <Route path={`${BASE_PATH}/login`} component={LoginPage} />
 
       {/* Admin Routes (Uses separate AdminLayout internally) */}
-      <Route path="/tools/admin/dashboard">
+      <Route path="/admin/dashboard">
         {() => <ProtectedRoute component={Dashboard} />}
       </Route>
-      <Route path="/tools/admin/management">
+      <Route path="/admin/management">
         {() => <ProtectedRoute component={ToolsManagement} />}
       </Route>
-      <Route path="/tools/admin/seo-redirects">
+      <Route path="/admin/seo-redirects">
         {() => <ProtectedRoute component={SeoRedirects} />}
       </Route>
 
@@ -281,8 +283,7 @@ function Router() {
       <Route>
         <Layout>
           <Switch>
-            {/* <Route path={`${BASE_PATH}`} component={ToolsLandingPage} /> */}
-            <Route path="/tools" component={ToolsLandingPage} />
+            <Route path="/" component={ToolsLandingPage} />
 
             {/* Dynamic Tool Routes */}
             {tools?.map((tool) => {
@@ -291,7 +292,7 @@ function Router() {
               return (
                 <Route
                   key={tool.id}
-                  path={`/tools/${tool.slug || tool.tool_id}`}
+                  path={`/${tool.slug || tool.tool_id}`}
                   component={Component as any}
                 />
               );

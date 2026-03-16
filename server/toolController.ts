@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { toolService } from "../services/toolService";
+import { toolService } from "./toolService";
 import { insertToolSchema } from "@shared/schema";
 import { z } from "zod";
 

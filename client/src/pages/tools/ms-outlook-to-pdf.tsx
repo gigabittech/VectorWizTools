@@ -35,7 +35,7 @@ export default function MSOutlookToPDF() {
     formData.append("file", files[0].file);
 
     try {
-      const response = await fetch("/tools/api/tools/outlook-to-pdf", {
+      const response = await fetch("/api/tools/outlook-to-pdf", {
         method: "POST",
         body: formData,
       });

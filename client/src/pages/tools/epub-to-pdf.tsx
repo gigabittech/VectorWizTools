@@ -27,7 +27,7 @@ export default function EPUBToPDF() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/tools/api/tools/epub-to-pdf", {
+      const response = await fetch("/api/tools/epub-to-pdf", {
         method: "POST",
         body: formData,
       });

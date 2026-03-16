@@ -25,7 +25,7 @@ export default function PDFToMOBI() {
       const formData = new FormData();
       formData.append("file", files[0].file);
 
-      const response = await fetch("/tools/api/tools/pdf-to-mobi", {
+      const response = await fetch("/api/tools/pdf-to-mobi", {
         method: "POST",
         body: formData,
       });

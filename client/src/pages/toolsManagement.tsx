@@ -27,7 +27,7 @@ export default function ToolsManagement() {
     const [activeTab, setActiveTab] = useState<string | null>("general");
 
     const { data: tools = [], isLoading } = useQuery<ToolWithCms[]>({
-        queryKey: ["/tools/api/tools"],
+        queryKey: ["/api/tools"],
     });
 
     const [viewingTool, setViewingTool] = useState<ToolWithCms | null>(null);
@@ -88,22 +88,22 @@ export default function ToolsManagement() {
             const { seo, contents, ...toolData } = data;
 
             // 1. Update Tool Basic Info
-            await apiRequest("PATCH", `/tools/api/tools/${id}`, toolData);
+            await apiRequest("PATCH", `/api/tools/${id}`, toolData);
 
             // 2. Update SEO
             if (seo) {
-                await apiRequest("PATCH", `/tools/api/tools/${id}/seo`, seo);
+                await apiRequest("PATCH", `/api/tools/${id}/seo`, seo);
             }
 
             // 3. Update Content
             if (contents) {
-                await apiRequest("PATCH", `/tools/api/tools/${id}/contents`, contents);
+                await apiRequest("PATCH", `/api/tools/${id}/contents`, contents);
             }
 
             return { success: true };
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/tools"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
             toast({ title: "Success", description: "Tool and CMS data updated successfully" });
             setModalOpened(false);
         },
@@ -152,35 +152,35 @@ export default function ToolsManagement() {
     };
 
     const addFaqMutation = useMutation({
-        mutationFn: (toolId: string) => apiRequest("POST", `/tools/api/tools/${toolId}/faqs`, faqForm),
+        mutationFn: (toolId: string) => apiRequest("POST", `/api/tools/${toolId}/faqs`, faqForm),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/tools"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
             setFaqForm({ question: "", answer: "" });
             toast({ title: "FAQ Added" });
         }
     });
 
     const deleteFaqMutation = useMutation({
-        mutationFn: (id: string) => apiRequest("DELETE", `/tools/api/faqs/${id}`),
+        mutationFn: (id: string) => apiRequest("DELETE", `/api/faqs/${id}`),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/tools"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
             toast({ title: "FAQ Deleted" });
         }
     });
 
     const addLinkMutation = useMutation({
-        mutationFn: (toolId: string) => apiRequest("POST", `/tools/api/tools/${toolId}/internal-links`, linkForm),
+        mutationFn: (toolId: string) => apiRequest("POST", `/api/tools/${toolId}/internal-links`, linkForm),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/tools"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
             setLinkForm({ relatedToolId: "", anchorText: "" });
             toast({ title: "Internal Link Added" });
         }
     });
 
     const deleteLinkMutation = useMutation({
-        mutationFn: (id: string) => apiRequest("DELETE", `/tools/api/internal-links/${id}`),
+        mutationFn: (id: string) => apiRequest("DELETE", `/api/internal-links/${id}`),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/tools/api/tools"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
             toast({ title: "Internal Link Deleted" });
         }
     });

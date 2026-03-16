@@ -200,7 +200,7 @@ export default function FontToVectorPage() {
             <Button component={Link} href="/order/new" size="md" color="green" radius="xl">
               Get Custom Typography
             </Button>
-            <Button component={Link} href="/tools/logo-dimensions" variant="outline" size="md" radius="xl">
+            <Button component={Link} href="/logo-dimensions" variant="outline" size="md" radius="xl">
               Logo Size Guide
             </Button>
           </Group>
