@@ -262,6 +262,8 @@ function Router() {
     );
   }
 
+  console.log(tools, 'log consle');
+
   return (
     <Switch>
       <Route path={`${BASE_PATH}/login`} component={LoginPage} />
