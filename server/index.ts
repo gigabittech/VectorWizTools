@@ -20,13 +20,18 @@ app.set('trust proxy', true);
 // If deployed at a subpath, re-map /BASE_PATH/... -> /...
 if (BASE_PATH) {
     app.use((req, res, next) => {
-        // Strip BASE_PATH from the URL so the app receives clean paths
-        if (req.path.startsWith(BASE_PATH + "/")) {
-            req.url = req.url.slice(BASE_PATH.length);
-        } else if (req.path === BASE_PATH) {
-            // /tools -> /tools/ (add trailing slash, no redirect needed)
+        const originalUrl = req.originalUrl || req.url;
+
+        // Handle /tools and /tools/ as root
+        if (originalUrl === BASE_PATH || originalUrl === BASE_PATH + "/") {
             req.url = "/";
         }
+        // Strip /tools prefix from all other paths
+        else if (originalUrl.startsWith(BASE_PATH + "/")) {
+            req.url = originalUrl.slice(BASE_PATH.length);
+        }
+        // Paths without /tools prefix pass through unchanged
+
         next();
     });
 }

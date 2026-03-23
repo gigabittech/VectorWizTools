@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 import { queryClient, BASE_PATH } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -133,7 +133,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   if (!user) {
-    setTimeout(() => setLocation(`${BASE_PATH}/login`), 0);
+    setTimeout(() => setLocation("/login"), 0);
     return null;
   }
 
@@ -266,7 +266,7 @@ function Router() {
 
   return (
     <Switch>
-      <Route path={`${BASE_PATH}/login`} component={LoginPage} />
+      <Route path="/login" component={LoginPage} />
 
       {/* Admin Routes (Uses separate AdminLayout internally) */}
       <Route path="/admin/dashboard">
@@ -329,9 +329,11 @@ function ThemedApp() {
 
 function App() {
   return (
-    <ColorSchemeProvider>
-      <ThemedApp />
-    </ColorSchemeProvider>
+    <WouterRouter base={BASE_PATH}>
+      <ColorSchemeProvider>
+        <ThemedApp />
+      </ColorSchemeProvider>
+    </WouterRouter>
   );
 }
 
