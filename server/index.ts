@@ -14,19 +14,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// If deployed at a subpath, trust the proxy and re-map /BASE_PATH/... -> /...
+// Trust proxy for subpath deployment behind Nginx/Apache
+app.set('trust proxy', true);
+
+// If deployed at a subpath, re-map /BASE_PATH/... -> /...
 if (BASE_PATH) {
     app.use((req, res, next) => {
-        // Redirect /tools to /tools/
-        if (req.path === BASE_PATH) {
-            return res.redirect(BASE_PATH + "/");
-        }
-        // Redirect root / to /tools/
-        if (req.path === "/") {
-            return res.redirect(BASE_PATH + "/");
-        }
+        // Strip BASE_PATH from the URL so the app receives clean paths
         if (req.path.startsWith(BASE_PATH + "/")) {
             req.url = req.url.slice(BASE_PATH.length);
+        } else if (req.path === BASE_PATH) {
+            // /tools -> /tools/ (add trailing slash, no redirect needed)
+            req.url = "/";
         }
         next();
     });
