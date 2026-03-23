@@ -26,8 +26,12 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true as const,
   };
 
+  const viteConfigObject = typeof viteConfig === "function"
+    ? viteConfig({ mode: "development", command: "serve", isSsrBuild: false, isPreview: false })
+    : viteConfig;
+
   const vite = await createViteServer({
-    ...viteConfig,
+    ...viteConfigObject,
     configFile: false,
     customLogger: {
       ...viteLogger,
