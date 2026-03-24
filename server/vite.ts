@@ -108,17 +108,30 @@ export function serveStatic(app: Express) {
 }
 
 function doServe(app: Express, distPath: string) {
+  const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");
+
   // Serve static files (excluding API routes)
-  const staticMiddleware = express.static(distPath);
+  const staticMiddleware = express.static(distPath, {
+    redirect: false  // Disable automatic trailing slash redirects
+  });
+
   app.use((req, res, next) => {
+    // Skip API routes
     if (req.path.startsWith("/api")) {
       return next();
     }
+
+    // Handle BASE_PATH root - serve index.html directly
+    if (BASE_PATH && (req.path === BASE_PATH || req.path === BASE_PATH + "/")) {
+      return res.sendFile(path.resolve(distPath, "index.html"));
+    }
+
+    // Serve static files
     staticMiddleware(req, res, next);
   });
 
   // fall through to index.html if the file doesn't exist (but not for API routes)
-  app.use("*", (req, res, next) => {
+  app.use((req, res, next) => {
     if (req.path.startsWith("/api")) {
       return next();
     }

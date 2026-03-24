@@ -21,6 +21,7 @@ app.set('trust proxy', true);
 if (BASE_PATH) {
     app.use((req, res, next) => {
         const originalUrl = req.originalUrl || req.url;
+        const oldUrl = req.url;
 
         // Handle /tools and /tools/ as root
         if (originalUrl === BASE_PATH || originalUrl === BASE_PATH + "/") {
@@ -31,6 +32,11 @@ if (BASE_PATH) {
             req.url = originalUrl.slice(BASE_PATH.length);
         }
         // Paths without /tools prefix pass through unchanged
+
+        // Debug logging
+        if (originalUrl.includes('tools') || originalUrl.includes('api')) {
+            console.log(`[BASE_PATH] ${originalUrl} -> ${req.url}`);
+        }
 
         next();
     });
