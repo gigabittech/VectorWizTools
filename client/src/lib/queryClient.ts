@@ -2,7 +2,25 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 // When deployed at a subpath (e.g., abc.com/tools), BASE_PATH = "/tools"
 // so all /api calls are correctly sent to abc.com/tools/api/...
-export const BASE_PATH = (import.meta.env.VITE_BASE_PATH || "/").replace(/\/$/, "");
+// Try build-time env var first, then detect from current URL
+const getBasePath = (): string => {
+  // Build-time constant from VITE_BASE_PATH
+  const buildTimePath = (import.meta.env.VITE_BASE_PATH || "").replace(/\/$/, "");
+
+  // Runtime detection: check if we're in a subdirectory
+  // If URL is vectorwiz.com/tools/..., extract /tools as base
+  const currentPath = window.location.pathname;
+  const firstSegment = currentPath.split('/')[1]; // Get first segment after /
+
+  // If we're in a subdirectory (like /tools) and build-time path matches or is empty
+  if (firstSegment && (buildTimePath === '' || buildTimePath === `/${firstSegment}`)) {
+    return `/${firstSegment}`;
+  }
+
+  return buildTimePath || '/';
+};
+
+export const BASE_PATH = getBasePath();
 
 function prefixUrl(url: string): string {
   if (BASE_PATH && url.startsWith("/api")) {
