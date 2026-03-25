@@ -254,7 +254,7 @@ export default function AIImageGenerator() {
       <div className="text-white" style={{ backgroundColor: '#09183a' }}>
         <Container size="xl" py="xl">
           <div className="mb-6">
-            <Link href="/tools">
+            <Link href="/">
               <Button
                 variant="ghost"
                 className="text-white/90 hover:text-white hover:bg-white/10 mb-6"
@@ -631,8 +631,8 @@ export default function AIImageGenerator() {
                 <Stack gap="lg">
                   <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 shadow-inner" style={{ borderColor: '#489c51' }}>
                     <img
-                      src={generatedImage?.startsWith('data:') || generatedImage?.includes('pollinations.ai') 
-                        ? generatedImage 
+                      src={generatedImage?.startsWith('data:') || generatedImage?.includes('pollinations.ai')
+                        ? generatedImage
                         : `${BASE_PATH}/api/tools/ai-image-proxy?url=${encodeURIComponent(generatedImage || '')}`}
                       alt="AI Generated"
                       className="w-full h-full object-contain p-2"

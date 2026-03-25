@@ -31,7 +31,7 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
-              <Link href={BASE_PATH || "/"} className="flex items-center" data-testid="logo-link">
+              <Link href="/" className="flex items-center" data-testid="logo-link">
                 <img
                   src={logoImage}
                   alt="VectorWiz"
@@ -56,7 +56,7 @@ export default function Navigation() {
                   Services
                 </a>
                 <Link
-                  href={BASE_PATH || "/"}
+                  href="/"
                   className={`transition-colors text-sm font-medium ${isActive("/")
                     ? "text-[#0B9F47]"
                     : "text-white/90 hover:text-white"
