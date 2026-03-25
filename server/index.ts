@@ -9,6 +9,9 @@ import { setupVite, serveStatic, log } from "./vite";
 // Support subpath deployment (e.g., BASE_PATH=/tools for abc.com/tools)
 const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");
 
+// If proxy (Apache/Nginx) already strips the prefix, set this to skip re-stripping
+const PROXY_STRIPS_PREFIX = process.env.PROXY_STRIPS_PREFIX === "true" || BASE_PATH === "";
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -17,16 +20,25 @@ app.use(cookieParser());
 // Trust proxy for subpath deployment behind Nginx/Apache
 app.set('trust proxy', true);
 
-// If deployed at a subpath, re-map /BASE_PATH/... -> /...
-if (BASE_PATH) {
+// Only strip BASE_PATH if proxy doesn't already do it
+if (BASE_PATH && !PROXY_STRIPS_PREFIX) {
     app.use((req, res, next) => {
-        // Strip BASE_PATH from the URL so the app receives clean paths
-        if (req.path.startsWith(BASE_PATH + "/")) {
-            req.url = req.url.slice(BASE_PATH.length);
-        } else if (req.path === BASE_PATH) {
-            // /tools -> /tools/ (add trailing slash, no redirect needed)
+        const originalUrl = req.originalUrl || req.url;
+
+        // Handle /tools and /tools/ as root
+        if (originalUrl === BASE_PATH || originalUrl === BASE_PATH + "/") {
             req.url = "/";
         }
+        // Strip /tools prefix from all other paths
+        else if (originalUrl.startsWith(BASE_PATH + "/")) {
+            req.url = originalUrl.slice(BASE_PATH.length);
+        }
+
+        // Debug logging
+        if (originalUrl.includes('api')) {
+            console.log(`[BASE_PATH] ${originalUrl} -> ${req.url}`);
+        }
+
         next();
     });
 }

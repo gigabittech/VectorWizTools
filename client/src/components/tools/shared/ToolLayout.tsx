@@ -236,13 +236,13 @@ export default function ToolLayout({
         <div className="max-w-7xl mx-auto">
           <ol className="flex items-center space-x-2 text-sm">
             <li>
-              <Link href="/tools" className="flex items-center text-gray-500 hover:text-[#0B9F47] transition-colors duration-300" data-testid="breadcrumb-home">
+              <Link href="/" className="flex items-center text-gray-500 hover:text-[#0B9F47] transition-colors duration-300" data-testid="breadcrumb-home">
                 <Home className="h-4 w-4" />
               </Link>
             </li>
             <li className="flex items-center">
               <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
-              <Link href="/tools" className="text-gray-500 hover:text-[#0B9F47] transition-colors duration-300" data-testid="breadcrumb-tools">
+              <Link href="/" className="text-gray-500 hover:text-[#0B9F47] transition-colors duration-300" data-testid="breadcrumb-tools">
                 Tools
               </Link>
             </li>
