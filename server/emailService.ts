@@ -1,20 +1,31 @@
-import * as brevo from '@getbrevo/brevo';
+import nodemailer from 'nodemailer';
+import axios from 'axios';
+import { storage } from "./storage";
 
-// Initialize Brevo API client
-// Initialize Brevo API client
-let apiInstance: brevo.TransactionalEmailsApi | null = null;
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
-function initializeBrevo() {
-  if (!apiInstance && process.env.BREVO_API_KEY) {
-    apiInstance = new brevo.TransactionalEmailsApi();
-    apiInstance.setApiKey(
-      brevo.TransactionalEmailsApiApiKeys.apiKey,
-      process.env.BREVO_API_KEY
-    );
-  }
-  return apiInstance;
+// Mailer Transporter (Specifically for Custom SMTP)
+async function getSmtpTransporter(settings: any) {
+  const host = settings?.smtpHost || 'smtp-relay.brevo.com';
+  const port = Number(settings?.smtpPort) || 587;
+  const user = settings?.smtpUser || process.env.BREVO_SENDER_EMAIL || '';
+  const pass = settings?.smtpPass || process.env.BREVO_API_KEY || '';
+  const secure = settings?.encryption === 'ssl' || port === 465;
+
+  console.log(`[SMTP] Attempting connection: ${host}:${port}`);
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false }
+  });
 }
 
+/**
+ * Sends Quote Request notification using Brevo API or SMTP
+ */
 export async function sendQuoteRequestNotification(quoteData: {
   firstName: string;
   lastName: string;
@@ -22,117 +33,324 @@ export async function sendQuoteRequestNotification(quoteData: {
   projectDetails: string;
   numberOfFiles: string;
   turnaroundTime: string;
+  status: string;
+  fileUrls?: string[];
 }) {
-  const api = initializeBrevo();
+  try {
+    const settings = await storage.getEmailSettings();
+    const provider = settings?.emailProvider || 'brevo';
+    const senderEmail = settings?.senderEmail || process.env.BREVO_SENDER_EMAIL || 'noreply@vectorwiz.com';
+    const senderName = settings?.senderName || process.env.BREVO_SENDER_NAME || 'VectorWiz';
+    const apiKey = settings?.brevoApiKey || process.env.BREVO_API_KEY || '';
 
-  if (!api) {
-    console.warn('Brevo API not configured. Skipping email notification.');
-    return;
+    const ccEmails = (settings?.ccEmails || []).filter(e => e && e.trim() !== "");
+    const bccEmails = (settings?.bccEmails || []).filter(e => e && e.trim() !== "");
+
+    const appUrl = process.env.APP_URL || '';
+
+    // PREMIUM HTML TABLE FOR ADMIN
+    const fileLinksHtml = quoteData.fileUrls && quoteData.fileUrls.length > 0
+      ? quoteData.fileUrls.map((url, i) =>
+        `<a href="${appUrl}${url}" style="display:inline-block; padding: 10px 20px; background-color: #0B9F47; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px; margin-bottom: 5px; font-weight: bold;">Download File ${i + 1}</a>`
+      ).join(' ')
+      : '<span style="color: #666;">No files attached</span>';
+
+    const emailTemplate = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; }
+          .container { max-width: 650px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+          .header { background: linear-gradient(135deg, #06183C 0%, #1e3a8a 100%); padding: 20px 10px; text-align: center; color: white; }
+          .header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+          .content { padding: 40px; background-color: #ffffff; }
+          .section-title { font-size: 18px; font-weight: bold; color: #06183C; border-bottom: 2px solid #0B9F47; padding-bottom: 8px; margin-bottom: 20px; }
+          .field { margin-bottom: 20px; display: flex; flex-direction: column; }
+          .label { font-weight: bold; color: #555; text-transform: uppercase; font-size: 12px; margin-bottom: 4px; }
+          .value { font-size: 16px; color: #111; }
+          .footer { background-color: #f8fafc; padding: 20px; text-align: center; color: #64748b; font-size: 13px; border-top: 1px solid #e2e8f0; }
+          .brand-color { color: #0B9F47; font-weight: bold; }
+          .logo-text { font-size: 28px; font-weight: 800; color: #06183C; letter-spacing: -1px; }
+          .logo-accent { color: #0B9F47; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo-text" style="color: white;">Vector<span style="color: #0B9F47;">Wiz</span></div>
+            <h1>New Quote Request</h1>
+          </div>
+          <div class="content">
+            <div class="section-title">Project Details</div>
+            
+            <div class="field">
+              <div class="label">Name:</div>
+              <div class="value">${quoteData.firstName} ${quoteData.lastName}</div>
+            </div>
+
+            <div class="field">
+              <div class="label">Email:</div>
+              <div class="value"><a href="mailto:${quoteData.email}" style="color: #20448B; text-decoration: none;">${quoteData.email}</a></div>
+            </div>
+
+            <div class="field">
+              <div class="label">Service Details:</div>
+              <div class="value" style="background: #f1f5f9; padding: 15px; border-radius: 8px;">${quoteData.projectDetails}</div>
+            </div>
+
+            <div class="field">
+              <div class="label">Attached Files:</div>
+              <div class="value" style="margin-top: 10px;">
+                ${fileLinksHtml}
+              </div>
+            </div>
+          </div>
+          <div class="footer">
+            Generated by <span class="brand-color">VectorWiz Dashboard</span> &bull; ${new Date().toLocaleString()}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const clientTemplate = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.7; color: #444; margin: 0; padding: 0; }
+          .wrapper { background-color: #f4f7f9; padding: 40px 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+          .header { background-color: #ffffff; padding: 20px 10px; text-align: center; border-bottom: 5px solid #0B9F47; }
+          .content { padding: 40px; }
+          h2 { color: #06183C; font-size: 24px; margin-top: 0; }
+          p { margin-bottom: 20px; font-size: 16px; }
+          .steps-box { background-color: #f8fafc; padding: 25px; border-radius: 10px; margin: 25px 0; border: 1px solid #e2e8f0; }
+          .steps-box h3 { margin-top: 0; font-size: 18px; color: #06183C; }
+          ol { padding-left: 20px; margin: 0; }
+          ol li { margin-bottom: 12px; color: #555; }
+          .footer { padding: 30px; background: #fdfdfd; border-top: 1px solid #eee; }
+          .signature { margin-top: 25px; border-top: 1px solid #eee; padding-top: 25px; }
+          .brand-name { color: #0B9F47; font-weight: 700; }
+          .link { color: #0B9F47; text-decoration: none; font-weight: 600; }
+          .logo-text { font-size: 32px; font-weight: 800; color: #06183C; letter-spacing: -1.5px; }
+          .logo-accent { color: #0B9F47; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="container">
+            <div class="header">
+              <div class="logo-text">Vector<span class="logo-accent">Wiz</span></div>
+            </div>
+            <div class="content">
+              <h2>Hi ${quoteData.firstName},</h2>
+              <p>Thank you for submitting your Request for Quote at <span class="brand-name">VectorWiz</span>!</p>
+              <p>We’ve received your details and files, and our design team has started reviewing them.</p>
+              <p>You can expect your personalized quote within <strong>6–12 hours</strong> (often much sooner).</p>
+              
+              <div class="steps-box">
+                <h3>What happens next:</h3>
+                <ol>
+                  <li>We review your files and project requirements.</li>
+                  <li>You’ll receive a quote email with price and turnaround details.</li>
+                  <li>Once confirmed, we’ll send a PayPal invoice and begin production right away.</li>
+                </ol>
+              </div>
+              
+              <p>If you’d like to add or clarify anything, simply reply to this email — we’ll make sure it’s included in your quote.</p>
+              <p>We’re excited to work with you and bring your artwork to life!</p>
+              
+              <div class="signature">
+                <p>Warm regards,<br>
+                <strong>Sujan Bhuiyan</strong><br> 
+                on behalf of the entire VectorWiz Team</p>
+                <p><a href="https://vectorwiz.com/" class="link">vectorwiz.com</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Admin Notification
+    const adminPayload: any = {
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: senderEmail }],
+      replyTo: { email: quoteData.email, name: `${quoteData.firstName} ${quoteData.lastName}` },
+      subject: `New Quote Request: ${quoteData.firstName} ${quoteData.lastName}`,
+      htmlContent: emailTemplate
+    };
+
+    if (ccEmails.length > 0) adminPayload.cc = ccEmails.map(e => ({ email: e.trim() }));
+    if (bccEmails.length > 0) adminPayload.bcc = bccEmails.map(e => ({ email: e.trim() }));
+
+    if (provider === 'brevo' && apiKey) {
+      console.log(`[BREVO API] Sending notification. From: ${senderEmail}, To: ${senderEmail}, CC Count: ${ccEmails.length}`);
+      
+      try {
+        await axios.post(BREVO_API_URL, adminPayload, {
+          headers: { 'api-key': apiKey, 'Content-Type': 'application/json' }
+        });
+        console.log(`[BREVO API] Admin notification sent successfully.`);
+        await storage.createEmailLog({
+          recipient: senderEmail,
+          subject: adminPayload.subject,
+          status: "sent"
+        });
+      } catch (err: any) {
+        const errorMsg = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+        console.error(`[BREVO API ERROR - ADMIN]`, errorMsg);
+        await storage.createEmailLog({
+          recipient: senderEmail,
+          subject: adminPayload.subject,
+          status: "failed",
+          errorMessage: errorMsg
+        });
+      }
+
+      // Client Notification
+      try {
+        const clientSubject = 'We’ve Received Your Quote Request – VectorWiz';
+        await axios.post(BREVO_API_URL, {
+          sender: { name: senderName, email: senderEmail },
+          to: [{ email: quoteData.email }],
+          replyTo: { email: senderEmail },
+          subject: clientSubject,
+          htmlContent: clientTemplate
+        }, {
+          headers: { 'api-key': apiKey, 'Content-Type': 'application/json' }
+        });
+        console.log(`[BREVO API] Client confirmation sent successfully.`);
+        await storage.createEmailLog({
+          recipient: quoteData.email,
+          subject: clientSubject,
+          status: "sent"
+        });
+      } catch (err: any) {
+        const errorMsg = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+        console.error(`[BREVO API ERROR - CLIENT]`, errorMsg);
+        await storage.createEmailLog({
+          recipient: quoteData.email,
+          subject: 'We’ve Received Your Quote Request – VectorWiz',
+          status: "failed",
+          errorMessage: errorMsg
+        });
+      }
+
+    } else {
+      const transporter = await getSmtpTransporter(settings);
+      try {
+        await transporter.sendMail({
+          from: `"${senderName}" <${senderEmail}>`,
+          to: senderEmail,
+          cc: ccEmails,
+          bcc: bccEmails,
+          replyTo: quoteData.email,
+          subject: adminPayload.subject,
+          html: emailTemplate
+        });
+        await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "sent" });
+      } catch (e: any) {
+         await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "failed", errorMessage: e.message });
+      }
+
+      try {
+        const clientSubject = 'We’ve Received Your Quote Request – VectorWiz';
+        await transporter.sendMail({
+          from: `"${senderName}" <${senderEmail}>`,
+          to: quoteData.email,
+          replyTo: senderEmail,
+          subject: clientSubject,
+          html: clientTemplate
+        });
+        await storage.createEmailLog({ recipient: quoteData.email, subject: clientSubject, status: "sent" });
+      } catch (e: any) {
+         await storage.createEmailLog({ recipient: quoteData.email, subject: 'We’ve Received Your Quote Request – VectorWiz', status: "failed", errorMessage: e.message });
+      }
+    }
+  } catch (error: any) {
+    console.error('[EMAIL ERROR]', error.response?.data || error.message);
   }
+}
 
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@vectorwiz.com';
-  const senderName = process.env.BREVO_SENDER_NAME || 'VectorWiz';
+/**
+ * Sends a real-time Test Email using direct API or SMTP
+ */
+export async function sendTestEmail(targetEmail: string, settings: any) {
+  const provider = settings?.emailProvider || 'brevo';
+  const senderEmail = settings?.senderEmail || process.env.BREVO_SENDER_EMAIL || 'noreply@vectorwiz.com';
+  const senderName = settings?.senderName || process.env.BREVO_SENDER_NAME || 'VectorWiz';
+  const apiKey = settings?.brevoApiKey || process.env.BREVO_API_KEY || '';
 
   try {
-    // Send notification to VectorWiz team
-    const teamEmail = new brevo.SendSmtpEmail();
-    teamEmail.sender = { email: senderEmail, name: senderName };
-    teamEmail.to = [{ email: senderEmail, name: 'VectorWiz Team' }];
-    teamEmail.subject = `New Quote Request from ${quoteData.firstName} ${quoteData.lastName}`;
-    teamEmail.htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(75deg, #06183C 0%, #20448B 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-            .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
-            .field { margin-bottom: 15px; }
-            .label { font-weight: bold; color: #06183C; }
-            .value { margin-top: 5px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h2>New Quote Request</h2>
-            </div>
-            <div class="content">
-              <div class="field">
-                <div class="label">Client Name:</div>
-                <div class="value">${quoteData.firstName} ${quoteData.lastName}</div>
-              </div>
-              <div class="field">
-                <div class="label">Email:</div>
-                <div class="value">${quoteData.email}</div>
-              </div>
-              <div class="field">
-                <div class="label">Number of Files:</div>
-                <div class="value">${quoteData.numberOfFiles}</div>
-              </div>
-              <div class="field">
-                <div class="label">Turnaround Time:</div>
-                <div class="value">${quoteData.turnaroundTime}</div>
-              </div>
-              <div class="field">
-                <div class="label">Project Details:</div>
-                <div class="value">${quoteData.projectDetails}</div>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    if (provider === 'brevo' && apiKey) {
+      console.log(`[BREVO API] Testing API with key: ${apiKey.substring(0, 10)}...`);
 
-    await api.sendTransacEmail(teamEmail);
+      try {
+        const response = await axios.post(BREVO_API_URL, {
+          sender: { name: senderName, email: senderEmail },
+          to: [{ email: targetEmail }],
+          subject: 'Success - VectorWiz Email Settings',
+          htmlContent: `<h2>API Key Verified!</h2><p>Your direct API connection is working perfectly.</p>`
+        }, {
+          headers: { 'api-key': apiKey, 'Content-Type': 'application/json' }
+        });
 
-    // Send confirmation to client
-    const clientEmail = new brevo.SendSmtpEmail();
-    clientEmail.sender = { email: senderEmail, name: senderName };
-    clientEmail.to = [{ email: quoteData.email, name: `${quoteData.firstName} ${quoteData.lastName}` }];
-    clientEmail.subject = 'Quote Request Received - VectorWiz';
-    clientEmail.htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(75deg, #06183C 0%, #20448B 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .button { display: inline-block; background: #0B9F47; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Thank You for Your Quote Request!</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${quoteData.firstName},</p>
-              <p>We've received your quote request and our team is reviewing the details. We'll get back to you with a detailed quote within 24 hours.</p>
-              <p><strong>Your Request Details:</strong></p>
-              <ul>
-                <li>Number of Files: ${quoteData.numberOfFiles}</li>
-                <li>Turnaround Time: ${quoteData.turnaroundTime}</li>
-              </ul>
-              <p>If you have any questions in the meantime, feel free to reach out to us.</p>
-              <div class="footer">
-                <p>Best regards,<br>The VectorWiz Team</p>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+        await storage.createEmailLog({
+          recipient: targetEmail,
+          subject: 'Success - VectorWiz Email Settings',
+          status: "sent"
+        });
 
-    await api.sendTransacEmail(clientEmail);
+        return { success: true, message: "Verification successful! Response ID: " + response.data.messageId };
+      } catch (err: any) {
+        const errorData = err.response?.data || {};
+        const detail = errorData.message || err.message;
+        console.error('[BREVO TEST ERROR]', errorData);
 
-    console.log(`Quote request emails sent successfully for ${quoteData.email}`);
-  } catch (error) {
-    console.error('Failed to send quote request emails:', error);
-    // Don't throw - we don't want email failures to block quote submission
+        await storage.createEmailLog({
+          recipient: targetEmail,
+          subject: 'Success - VectorWiz Email Settings',
+          status: "failed",
+          errorMessage: JSON.stringify(errorData)
+        });
+
+        return { success: false, error: `Connection failed: ${detail}` };
+      }
+    } else {
+      const transporter = await getSmtpTransporter(settings);
+      try {
+        await transporter.sendMail({
+          from: `"${senderName}" <${senderEmail}>`,
+          to: targetEmail,
+          subject: 'Success - VectorWiz SMTP',
+          html: `<h2>SMTP Verified!</h2><p>Your SMTP server is responding correctly.</p>`
+        });
+
+        await storage.createEmailLog({
+          recipient: targetEmail,
+          subject: 'Success - VectorWiz SMTP',
+          status: "sent"
+        });
+
+        return { success: true, message: "SMTP verified! Email sent." };
+      } catch (err: any) {
+         await storage.createEmailLog({
+          recipient: targetEmail,
+          subject: 'Success - VectorWiz SMTP',
+          status: "failed",
+          errorMessage: err.message
+        });
+        return { success: false, error: err.message };
+      }
+    }
+  } catch (err: any) {
+    const errorData = err.response?.data || {};
+    const detail = errorData.message || err.message;
+    console.error('[BREVO TEST ERROR]', errorData);
+    return { success: false, error: `Connection failed: ${detail}` };
   }
 }
