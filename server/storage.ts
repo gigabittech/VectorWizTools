@@ -26,7 +26,13 @@ import {
     pages,
     blogs,
     redirects,
-    seoSettings
+    seoSettings,
+    emailSettings,
+    type EmailSettings,
+    type InsertEmailSettings,
+    emailLogs,
+    type EmailLog,
+    type InsertEmailLog
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, and, asc } from "drizzle-orm";
@@ -42,6 +48,8 @@ export interface IStorage {
     // Quote Requests
     createQuoteRequest(quoteRequest: InsertQuoteRequest): Promise<QuoteRequest>;
     getAllQuoteRequests(limit?: number): Promise<QuoteRequest[]>;
+    updateQuoteRequest(id: string, data: Partial<InsertQuoteRequest> & { status?: string }): Promise<QuoteRequest>;
+    deleteQuoteRequest(id: string): Promise<void>;
 
     // AI Image Generations
     createAIImageGeneration(generation: InsertAIImageGeneration): Promise<AIImageGeneration>;
@@ -87,9 +95,32 @@ export interface IStorage {
     createRedirect(data: any): Promise<Redirect>;
     updateRedirect(id: string, data: any): Promise<Redirect>;
     deleteRedirect(id: string): Promise<void>;
+
+    // Email Settings
+    getEmailSettings(): Promise<EmailSettings | null>;
+    updateEmailSettings(data: any): Promise<EmailSettings>;
+
+    // Email Logs
+    createEmailLog(log: InsertEmailLog): Promise<EmailLog>;
+    getEmailLogs(limit?: number): Promise<EmailLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
+    async createEmailLog(insertEmailLog: InsertEmailLog): Promise<EmailLog> {
+        const [log] = await db
+            .insert(emailLogs)
+            .values(insertEmailLog)
+            .returning();
+        return log;
+    }
+
+    async getEmailLogs(limit = 100): Promise<EmailLog[]> {
+        return await db
+            .select()
+            .from(emailLogs)
+            .orderBy(desc(emailLogs.createdAt))
+            .limit(limit);
+    }
     async createQuoteRequest(insertQuoteRequest: InsertQuoteRequest): Promise<QuoteRequest> {
         const [quoteRequest] = await db
             .insert(quoteRequests)
@@ -104,6 +135,20 @@ export class DatabaseStorage implements IStorage {
             .from(quoteRequests)
             .orderBy(desc(quoteRequests.createdAt))
             .limit(limit);
+    }
+
+    async updateQuoteRequest(id: string, data: Partial<InsertQuoteRequest> & { status?: string }): Promise<QuoteRequest> {
+        const [updated] = await db
+            .update(quoteRequests)
+            .set(data)
+            .where(eq(quoteRequests.id, id))
+            .returning();
+        if (!updated) throw new Error("Quote request not found");
+        return updated;
+    }
+
+    async deleteQuoteRequest(id: string): Promise<void> {
+        await db.delete(quoteRequests).where(eq(quoteRequests.id, id));
     }
 
     async createAIImageGeneration(generation: InsertAIImageGeneration): Promise<AIImageGeneration> {
@@ -337,6 +382,28 @@ export class DatabaseStorage implements IStorage {
 
     async deleteRedirect(id: string): Promise<void> {
         await db.delete(redirects).where(eq(redirects.id, id));
+    }
+
+    // Email Settings Methods
+    async getEmailSettings(): Promise<EmailSettings | null> {
+        const [settings] = await db.select().from(emailSettings).limit(1);
+        return settings || null;
+    }
+
+    async updateEmailSettings(data: any): Promise<EmailSettings> {
+        const [existing] = await db.select().from(emailSettings).limit(1);
+        if (existing) {
+            const [updated] = await db.update(emailSettings)
+                .set({ ...data, updatedAt: new Date() })
+                .where(eq(emailSettings.id, existing.id))
+                .returning();
+            return updated;
+        } else {
+            const [created] = await db.insert(emailSettings)
+                .values({ ...data, updatedAt: new Date() })
+                .returning();
+            return created;
+        }
     }
 }
 
