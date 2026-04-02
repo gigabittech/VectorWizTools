@@ -59,8 +59,10 @@ export interface IStorage {
     // Users
     getUser(id: string): Promise<User | null>;
     getUserByUsername(username: string): Promise<User | null>;
+    getAllUsers(): Promise<User[]>;
     createUser(user: InsertUser): Promise<User>;
     updateUser(id: string, user: Partial<InsertUser>): Promise<User>;
+    deleteUser(id: string): Promise<void>;
 
     // Tools
     getTools(onlyActive?: boolean): Promise<ToolWithCms[]>;
@@ -209,6 +211,17 @@ export class DatabaseStorage implements IStorage {
             .where(eq(users.id, id))
             .returning();
         return user;
+    }
+
+    async getAllUsers(): Promise<User[]> {
+        return await db
+            .select()
+            .from(users)
+            .orderBy(desc(users.createdAt));
+    }
+
+    async deleteUser(id: string): Promise<void> {
+        await db.delete(users).where(eq(users.id, id));
     }
 
     private async attachCmsData(tool: Tool): Promise<ToolWithCms> {
