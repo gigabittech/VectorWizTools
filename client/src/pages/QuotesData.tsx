@@ -4,18 +4,23 @@ import {
     Tooltip, ActionIcon, Loader, Modal, Stack, ScrollArea,
     Select, TextInput, Divider, Box, Card, Pagination
 } from "@mantine/core";
+import { DatePickerInput, DatesRangeValue } from "@mantine/dates";
 import { Eye, Trash2, Search, Filter, Mail, Calendar, User, FileText, CheckCircle, Clock, AlertCircle, X } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { QuoteRequest } from "@shared/schema";
 
 export default function QuotesData() {
     const { toast } = useToast();
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string | null>("all");
+    const [dateRange, setDateRange] = useState<DatesRangeValue<Date>>([
+        subDays(new Date(), 7),
+        new Date()
+    ]);
     
     const [viewingQuote, setViewingQuote] = useState<QuoteRequest | null>(null);
     const [viewModalOpened, setViewModalOpened] = useState(false);
@@ -64,9 +69,18 @@ export default function QuotesData() {
             
             const matchesStatus = statusFilter === "all" || !statusFilter || quote.status === statusFilter;
             
-            return matchesSearch && matchesStatus;
+            // Date range filter (default 7 days)
+            let matchesDate = true;
+            if (dateRange && dateRange[0] && dateRange[1]) {
+                const start = startOfDay(dateRange[0]);
+                const end = endOfDay(dateRange[1]);
+                const created = new Date(quote.createdAt);
+                matchesDate = (isAfter(created, start) || created.getTime() === start.getTime()) && (isBefore(created, end) || created.getTime() === end.getTime());
+            }
+            
+            return matchesSearch && matchesStatus && matchesDate;
         });
-    }, [quoteRequests, searchTerm, statusFilter]);
+    }, [quoteRequests, searchTerm, statusFilter, dateRange]);
 
     // Reset page when search or filters change
     useEffect(() => {
@@ -136,6 +150,14 @@ export default function QuotesData() {
                                 className="w-full md:w-80"
                                 radius="md"
                             />
+                            <DatePickerInput
+                                type="range"
+                                placeholder="Select date range"
+                                value={dateRange}
+                                onChange={(value) => setDateRange(value as any)}
+                                radius="md"
+                                mx="sm"
+                            />
                             <Select
                                 placeholder="Filter by Status"
                                 leftSection={<Filter size={16} className="text-gray-400" />}
@@ -167,6 +189,7 @@ export default function QuotesData() {
                             <Table verticalSpacing="md" highlightOnHover striped>
                                 <Table.Thead className="bg-gray-50/50">
                                     <Table.Tr>
+                                        <Table.Th w={60}>SL</Table.Th>
                                         <Table.Th>Date</Table.Th>
                                         <Table.Th>Client</Table.Th>
                                         <Table.Th>Project Scope</Table.Th>
@@ -175,8 +198,13 @@ export default function QuotesData() {
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {paginatedQuotes.map((quote) => (
+                                    {paginatedQuotes.map((quote, index) => (
                                         <Table.Tr key={quote.id}>
+                                            <Table.Td>
+                                                <Text size="sm" fw={500} c="dimmed">
+                                                    {(activePage - 1) * itemsPerPage + index + 1}
+                                                </Text>
+                                            </Table.Td>
                                             <Table.Td>
                                                 <Stack gap={0}>
                                                     <Text size="sm" fw={600}>{format(new Date(quote.createdAt), "MMM d, yyyy")}</Text>
@@ -250,7 +278,7 @@ export default function QuotesData() {
                                     ))}
                                     {filteredQuotes.length === 0 && (
                                         <Table.Tr>
-                                            <Table.Td colSpan={5}>
+                                            <Table.Td colSpan={6}>
                                                 <div className="py-20 text-center">
                                                     <FileText size={48} className="mx-auto mb-4 text-gray-200" />
                                                     <Text size="lg" fw={600} c="dimmed">No matching quote requests found</Text>

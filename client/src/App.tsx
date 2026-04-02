@@ -124,6 +124,7 @@ import SeoRedirects from "@/pages/SeoRedirects";
 import QuotesData from "@/pages/QuotesData";
 import EmailSettings from "@/pages/EmailSettings";
 import EmailLogs from "@/pages/EmailLogs";
+import Settings from "@/pages/Settings";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
@@ -295,6 +296,9 @@ function Router() {
       </Route>
       <Route path="/admin/email-logs">
         {() => <ProtectedRoute component={EmailLogs} />}
+      </Route>
+      <Route path="/admin/settings">
+        {() => <ProtectedRoute component={Settings} />}
       </Route>
 
       {/* Main Project Routes (Wrapped in standard Layout) */}

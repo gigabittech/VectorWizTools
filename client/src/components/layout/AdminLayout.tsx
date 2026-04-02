@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { Menu } from "@mantine/core";
 import {
     LayoutDashboard,
     Settings,
@@ -12,11 +13,13 @@ import {
     ChevronRight,
     Loader,
     Globe,
-    ArrowRightLeft
+    ArrowRightLeft,
+    UserCog
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import logoImage from "@assets/VectorWiz-logo_1760804742760.png";
+import logoIcon from "@assets/VectorWiz_Icon.png";
 import { useAuth } from "@/hooks/use-auth";
 
 interface AdminLayoutProps {
@@ -25,7 +28,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
     const { user, logoutMutation } = useAuth();
-    const [location] = useLocation();
+    const [location, setLocation] = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     
@@ -33,8 +36,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setExpandedItems(prev => 
             prev.includes(label) ? prev.filter(i => i !== label) : [...prev, label]
         );
+        if (!isSidebarOpen) {
+            setIsSidebarOpen(true);
+        }
     };
-
+    
     const navItems = [
         {
             label: "Dashboard",
@@ -43,6 +49,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         },
         {
             label: "Quote Management",
+            href: "/admin/quotes-data",
             icon: ArrowRightLeft,
             subItems: [
                 {
@@ -72,6 +79,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             label: "SEO & Redirects",
             href: "/admin/seo-redirects",
             icon: Globe
+        },
+        {
+            label: "Settings",
+            icon: UserCog,
+            subItems: [
+                {
+                    label: "User Management",
+                    href: "/admin/settings"
+                }
+            ]
         }
     ];
 
@@ -81,6 +98,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         logoutMutation.mutate();
     };
 
+    const handleItemClick = (item: any) => {
+        if (item.subItems) {
+            toggleExpand(item.label);
+            if (item.href) {
+                setLocation(item.href);
+            }
+        }
+    };
+
     return (
         <div className="flex h-screen bg-[#f8fafc]">
             {/* Sidebar */}
@@ -88,20 +114,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 className={`${isSidebarOpen ? "w-64" : "w-20"
                     } transition-all duration-300 flex flex-col h-full bg-[#06183C] text-white overflow-hidden z-50`}
             >
-                <div className="p-6 flex items-center justify-between border-b border-white/10">
-                    <Link href="/" className="flex items-center overflow-hidden">
+                <div className={`py-4 flex items-center justify-between border-b border-white/10 ${isSidebarOpen ? "pl-6 pr-0" : "px-4"}`}>
+                    <Link href="/" className="flex items-center overflow-hidden flex-1">
                         <img
-                            src={logoImage}
+                            src={isSidebarOpen ? logoImage : logoIcon}
                             alt="VectorWiz"
-                            className={`h-8 transition-all ${!isSidebarOpen && "scale-150 ml-2"}`}
+                            className={`transition-all duration-300 ${isSidebarOpen ? "h-8 w-auto" : "h-8 mx-auto"}`}
                         />
                     </Link>
-                    <button
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className="md:hidden text-white/70 hover:text-white"
-                    >
-                        <X size={20} />
-                    </button>
+                   
                 </div>
 
                 <ScrollArea className="flex-1 py-6 px-4">
@@ -117,7 +138,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 return (
                                     <div key={item.label} className="space-y-1">
                                         <div
-                                            onClick={() => toggleExpand(item.label)}
+                                            onClick={() => handleItemClick(item)}
                                             className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all ${isParentActive
                                                 ? "bg-white/10 text-white"
                                                 : "text-white/70 hover:bg-white/5 hover:text-white"
@@ -128,10 +149,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                                 {isSidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
                                             </div>
                                             {isSidebarOpen && (
-                                                <ChevronRight 
-                                                    size={14} 
-                                                    className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
-                                                />
+                                                <div onClick={(e) => { e.stopPropagation(); toggleExpand(item.label); }}>
+                                                    <ChevronRight 
+                                                        size={14} 
+                                                        className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                         
@@ -217,15 +240,39 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                         </button>
                         <div className="w-px h-6 bg-gray-200 mx-1"></div>
-                        <div className="flex items-center gap-3 pl-2">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-sm font-semibold text-gray-900 leading-none">{user?.username || 'Admin User'}</p>
-                                <p className="text-xs text-gray-500 mt-1 capitalize">{user?.role || 'Super Admin'}</p>
-                            </div>
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0B9F47] to-[#0A8E3F] flex items-center justify-center text-white shadow-md">
-                                <User size={18} />
-                            </div>
-                        </div>
+                        <Menu shadow="md" width={220} position="bottom-end" radius="md">
+                            <Menu.Target>
+                                <div className="flex items-center gap-3 pl-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors">
+                                    <div className="text-right hidden sm:block">
+                                        <p className="text-sm font-semibold text-gray-900 leading-none">{user?.username || 'Admin User'}</p>
+                                        <p className="text-xs text-gray-500 mt-1 capitalize">{user?.role || 'Super Admin'}</p>
+                                    </div>
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0B9F47] to-[#0A8E3F] flex items-center justify-center text-white shadow-md">
+                                        <User size={18} />
+                                    </div>
+                                </div>
+                            </Menu.Target>
+
+                            <Menu.Dropdown>
+                                <Menu.Label>Application</Menu.Label>
+                                <Menu.Item 
+                                    leftSection={<UserCog size={14} />} 
+                                    onClick={() => setLocation("/admin/settings")}
+                                >
+                                    Profile Settings
+                                </Menu.Item>
+                                
+                                <Menu.Divider />
+                                
+                                <Menu.Item 
+                                    color="red" 
+                                    leftSection={logoutMutation.isPending ? <Loader size={14} className="animate-spin" /> : <LogOut size={14} />}
+                                    onClick={handleLogout}
+                                >
+                                    Sign Out
+                                </Menu.Item>
+                            </Menu.Dropdown>
+                        </Menu>
                     </div>
                 </header>
 
