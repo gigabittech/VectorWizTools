@@ -331,8 +331,6 @@ export async function sendTestEmail(targetEmail: string, settings: any) {
 
   try {
     if (provider === 'brevo' && apiKey) {
-      console.log(`[BREVO API] Testing API with key: ${apiKey.substring(0, 10)}...`);
-
       try {
         const response = await axios.post(BREVO_API_URL, {
           sender: { name: senderName, email: senderEmail },

@@ -267,7 +267,7 @@ function Router() {
     );
   }
 
-  console.log(tools, 'log consle');
+
 
   return (
     <Switch>
