@@ -27,12 +27,41 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const { user, logoutMutation } = useAuth();
     const [location] = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
+    
+    const toggleExpand = (label: string) => {
+        setExpandedItems(prev => 
+            prev.includes(label) ? prev.filter(i => i !== label) : [...prev, label]
+        );
+    };
 
     const navItems = [
         {
             label: "Dashboard",
             href: "/admin/dashboard",
             icon: LayoutDashboard
+        },
+        {
+            label: "Quote Management",
+            icon: ArrowRightLeft,
+            subItems: [
+                {
+                    label: "Quote Data",
+                    href: "/admin/quotes-data"
+                },
+                {
+                    label: "Embed Form",
+                    href: "/admin/embed-form"
+                },
+                {
+                    label: "Email Settings",
+                    href: "/admin/email-settings"
+                },
+                {
+                    label: "Email Logs",
+                    href: "/admin/email-logs"
+                }
+            ]
         },
         {
             label: "Tools Management",
@@ -78,18 +107,67 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <ScrollArea className="flex-1 py-6 px-4">
                     <nav className="space-y-2">
                         {navItems.map((item) => {
-                            const isActive = currentPath === item.href;
-                            const Icon = item.icon;
+                            const isParentActive = item.subItems 
+                                ? item.subItems.some(sub => currentPath === sub.href)
+                                : currentPath === item.href;
+                            const isExpanded = expandedItems.includes(item.label) || isParentActive;
+                            const Icon = item.icon!;
+                            
+                            if (item.subItems) {
+                                return (
+                                    <div key={item.label} className="space-y-1">
+                                        <div
+                                            onClick={() => toggleExpand(item.label)}
+                                            className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all ${isParentActive
+                                                ? "bg-white/10 text-white"
+                                                : "text-white/70 hover:bg-white/5 hover:text-white"
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Icon size={20} className="shrink-0" />
+                                                {isSidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
+                                            </div>
+                                            {isSidebarOpen && (
+                                                <ChevronRight 
+                                                    size={14} 
+                                                    className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                                                />
+                                            )}
+                                        </div>
+                                        
+                                        {isSidebarOpen && isExpanded && (
+                                            <div className="ml-9 space-y-1 overflow-hidden transition-all duration-300">
+                                                {item.subItems.map((sub) => {
+                                                    const isSubActive = currentPath === sub.href;
+                                                    return (
+                                                        <Link key={sub.href} href={sub.href}>
+                                                            <div
+                                                                className={`px-3 py-2 rounded-lg cursor-pointer transition-all text-xs font-medium ${isSubActive
+                                                                    ? "bg-[#0B9F47] text-white shadow-lg shadow-[#0B9F47]/20"
+                                                                    : "text-white/50 hover:text-white hover:bg-white/5"
+                                                                    }`}
+                                                            >
+                                                                {sub.label}
+                                                            </div>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+
                             return (
-                                <Link key={item.href} href={item.href}>
+                                <Link key={item.href} href={item.href!}>
                                     <div
-                                        className={`flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-all ${isActive
+                                        className={`flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-all ${isParentActive
                                             ? "bg-[#0B9F47] text-white shadow-lg shadow-[#0B9F47]/20"
                                             : "text-white/70 hover:bg-white/5 hover:text-white"
                                             }`}
                                     >
                                         <Icon size={20} className="shrink-0" />
-                                        {isSidebarOpen && <span className="font-medium">{item.label}</span>}
+                                        {isSidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
                                     </div>
                                 </Link>
                             );

@@ -13,6 +13,7 @@ export const quoteRequests = pgTable("quote_requests", {
   numberOfFiles: text("number_of_files"),
   turnaroundTime: text("turnaround_time"),
   fileUrls: text("file_urls").array(),
+  status: text("status").default("pending").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -204,6 +205,37 @@ export const seoSettings = pgTable("seo_settings", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
 
+
+
+// 10. email_settings
+export const emailSettings = pgTable("email_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  emailProvider: text("email_provider").notNull().default("brevo"), // 'brevo' or 'smtp'
+  senderName: text("sender_name").notNull().default("VectorWiz"),
+  senderEmail: text("sender_email").notNull(),
+  ccEmails: text("cc_emails").array(),
+  bccEmails: text("bcc_emails").array(),
+  brevoApiKey: text("brevo_api_key"),
+  smtpHost: text("smtp_host").default("smtp-relay.brevo.com"),
+  smtpPort: integer("smtp_port").default(587),
+  smtpUser: text("smtp_user"),
+  smtpPass: text("smtp_pass"),
+  encryption: text("encryption").notNull().default("tls"), // tls, ssl, none
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  senderEmail: z.string().email("Valid sender email is required"),
+  ccEmails: z.array(z.string().email()).optional(),
+  bccEmails: z.array(z.string().email()).optional(),
+  smtpPort: z.coerce.number().int().positive(),
+});
+
 export const insertToolSchema = createInsertSchema(tools).omit({
   id: true,
   createdAt: true,
@@ -229,4 +261,18 @@ export type ToolInternalLink = typeof toolInternalLinks.$inferSelect;
 export type Page = typeof pages.$inferSelect;
 export type Blog = typeof blogs.$inferSelect;
 export type Redirect = typeof redirects.$inferSelect;
+export const emailLogs = pgTable("email_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recipient: text("recipient").notNull(),
+  subject: text("subject").notNull(),
+  status: text("status", { enum: ["sent", "failed"] }).notNull(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertEmailLogSchema = createInsertSchema(emailLogs);
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
 export type SeoSettings = typeof seoSettings.$inferSelect;
+export type EmailSettings = typeof emailSettings.$inferSelect;
+export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;

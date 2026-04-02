@@ -116,9 +116,14 @@ import JPGtoVSDX from "./pages/tools/image_tools/jpg-to-vsdx";
 import VSDXtoJPG from "./pages/tools/image_tools/vsdx-to-jpg";
 import PNGtoWebP from "./pages/tools/image_tools/png-to-webp";
 import JPGtoWebP from "./pages/tools/image_tools/jpg-to-webp";
+import EmbedQuoteForm from "@/pages/EmbedQuoteForm";
+import EmbedGenerator from "@/pages/EmbedGenerator";
 import Dashboard from "@/pages/dashboard";
 import ToolsManagement from "@/pages/toolsManagement";
 import SeoRedirects from "@/pages/SeoRedirects";
+import QuotesData from "@/pages/QuotesData";
+import EmailSettings from "@/pages/EmailSettings";
+import EmailLogs from "@/pages/EmailLogs";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
@@ -262,11 +267,12 @@ function Router() {
     );
   }
 
-  console.log(tools, 'log consle');
+
 
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/embed/quote-form" component={EmbedQuoteForm} />
 
       {/* Admin Routes (Uses separate AdminLayout internally) */}
       <Route path="/admin/dashboard">
@@ -277,6 +283,18 @@ function Router() {
       </Route>
       <Route path="/admin/seo-redirects">
         {() => <ProtectedRoute component={SeoRedirects} />}
+      </Route>
+      <Route path="/admin/quotes-data">
+        {() => <ProtectedRoute component={QuotesData} />}
+      </Route>
+      <Route path="/admin/embed-form">
+        {() => <ProtectedRoute component={EmbedGenerator} />}
+      </Route>
+      <Route path="/admin/email-settings">
+        {() => <ProtectedRoute component={EmailSettings} />}
+      </Route>
+      <Route path="/admin/email-logs">
+        {() => <ProtectedRoute component={EmailLogs} />}
       </Route>
 
       {/* Main Project Routes (Wrapped in standard Layout) */}

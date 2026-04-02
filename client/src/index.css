@@ -207,3 +207,30 @@ html {
     z-index: 10;
   }
 }
+
+/* Custom Scrollbar for Dark Themes */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #04122C;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(11, 159, 71, 0.4);
+  border-radius: 10px;
+  border: 2px solid #04122C;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0B9F47;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(11, 159, 71, 0.4) #04122C;
+}

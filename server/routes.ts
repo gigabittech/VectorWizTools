@@ -2,14 +2,43 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
-import { insertQuoteRequestSchema, loginSchema } from "@shared/schema";
-import { sendQuoteRequestNotification } from "./emailService";
+import { 
+  insertQuoteRequestSchema, 
+  loginSchema, 
+  insertEmailSettingsSchema 
+} from "@shared/schema";
+import { sendQuoteRequestNotification, sendTestEmail } from "./emailService";
 import { generateAIImage } from "./aiImageService";
 import { comparePassword, generateToken } from "./authUtils";
 import { protect } from "./authMiddleware";
 import { toolController } from "./toolController";
 import { pdfToolsController, upload } from "./pdfToolsController";
 import { cloudConvertController } from "./cloudConvertController";
+
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// Configure multer for quote request file uploads
+const quoteUploadDir = path.join(process.cwd(), "uploads", "quote-requests");
+if (!fs.existsSync(quoteUploadDir)) {
+  fs.mkdirSync(quoteUploadDir, { recursive: true });
+}
+
+const storage_multer = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, quoteUploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload_quote = multer({ 
+  storage: storage_multer,
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // --- Auth Routes ---
@@ -75,14 +104,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Quote Request Routes ---
-  app.post("/api/quote-requests", async (req, res) => {
+  app.post("/api/quote-requests", upload_quote.array("files"), async (req, res) => {
     try {
-      const data = insertQuoteRequestSchema.parse(req.body);
+      const body = req.body;
+      
+      // Convert numeric/boolean strings from FormData if necessary
+      const data = insertQuoteRequestSchema.parse({
+        ...body,
+      });
 
-      // Create quote request
-      const quoteRequest = await storage.createQuoteRequest(data);
+      // Handle file URLs
+      const fileUrls = (req.files as Express.Multer.File[])?.map(file => {
+        return `/uploads/quote-requests/${file.filename}`;
+      }) || [];
 
-      // Send email notifications via Brevo
+      // Create quote request with file URLs
+      const quoteRequest = await storage.createQuoteRequest({
+        ...data,
+        fileUrls
+      });
+
+      // Send email notifications
       await sendQuoteRequestNotification({
         firstName: quoteRequest.firstName || '',
         lastName: quoteRequest.lastName || '',
@@ -90,6 +132,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectDetails: quoteRequest.projectDetails,
         numberOfFiles: quoteRequest.numberOfFiles || '',
         turnaroundTime: quoteRequest.turnaroundTime || '',
+        status: quoteRequest.status,
+        fileUrls: quoteRequest.fileUrls || []
       });
 
       res.json(quoteRequest);
@@ -110,6 +154,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to fetch quote requests:", error);
       res.status(500).json({ error: "Failed to fetch quote requests" });
+    }
+  });
+
+  // PROTECTED: Update quote request status
+  app.patch("/api/quote-requests/:id", protect, async (req, res) => {
+    try {
+      const id = req.params.id;
+      const data = req.body;
+      const result = await storage.updateQuoteRequest(id, data);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Failed to update quote request:", error);
+      res.status(500).json({ error: error.message || "Failed to update quote request" });
+    }
+  });
+
+  // PROTECTED: Delete quote request
+  app.delete("/api/quote-requests/:id", protect, async (req, res) => {
+    try {
+      const id = req.params.id;
+      await storage.deleteQuoteRequest(id);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Failed to delete quote request:", error);
+      res.status(500).json({ error: error.message || "Failed to delete quote request" });
+    }
+  });
+
+  // --- Email Settings Routes ---
+  app.get("/api/email-settings", protect, async (_req, res) => {
+    try {
+      const settings = await storage.getEmailSettings();
+      res.json(settings || {});
+    } catch (error) {
+      console.error("Error fetching email settings:", error instanceof Error ? error.message : "Unknown error");
+      res.json({}); // Return empty object to prevent UI crash if DB schema is missing columns
+    }
+  });
+
+  app.get("/api/email-logs", protect, async (_req, res) => {
+    try {
+      const logs = await storage.getEmailLogs();
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching email logs:", error);
+      res.status(500).json({ error: "Failed to fetch email logs" });
+    }
+  });
+
+  app.post("/api/email-settings", protect, async (req, res) => {
+    try {
+      const data = insertEmailSettingsSchema.parse(req.body);
+      const settings = await storage.updateEmailSettings(data);
+      res.json(settings);
+    } catch (error) {
+      console.error("Failed to update email settings:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid email settings data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update email settings" });
+    }
+  });
+
+  app.post("/api/email-settings/test", protect, async (req, res) => {
+    try {
+      const { testEmail, settings: tempSettingsRaw } = req.body;
+      if (!testEmail) {
+        return res.status(400).json({ error: "Test email address is required" });
+      }
+
+      const tempSettings = insertEmailSettingsSchema.partial().parse(tempSettingsRaw);
+      
+      const result = await sendTestEmail(testEmail, tempSettings);
+      
+      if (result.success) {
+        res.json({ message: "Test email sent successfully!" });
+      } else {
+        res.status(500).json({ error: result.error || "Failed to send test email. Check your SMTP configuration." });
+      }
+    } catch (error: any) {
+      console.error("Test email failed:", error?.message || String(error));
+      res.status(500).json({ error: error?.message || "Failed to send test email" });
     }
   });
 

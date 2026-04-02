@@ -3,6 +3,7 @@ dotenv.config();
 
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -12,10 +13,15 @@ const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");
 // If proxy (Apache/Nginx) already strips the prefix, set this to skip re-stripping
 const PROXY_STRIPS_PREFIX = process.env.PROXY_STRIPS_PREFIX === "true" || BASE_PATH === "";
 
+import path from "path";
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Serve uploads directory statically
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Trust proxy for subpath deployment behind Nginx/Apache
 app.set('trust proxy', true);
