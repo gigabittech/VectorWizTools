@@ -60,8 +60,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set cookie for browser-based auth
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: req.secure || process.env.NODE_ENV === "production",
         sameSite: "lax",
+        path: "/", // Explicitly set path to root so it's available site-wide
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
       });
 
