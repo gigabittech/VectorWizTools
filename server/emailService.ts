@@ -51,65 +51,105 @@ export async function sendQuoteRequestNotification(quoteData: {
     // PREMIUM HTML TABLE FOR ADMIN
     const fileLinksHtml = quoteData.fileUrls && quoteData.fileUrls.length > 0
       ? quoteData.fileUrls.map((url, i) =>
-        `<a href="${appUrl}${url}" style="display:inline-block; padding: 10px 20px; background-color: #0B9F47; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px; margin-bottom: 5px; font-weight: bold;">Download File ${i + 1}</a>`
+        `<a href="${appUrl}${url}" style="display:inline-block; padding: 12px 24px; background-color: #0B9F47; color: white; text-decoration: none; border-radius: 8px; margin-right: 10px; margin-bottom: 10px; font-weight: bold; font-family: sans-serif; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Download File ${i + 1}</a>`
       ).join(' ')
-      : '<span style="color: #666;">No files attached</span>';
+      : '<span style="color: #64748B; font-style: italic;">No files attached</span>';
 
     const emailTemplate = `
       <!DOCTYPE html>
       <html>
       <head>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; }
-          .container { max-width: 650px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-          .header { background: linear-gradient(135deg, #06183C 0%, #1e3a8a 100%); padding: 20px 10px; text-align: center; color: white; }
-          .header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
-          .content { padding: 40px; background-color: #ffffff; }
-          .section-title { font-size: 18px; font-weight: bold; color: #06183C; border-bottom: 2px solid #0B9F47; padding-bottom: 8px; margin-bottom: 20px; }
-          .field { margin-bottom: 20px; display: flex; flex-direction: column; }
-          .label { font-weight: bold; color: #555; text-transform: uppercase; font-size: 12px; margin-bottom: 4px; }
-          .value { font-size: 16px; color: #111; }
-          .footer { background-color: #f8fafc; padding: 20px; text-align: center; color: #64748b; font-size: 13px; border-top: 1px solid #e2e8f0; }
-          .brand-color { color: #0B9F47; font-weight: bold; }
-          .logo-text { font-size: 28px; font-weight: 800; color: #06183C; letter-spacing: -1px; }
-          .logo-accent { color: #0B9F47; }
-        </style>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Quote Request</title>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo-text" style="color: white;">Vector<span style="color: #0B9F47;">Wiz</span></div>
-            <h1>New Quote Request</h1>
-          </div>
-          <div class="content">
-            <div class="section-title">Project Details</div>
-            
-            <div class="field">
-              <div class="label">Name:</div>
-              <div class="value">${quoteData.firstName} ${quoteData.lastName}</div>
-            </div>
+      <body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F1F5F9; padding: 40px 10px;">
+          <tr>
+            <td align="center">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+                <!-- Header -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, #06183C 0%, #112D60 100%); padding: 40px; text-align: left;">
+                    <div style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -1px; margin-bottom: 16px;">
+                      Vector<span style="color: #0B9F47;">Wiz</span>
+                    </div>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2;">New Quote Request Received</h1>
+                    <p style="color: #94A3B8; margin: 8px 0 0 0; font-size: 14px;">A new submission has been captured from the website.</p>
+                  </td>
+                </tr>
+                
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 40px;">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="padding-bottom: 30px; border-bottom: 1px solid #F1F5F9;">
+                          <p style="margin: 0 0 12px 0; color: #64748B; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Customer Information</p>
+                          <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td width="50%" style="padding-right: 15px;" valign="top">
+                                <p style="margin: 0; color: #94A3B8; font-size: 11px; margin-bottom: 4px;">NAME</p>
+                                <p style="margin: 0; color: #1E293B; font-size: 16px; font-weight: 600;">${quoteData.firstName} ${quoteData.lastName}</p>
+                              </td>
+                              <td width="50%" style="padding-left: 15px;" valign="top">
+                                <p style="margin: 0; color: #94A3B8; font-size: 11px; margin-bottom: 4px;">EMAIL ADDRESS</p>
+                                <p style="margin: 0; color: #0B9F47; font-size: 16px; font-weight: 600;"><a href="mailto:${quoteData.email}" style="color: #0B9F47; text-decoration: none;">${quoteData.email}</a></p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td style="padding-top: 30px; padding-bottom: 30px; border-bottom: 1px solid #F1F5F9;">
+                          <p style="margin: 0 0 12px 0; color: #64748B; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Project Details & Notes</p>
+                          <div style="background-color: #F8FAFC; border-radius: 12px; padding: 24px; border-left: 4px solid #0B9F47;">
+                            <p style="margin: 0; color: #334155; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${quoteData.projectDetails}</p>
+                          </div>
+                        </td>
+                      </tr>
 
-            <div class="field">
-              <div class="label">Email:</div>
-              <div class="value"><a href="mailto:${quoteData.email}" style="color: #20448B; text-decoration: none;">${quoteData.email}</a></div>
-            </div>
+                      <tr>
+                        <td style="padding-top: 30px; padding-bottom: 30px; border-bottom: 1px solid #F1F5F9;">
+                           <p style="margin: 0 0 15px 0; color: #64748B; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Attached Files</p>
+                           <div style="padding-top: 5px;">
+                             ${fileLinksHtml}
+                           </div>
+                        </td>
+                      </tr>
 
-            <div class="field">
-              <div class="label">Service Details:</div>
-              <div class="value" style="background: #f1f5f9; padding: 15px; border-radius: 8px;">${quoteData.projectDetails}</div>
-            </div>
+                       <tr>
+                        <td style="padding-top: 30px;">
+                          <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td width="50%" style="padding-right: 15px;" valign="top">
+                                <p style="margin: 0; color: #94A3B8; font-size: 11px; margin-bottom: 4px;">NUMBER OF FILES</p>
+                                <p style="margin: 0; color: #1E293B; font-size: 16px; font-weight: 600;">${quoteData.numberOfFiles}</p>
+                              </td>
+                              <td width="50%" style="padding-left: 15px;" valign="top">
+                                <p style="margin: 0; color: #94A3B8; font-size: 11px; margin-bottom: 4px;">URGENCY</p>
+                                <p style="margin: 0; color: #1E293B; font-size: 16px; font-weight: 600;">${quoteData.turnaroundTime} Hours</p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
 
-            <div class="field">
-              <div class="label">Attached Files:</div>
-              <div class="value" style="margin-top: 10px;">
-                ${fileLinksHtml}
-              </div>
-            </div>
-          </div>
-          <div class="footer">
-            Generated by <span class="brand-color">VectorWiz Dashboard</span> &bull; ${new Date().toLocaleString()}
-          </div>
-        </div>
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 0 40px 40px 40px; text-align: center;">
+                    <p style="margin: 0; color: #CBD5E1; font-size: 12px;">This email was automatically generated by VectorWiz Quote System.</p>
+                    <p style="margin: 8px 0 0 0; color: #CBD5E1; font-size: 12px; font-weight: 600;">&copy; ${new Date().getFullYear()} VectorWiz Dashboard &bull; Creative that ships.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -118,59 +158,63 @@ export async function sendQuoteRequestNotification(quoteData: {
       <!DOCTYPE html>
       <html>
       <head>
-        <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.7; color: #444; margin: 0; padding: 0; }
-          .wrapper { background-color: #f4f7f9; padding: 40px 20px; }
-          .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-          .header { background-color: #ffffff; padding: 20px 10px; text-align: center; border-bottom: 5px solid #0B9F47; }
-          .content { padding: 40px; }
-          h2 { color: #06183C; font-size: 24px; margin-top: 0; }
-          p { margin-bottom: 20px; font-size: 16px; }
-          .steps-box { background-color: #f8fafc; padding: 25px; border-radius: 10px; margin: 25px 0; border: 1px solid #e2e8f0; }
-          .steps-box h3 { margin-top: 0; font-size: 18px; color: #06183C; }
-          ol { padding-left: 20px; margin: 0; }
-          ol li { margin-bottom: 12px; color: #555; }
-          .footer { padding: 30px; background: #fdfdfd; border-top: 1px solid #eee; }
-          .signature { margin-top: 25px; border-top: 1px solid #eee; padding-top: 25px; }
-          .brand-name { color: #0B9F47; font-weight: 700; }
-          .link { color: #0B9F47; text-decoration: none; font-weight: 600; }
-          .logo-text { font-size: 32px; font-weight: 800; color: #06183C; letter-spacing: -1.5px; }
-          .logo-accent { color: #0B9F47; }
-        </style>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Quote Request Received</title>
       </head>
-      <body>
-        <div class="wrapper">
-          <div class="container">
-            <div class="header">
-              <div class="logo-text">Vector<span class="logo-accent">Wiz</span></div>
-            </div>
-            <div class="content">
-              <h2>Hi ${quoteData.firstName},</h2>
-              <p>Thank you for submitting your Request for Quote at <span class="brand-name">VectorWiz</span>!</p>
-              <p>We’ve received your details and files, and our design team has started reviewing them.</p>
-              <p>You can expect your personalized quote within <strong>6–12 hours</strong> (often much sooner).</p>
-              
-              <div class="steps-box">
-                <h3>What happens next:</h3>
-                <ol>
-                  <li>We review your files and project requirements.</li>
-                  <li>You’ll receive a quote email with price and turnaround details.</li>
-                  <li>Once confirmed, we’ll send a PayPal invoice and begin production right away.</li>
-                </ol>
-              </div>
-              
-              <p>If you’d like to add or clarify anything, simply reply to this email — we’ll make sure it’s included in your quote.</p>
-              <p>We’re excited to work with you and bring your artwork to life!</p>
-              
-              <div class="signature">
-                <p>Warm regards,<br>
-                <strong>Sujan Bhuiyan</strong><br> 
-                on behalf of the entire VectorWiz Team</p>
-                <p><a href="https://vectorwiz.com/" class="link">vectorwiz.com</a></p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 40px 10px;">
+          <tr>
+            <td align="center">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+                <!-- Header Logo -->
+                <tr>
+                  <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 3px solid #0B9F47;">
+                    <div style="font-size: 32px; font-weight: 800; color: #06183C; letter-spacing: -1.5px;">
+                      Vector<span style="color: #0B9F47;">Wiz</span>
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 40px;">
+                    <h2 style="color: #06183C; margin: 0 0 24px 0; font-size: 26px; font-weight: 700;">Hi ${quoteData.firstName},</h2>
+                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 16px; line-height: 1.6;">Thank you for submitting your Request for Quote at <strong style="color: #0B9F47;">VectorWiz</strong>!</p>
+                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 16px; line-height: 1.6;">We've received your details and files, and our design team has started reviewing them.</p>
+                    <p style="margin: 0 0 30px 0; color: #475569; font-size: 16px; line-height: 1.6;">You can expect your personalized quote within <strong>6–12 hours</strong> (often much sooner).</p>
+                    
+                    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 30px; margin: 30px 0;">
+                      <h3 style="color: #06183C; margin: 0 0 20px 0; font-size: 18px; font-weight: 700;">What happens next:</h3>
+                      <ol style="margin: 0; padding: 0 0 0 20px; color: #475569; font-size: 14px; line-height: 1.8;">
+                        <li style="margin-bottom: 10px;">We review your files and project requirements.</li>
+                        <li style="margin-bottom: 10px;">You'll receive a quote email with price and turnaround details.</li>
+                        <li>Once confirmed, we'll send a PayPal invoice and begin production right away.</li>
+                      </ol>
+                    </div>
+
+                    <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.6;">If you'd like to add or clarify anything, simply reply to this email — we'll make sure it's included in your quote.</p>
+                    <p style="margin: 0 0 30px 0; color: #475569; font-size: 16px; line-height: 1.6;">We're excited to work with you and bring your artwork to life!</p>
+                    
+                    <div style="border-top: 1px solid #F1F5F9; padding-top: 30px; margin-top: 30px;">
+                      <p style="margin: 0; color: #475569; font-size: 16px;">Warm regards,</p>
+                      <p style="margin: 4px 0 0 0; color: #1E293B; font-size: 18px; font-weight: 700;">Sujan Bhuiyan</p>
+                      <p style="margin: 4px 0 0 0; color: #64748B; font-size: 14px;">on behalf of the entire VectorWiz Team</p>
+                      <p style="margin: 20px 0 0 0;"><a href="https://vectorwiz.com" style="color: #0B9F47; font-weight: 700; text-decoration: none; font-size: 16px;">vectorwiz.com</a></p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px;">
+                <tr>
+                  <td style="padding-top: 20px; text-align: center;">
+                     <p style="margin: 0; color: #94A3B8; font-size: 12px;">© ${new Date().getFullYear()} VectorWiz Dashboard &bull; Creative that ships.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -189,7 +233,7 @@ export async function sendQuoteRequestNotification(quoteData: {
 
     if (provider === 'brevo' && apiKey) {
       console.log(`[BREVO API] Sending notification. From: ${senderEmail}, To: ${senderEmail}, CC Count: ${ccEmails.length}`);
-      
+
       try {
         await axios.post(BREVO_API_URL, adminPayload, {
           headers: { 'api-key': apiKey, 'Content-Type': 'application/json' }
@@ -254,7 +298,7 @@ export async function sendQuoteRequestNotification(quoteData: {
         });
         await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "sent" });
       } catch (e: any) {
-         await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "failed", errorMessage: e.message });
+        await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "failed", errorMessage: e.message });
       }
 
       try {
@@ -268,7 +312,7 @@ export async function sendQuoteRequestNotification(quoteData: {
         });
         await storage.createEmailLog({ recipient: quoteData.email, subject: clientSubject, status: "sent" });
       } catch (e: any) {
-         await storage.createEmailLog({ recipient: quoteData.email, subject: 'We’ve Received Your Quote Request – VectorWiz', status: "failed", errorMessage: e.message });
+        await storage.createEmailLog({ recipient: quoteData.email, subject: 'We’ve Received Your Quote Request – VectorWiz', status: "failed", errorMessage: e.message });
       }
     }
   } catch (error: any) {
@@ -338,7 +382,7 @@ export async function sendTestEmail(targetEmail: string, settings: any) {
 
         return { success: true, message: "SMTP verified! Email sent." };
       } catch (err: any) {
-         await storage.createEmailLog({
+        await storage.createEmailLog({
           recipient: targetEmail,
           subject: 'Success - VectorWiz SMTP',
           status: "failed",
