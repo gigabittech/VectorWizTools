@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Paper, Title, Text, Tabs, Table, Badge, ScrollArea, Group, Stack, Card, Image } from "@mantine/core";
-import { FileText, ImageIcon, Calendar, Mail, Info } from "lucide-react";
+import { FileText, ImageIcon, Calendar, Mail, Info, Settings, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { QuoteRequest, AIImageGeneration } from "@shared/schema";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 
 export default function Dashboard() {
     const { data: quoteRequests, isLoading: loadingQuotes } = useQuery<QuoteRequest[]>({
@@ -14,6 +14,16 @@ export default function Dashboard() {
     const { data: aiGenerations, isLoading: loadingAI } = useQuery<AIImageGeneration[]>({
         queryKey: ["/api/ai-generations"],
     });
+
+    const { data: tools, isLoading: loadingTools } = useQuery<any[]>({
+        queryKey: ["/api/tools"],
+    });
+
+    const todayQuotes = useMemo(() => {
+        if (!quoteRequests) return [];
+        const today = new Date();
+        return quoteRequests.filter(quote => isSameDay(new Date(quote.createdAt), today));
+    }, [quoteRequests]);
 
     useEffect(() => {
         document.title = "CMS Dashboard - VectorWiz";
@@ -28,26 +38,37 @@ export default function Dashboard() {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Paper withBorder shadow="sm" p="md" radius="md" className="bg-white/80 backdrop-blur-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <Paper withBorder shadow="sm" p="lg" radius="md" className="bg-white/80 backdrop-blur-sm border-l-4 border-blue-500">
                         <Group justify="space-between">
                             <div>
                                 <Text size="xs" c="dimmed" fw={700} tt="uppercase">Total Quotes</Text>
-                                <Text size="xl" fw={700}>{quoteRequests?.length || 0}</Text>
+                                <Text size="2xl" fw={800} className="text-blue-600">{quoteRequests?.length || 0}</Text>
                             </div>
-                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                                <FileText size={20} />
+                            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                <FileText size={24} />
                             </div>
                         </Group>
                     </Paper>
-                    <Paper withBorder shadow="sm" p="md" radius="md" className="bg-white/80 backdrop-blur-sm">
+                    <Paper withBorder shadow="sm" p="lg" radius="md" className="bg-white/80 backdrop-blur-sm border-l-4 border-green-500">
                         <Group justify="space-between">
                             <div>
-                                <Text size="xs" c="dimmed" fw={700} tt="uppercase">AI Images</Text>
-                                <Text size="xl" fw={700}>{aiGenerations?.length || 0}</Text>
+                                <Text size="xs" c="dimmed" fw={700} tt="uppercase">Today's Quotes</Text>
+                                <Text size="2xl" fw={800} className="text-green-600">{todayQuotes.length}</Text>
                             </div>
-                            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
-                                <ImageIcon size={20} />
+                            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+                                <Clock size={24} />
+                            </div>
+                        </Group>
+                    </Paper>
+                    <Paper withBorder shadow="sm" p="lg" radius="md" className="bg-white/80 backdrop-blur-sm border-l-4 border-purple-500">
+                        <Group justify="space-between">
+                            <div>
+                                <Text size="xs" c="dimmed" fw={700} tt="uppercase">Total Tools</Text>
+                                <Text size="2xl" fw={800} className="text-purple-600">{tools?.length || 0}</Text>
+                            </div>
+                            <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                                <Settings size={24} />
                             </div>
                         </Group>
                     </Paper>
@@ -61,7 +82,7 @@ export default function Dashboard() {
                                 leftSection={<FileText size={18} />}
                                 className="px-6 py-3 font-semibold"
                             >
-                                Quote Requests
+                                Today's Requests
                             </Tabs.Tab>
                             <Tabs.Tab
                                 value="ai"
@@ -80,7 +101,7 @@ export default function Dashboard() {
                                     <Table verticalSpacing="md" highlightOnHover striped>
                                         <Table.Thead className="bg-gray-50">
                                             <Table.Tr>
-                                                <Table.Th>Date & Time</Table.Th>
+                                                <Table.Th>Time</Table.Th>
                                                 <Table.Th>Client Information</Table.Th>
                                                 <Table.Th>Project Scope</Table.Th>
                                                 <Table.Th>Timeline</Table.Th>
@@ -88,12 +109,12 @@ export default function Dashboard() {
                                             </Table.Tr>
                                         </Table.Thead>
                                         <Table.Tbody>
-                                            {quoteRequests?.map((quote) => (
+                                            {todayQuotes.map((quote) => (
                                                 <Table.Tr key={quote.id}>
                                                     <Table.Td>
                                                         <Stack gap={2}>
-                                                            <Text size="sm" fw={600}>{format(new Date(quote.createdAt), "MMM d, yyyy")}</Text>
-                                                            <Text size="xs" c="dimmed">{format(new Date(quote.createdAt), "h:mm a")}</Text>
+                                                            <Text size="sm" fw={600}>{format(new Date(quote.createdAt), "h:mm a")}</Text>
+                                                            <Text size="xs" c="dimmed">Today</Text>
                                                         </Stack>
                                                     </Table.Td>
                                                     <Table.Td>

@@ -82,7 +82,7 @@ export default function EmbedGenerator() {
     const query = queryString ? `?${queryString}` : "";
     
     const url = `${pathPrefix}/embed/quote-form${query}`;
-    console.log('[EmbedGenerator] Internal embed URL:', url);
+
     return url;
   }, [pathPrefix, theme, primaryColor, hiddenFields, padding, margin, radius, customCss]);
 
