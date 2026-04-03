@@ -2,10 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
-import { 
-  insertQuoteRequestSchema, 
-  loginSchema, 
-  insertEmailSettingsSchema 
+import {
+  insertQuoteRequestSchema,
+  loginSchema,
+  insertEmailSettingsSchema
 } from "@shared/schema";
 import { sendQuoteRequestNotification, sendTestEmail } from "./emailService";
 import { generateAIImage } from "./aiImageService";
@@ -35,7 +35,7 @@ const storage_multer = multer.diskStorage({
   },
 });
 
-const upload_quote = multer({ 
+const upload_quote = multer({
   storage: storage_multer,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
 });
@@ -58,12 +58,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Set cookie for browser-based auth
+      const isProduction = process.env.NODE_ENV === "production";
       res.cookie("token", token, {
         httpOnly: true,
-        secure: req.secure || process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/", // Explicitly set path to root so it's available site-wide
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        secure: isProduction, // Use true only in production
+        sameSite: isProduction ? "none" : "lax", // 'none' for cross-site if needed, 'lax' for development
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // Extend to 30 days
       });
 
       res.json({
@@ -110,11 +111,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       if (username) updateData.username = username;
       if (name) updateData.name = name;
       if (email) updateData.email = email;
-      
+
       if (password) {
         if (!oldPassword) {
           return res.status(400).json({ message: "Current password is required to change your password." });
@@ -130,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedUser = await storage.updateUser(req.user.userId, updateData);
-      
+
       res.json({
         id: updatedUser.id,
         username: updatedUser.username,
@@ -196,12 +197,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { username, email, name, password, role } = req.body;
       const updateData: any = {};
-      
+
       if (username) updateData.username = username;
       if (email !== undefined) updateData.email = email;
       if (name !== undefined) updateData.name = name;
       if (role) updateData.role = role;
-      
+
       if (password) {
         updateData.password = await hashPassword(password);
       }
@@ -215,16 +216,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/users/:id", protect, async (req: any, res) => {
     try {
-       if (req.user.role !== "admin") {
-         return res.status(403).json({ message: "Admin access required" });
-       }
-       if (req.params.id === req.user.userId) {
-         return res.status(400).json({ message: "You cannot delete your own account" });
-       }
-       await storage.deleteUser(req.params.id);
-       res.status(204).send();
+      if (req.user.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (req.params.id === req.user.userId) {
+        return res.status(400).json({ message: "You cannot delete your own account" });
+      }
+      await storage.deleteUser(req.params.id);
+      res.status(204).send();
     } catch (error: any) {
-       res.status(500).json({ message: error.message || "Failed to delete user" });
+      res.status(500).json({ message: error.message || "Failed to delete user" });
     }
   });
 
@@ -237,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/quote-requests", upload_quote.array("files"), async (req, res) => {
     try {
       const body = req.body;
-      
+
       // Convert numeric/boolean strings from FormData if necessary
       const data = insertQuoteRequestSchema.parse({
         ...body,
@@ -355,9 +356,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const tempSettings = insertEmailSettingsSchema.partial().parse(tempSettingsRaw);
-      
+
       const result = await sendTestEmail(testEmail, tempSettings);
-      
+
       if (result.success) {
         res.json({ message: "Test email sent successfully!" });
       } else {
@@ -581,7 +582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post(" /api/tools/:id/faqs", protect, async (req, res) => {
+  app.post("/api/tools/:id/faqs", protect, async (req, res) => {
     try {
       const data = { ...req.body, toolId: req.params.id };
       const result = await storage.createToolFaq(data);
