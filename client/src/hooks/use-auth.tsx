@@ -26,11 +26,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryKey: ["/api/auth/me"],
         queryFn: async () => {
             try {
-                const res = await fetch("/api/auth/me");
-                if (res.status === 401) return null;
-                if (!res.ok) throw new Error("Could not fetch user");
+                const res = await apiRequest("GET", "/api/auth/me");
                 return await res.json();
-            } catch (err) {
+            } catch (err: any) {
+                if (err.status === 401) return null;
                 return null;
             }
         },

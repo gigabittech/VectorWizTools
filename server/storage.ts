@@ -35,7 +35,7 @@ import {
     type InsertEmailLog
 } from "@shared/schema";
 import { db } from "./db";
-import { desc, eq, and, asc } from "drizzle-orm";
+import { desc, eq, and, asc, or } from "drizzle-orm";
 
 export type ToolWithCms = Tool & {
     seo?: ToolSeoType | null;
@@ -191,7 +191,12 @@ export class DatabaseStorage implements IStorage {
         const [user] = await db
             .select()
             .from(users)
-            .where(eq(users.username, username))
+            .where(
+                or(
+                    eq(users.username, username),
+                    eq(users.email, username)
+                )
+            )
             .limit(1);
         return user || null;
     }
