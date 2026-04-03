@@ -3,32 +3,34 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 // When deployed at a subpath (e.g., abc.com/tools), BASE_PATH = "/tools"
 // so all /api calls are correctly sent to abc.com/tools/api/...
 const getBasePath = (): string => {
-  // Build-time constant from VITE_BASE_PATH
+  // 1. Build-time constant from VITE_BASE_PATH (Standard practice)
   const buildTimePath = (import.meta.env.VITE_BASE_PATH || "").replace(/\/$/, "");
+  
+  if (buildTimePath && buildTimePath !== "/" && buildTimePath !== "") {
+    return buildTimePath;
+  }
 
-  // Runtime detection: check if we're in a subdirectory
+  // 2. Fallback to runtime detection: check if we're in a known subdirectory
+  // We only treat the first segment as a base path if it's "tools" or similar expected prefixes
+  // to avoid misidentifying SPA routes (like /dashboard) as base paths.
   const currentPath = window.location.pathname;
   const segments = currentPath.split('/').filter(Boolean);
-  const firstSegment = segments[0]; // Get first segment after /
+  const firstSegment = segments[0]; 
 
-  // If we're in a subdirectory (like /tools)
-  if (firstSegment) {
+  // List of known/expected deployment base paths
+  const KNOWN_BASE_PATHS = ["tools", "vectorwiz"];
+  
+  if (firstSegment && KNOWN_BASE_PATHS.includes(firstSegment.toLowerCase())) {
     const detectedPath = `/${firstSegment}`;
 
-    // Debug logging in development
     if (import.meta.env.DEV) {
-      console.log('[BASE_PATH Detection]', {
-        buildTime: buildTimePath || '/',
-        detected: detectedPath,
-        currentPath,
-        using: detectedPath
-      });
+      console.log('[BASE_PATH Detected]', { detectedPath });
     }
 
     return detectedPath;
   }
 
-  return buildTimePath || '/';
+  return "";
 };
 
 export const BASE_PATH = getBasePath();
@@ -79,9 +81,16 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const token = localStorage.getItem("auth-token");
+  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+  
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(prefixUrl(url), {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -97,7 +106,15 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
     async ({ queryKey }) => {
       const urlStr = queryKey.join("/") as string;
+      const token = localStorage.getItem("auth-token");
+      const headers: Record<string, string> = {};
+      
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(prefixUrl(urlStr), {
+        headers,
         credentials: "include",
       });
 
