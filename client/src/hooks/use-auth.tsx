@@ -29,11 +29,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const res = await apiRequest("GET", "/api/auth/me");
                 return await res.json();
             } catch (err: any) {
+                // Only treat 401 as "not logged in".
+                // Other errors (like 404 if API is misaligned or 500)
+                // should be logged but not necessarily trigger a logout immediately.
                 if (err.status === 401) return null;
+                
+                console.error("[Auth Check Error]", err);
+                
+                // Still returning null for safety to prevent stuck loading states,
+                // but at least we can identify the cause in the console.
                 return null;
             }
         },
-        retry: false,
+        retry: (failureCount, error: any) => {
+            // Retry once for non-401 errors (e.g., temporary network blips)
+            return error.status !== 401 && failureCount < 2;
+        },
     });
 
     const loginMutation = useMutation({
@@ -42,6 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return await res.json();
         },
         onSuccess: (data: any) => {
+            if (data.token) {
+                localStorage.setItem("auth-token", data.token);
+            }
             queryClient.setQueryData(["/api/auth/me"], data.user);
             toast({
                 title: "Login successful",
@@ -62,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await apiRequest("POST", "/api/auth/logout");
         },
         onSuccess: () => {
+            localStorage.removeItem("auth-token");
             queryClient.setQueryData(["/api/auth/me"], null);
             toast({
                 title: "Logged out",
