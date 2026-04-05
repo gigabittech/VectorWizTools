@@ -60,6 +60,10 @@ export function registerQuoteRoutes(app: Express, io: SocketIOServer) {
       const id = req.params.id;
       const data = req.body;
       const result = await storage.updateQuoteRequest(id, data);
+      
+      // Emit update event to all admins
+      io.to("admins").emit("update_quote_request", result);
+      
       res.json(result);
     } catch (error: any) {
       console.error("Failed to update quote request:", error);
@@ -71,6 +75,10 @@ export function registerQuoteRoutes(app: Express, io: SocketIOServer) {
     try {
       const id = req.params.id;
       await storage.deleteQuoteRequest(id);
+      
+      // Emit delete event to all admins
+      io.to("admins").emit("delete_quote_request", id);
+      
       res.status(204).send();
     } catch (error: any) {
       console.error("Failed to delete quote request:", error);

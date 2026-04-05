@@ -133,10 +133,32 @@ export default function QuotesData() {
             });
         };
         
+        const handleUpdateQuote = (updatedQuote: any) => {
+            queryClient.setQueryData(["/api/quote-requests"], (oldData: any) => {
+                return (oldData || []).map((quote: any) => 
+                    quote.id === updatedQuote.id ? updatedQuote : quote
+                );
+            });
+            // Also update viewing modal if it's currently open for this quote
+            setViewingQuote(prev => prev && prev.id === updatedQuote.id ? updatedQuote : prev);
+        };
+        
+        const handleDeleteQuote = (deletedId: string) => {
+            queryClient.setQueryData(["/api/quote-requests"], (oldData: any) => {
+                return (oldData || []).filter((quote: any) => quote.id !== deletedId);
+            });
+            // Auto close view modal if the viewing quote was deleted by someone else
+            setViewingQuote(prev => prev && prev.id === deletedId ? null : prev);
+        };
+        
         socket.on("new_quote_request", handleNewQuote);
+        socket.on("update_quote_request", handleUpdateQuote);
+        socket.on("delete_quote_request", handleDeleteQuote);
         
         return () => {
             socket.off("new_quote_request", handleNewQuote);
+            socket.off("update_quote_request", handleUpdateQuote);
+            socket.off("delete_quote_request", handleDeleteQuote);
         };
     }, []);
 
