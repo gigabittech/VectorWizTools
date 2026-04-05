@@ -1,6 +1,35 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import { z } from "zod";
+
+// --- Boot-time Environment Variable Validation ---
+// Fail loudly if required env vars are missing, rather than crashing on first user request.
+const envSchema = z.object({
+    DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+    JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
+    CLOUDCONVERT_API_KEY: z.string().min(1, "CLOUDCONVERT_API_KEY is required"),
+    FRONTEND_URL: z.string().optional(),
+    NODE_ENV: z.enum(["development", "production", "test"]).optional(),
+    PORT: z.string().optional(),
+    HOST: z.string().optional(),
+    BASE_PATH: z.string().optional(),
+    PROXY_STRIPS_PREFIX: z.string().optional(),
+});
+
+const envResult = envSchema.safeParse(process.env);
+if (!envResult.success) {
+    console.error("❌ Missing or invalid environment variables:");
+    const formatted = envResult.error.format();
+    Object.entries(formatted).forEach(([key, val]) => {
+        if (key !== "_errors" && val && typeof val === "object" && "_errors" in val) {
+            const errs = (val as any)._errors;
+            if (errs.length) console.error(`  - ${key}: ${errs.join(", ")}`);
+        }
+    });
+    process.exit(1); // Refuse to start with invalid config
+}
+
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";

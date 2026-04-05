@@ -16,7 +16,10 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-export const upload = multer({ dest: "uploads/" });
+export const upload = multer({ 
+    dest: "uploads/",
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
+});
 
 export class PdfToolsController {
     
@@ -86,7 +89,7 @@ export class PdfToolsController {
             console.warn(`CloudConvert failed (${ccError.message}), attempting local LibreOffice fallback...`);
             
             try {
-                const fileBuffer = fs.readFileSync(filePath);
+                const fileBuffer = await fs.promises.readFile(filePath);
                 // The third argument is a filter, which is undefined for most simple cases
                 const resultBuffer = await convertAsync(fileBuffer, `.${outputFormat}`, undefined);
                 
@@ -120,8 +123,8 @@ export class PdfToolsController {
                 });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
+            if (filePath) {
+                try { await fs.promises.unlink(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
@@ -146,8 +149,8 @@ export class PdfToolsController {
                 });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
+            if (filePath) {
+                try { await fs.promises.unlink(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
@@ -172,8 +175,8 @@ export class PdfToolsController {
                 });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
+            if (filePath) {
+                try { await fs.promises.unlink(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
@@ -198,8 +201,8 @@ export class PdfToolsController {
                 });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
+            if (filePath) {
+                try { await fs.promises.unlink(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
@@ -212,7 +215,7 @@ export class PdfToolsController {
             }
 
             filePath = req.file.path;
-            const dataBuffer = fs.readFileSync(filePath as string);
+            const dataBuffer = await fs.promises.readFile(filePath as string);
 
             // Load the PDF
             const pdfDoc = await PDFDocument.load(dataBuffer);
@@ -321,9 +324,9 @@ export class PdfToolsController {
                 });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
+            if (filePath) {
                 try {
-                    fs.unlinkSync(filePath);
+                    await fs.promises.unlink(filePath);
                 } catch (e) {
                     console.error("Failed to delete temp file:", e);
                 }
@@ -351,8 +354,8 @@ export class PdfToolsController {
                 });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
+            if (filePath) {
+                try { await fs.promises.unlink(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }
@@ -377,8 +380,8 @@ export class PdfToolsController {
                 });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
+            if (filePath) {
+                try { await fs.promises.unlink(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
             }
         }
     }

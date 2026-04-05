@@ -22,19 +22,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import logoImage from "@assets/VectorWiz-logo_1760804742760.png";
 import logoIcon from "@assets/VectorWiz_Icon.png";
 import { useAuth } from "@/hooks/use-auth";
-import { io } from "socket.io-client";
-import { BASE_PATH } from "@/lib/queryClient";
+import { useNotifications, AppNotification } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
-
-interface AppNotification {
-    id: string;
-    type: 'quote' | string;
-    title: string;
-    description: string;
-    timestamp: Date;
-    isRead: boolean;
-    path: string;
-}
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -45,36 +34,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const [location, setLocation] = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
-    const [notifications, setNotifications] = useState<AppNotification[]>([]);
-
-    useEffect(() => {
-        const socketPath = (BASE_PATH + "/api/socket.io").replace(/\/\//g, "/");
-        const socket = io({ path: socketPath });
-        socket.on("new_quote_request", (newQuote) => {
-            setNotifications(prev => [{
-                id: newQuote.id || Date.now().toString(),
-                type: 'quote',
-                title: 'New Quote Request',
-                description: `${newQuote.firstName} ${newQuote.lastName} requested a quote.`,
-                timestamp: new Date(),
-                isRead: false,
-                path: '/admin/quotes-data'
-            }, ...prev]);
-        });
-        return () => {
-            socket.disconnect();
-        };
-    }, []);
-
-    const unreadCount = notifications.filter(n => !n.isRead).length;
-
-    const markAsRead = (id: string) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-    };
-
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    };
+    
+    // Abstracted notifications custom hook
+    const { 
+        notifications, 
+        unreadCount, 
+        markAsRead, 
+        markAllAsRead 
+    } = useNotifications();
 
     const handleNotificationClick = (notif: AppNotification) => {
         markAsRead(notif.id);
