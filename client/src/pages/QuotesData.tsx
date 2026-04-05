@@ -11,7 +11,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
+import { io } from "socket.io-client";
 import { QuoteRequest } from "@shared/schema";
+import { BASE_PATH } from "@/lib/queryClient";
 
 export default function QuotesData() {
     const { toast } = useToast();
@@ -31,7 +33,21 @@ export default function QuotesData() {
 
     const { data: quoteRequests = [], isLoading } = useQuery<QuoteRequest[]>({
         queryKey: ["/api/quote-requests"],
+        staleTime: Infinity,
     });
+
+    useEffect(() => {
+        const socketPath = (BASE_PATH + "/api/socket.io").replace(/\/\//g, "/");
+        const socket = io({ path: socketPath });
+        socket.on("new_quote_request", (newQuote) => {
+            queryClient.setQueryData(["/api/quote-requests"], (oldData: any) => {
+                return [newQuote, ...(oldData || [])];
+            });
+        });
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
     const updateStatusMutation = useMutation({
         mutationFn: async ({ id, status }: { id: string; status: string }) => {

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
+import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage";
 import {
   insertQuoteRequestSchema,
@@ -41,6 +42,18 @@ const upload_quote = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const httpServer = createServer(app);
+  const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");
+  const socketPath = (BASE_PATH + "/api/socket.io").replace(/\/\//g, "/");
+  
+  const io = new SocketIOServer(httpServer, {
+    path: socketPath,
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+
   // --- Auth Routes ---
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -266,6 +279,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: quoteRequest.status,
         fileUrls: quoteRequest.fileUrls || []
       });
+
+      io.emit("new_quote_request", quoteRequest);
 
       res.json(quoteRequest);
     } catch (error) {
@@ -695,6 +710,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }
