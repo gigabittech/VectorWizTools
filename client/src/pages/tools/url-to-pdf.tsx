@@ -139,7 +139,7 @@ function extractGoogleFonts(html: string): string[] {
   const re = /https:\/\/fonts\.googleapis\.com\/css[^"')>]+/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) hits.push(m[0]);
-  return [...new Set(hits)];
+  return Array.from(new Set(hits));
 }
 
 /* Build a fully self-contained HTML document for iframe rendering */
@@ -497,7 +497,7 @@ export default function URLToPDF() {
               ) : (
                 <>
                   <FileDown className="h-4 w-4 shrink-0" />
-                  <span>Convert &amp; Download PDF</span>
+                  <span>Convert & Download PDF</span>
                   <ArrowRight className="h-4 w-4 shrink-0 opacity-70" />
                 </>
               )}
@@ -577,7 +577,7 @@ export default function URLToPDF() {
               <div>
                 <p className="text-xs font-bold text-emerald-900">Primary — Headless Chromium (microlink.io)</p>
                 <p className="mt-0.5 text-xs text-emerald-700 leading-relaxed">
-                  Renders via a real Chrome browser. JS executes, fonts &amp; images all load.
+                  Renders via a real Chrome browser. JS executes, fonts & images all load.
                   Output is identical to what you see in your browser.
                   Free · ~50 req/day · no key required.
                 </p>
@@ -594,7 +594,7 @@ export default function URLToPDF() {
                 <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">
                   Fetches HTML + CSS via proxy, inlines everything, renders in a hidden
                   frame, captures with SVG-based dom-to-image (better than html2canvas —
-                  supports Grid, Flexbox, CSS variables &amp; web fonts).
+                  supports Grid, Flexbox, CSS variables & web fonts).
                 </p>
               </div>
             </div>

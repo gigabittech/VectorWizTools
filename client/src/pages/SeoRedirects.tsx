@@ -43,8 +43,8 @@ export default function SeoRedirects() {
             redirectType: "301",
         },
         validate: {
-            oldUrl: (val) => (!val ? "Old URL is required" : null),
-            newUrl: (val) => (!val ? "New URL is required" : null),
+            oldUrl: (val: string) => (!val ? "Old URL is required" : null),
+            newUrl: (val: string) => (!val ? "New URL is required" : null),
         }
     });
 

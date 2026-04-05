@@ -46,7 +46,7 @@ export default function TurnaroundEstimator() {
             <Select
               label="Service Type"
               value={service}
-              onChange={setService}
+              onChange={(value) => setService(value || "")}
               placeholder="Select a service"
               data={services.map(s => ({ value: s.value, label: s.label }))}
               data-testid="service-select"
@@ -57,7 +57,7 @@ export default function TurnaroundEstimator() {
             <Select
               label="Project Complexity"
               value={complexity}
-              onChange={setComplexity}
+              onChange={(value) => setComplexity(value || "medium")}
               data={[
                 { value: "simple", label: "Simple (basic shapes, minimal detail)" },
                 { value: "medium", label: "Medium (moderate detail, some text)" },

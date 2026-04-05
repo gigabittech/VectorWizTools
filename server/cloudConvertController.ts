@@ -12,6 +12,32 @@ const convertAsync = promisify(libre.convert);
 
 const require = createRequire(import.meta.url);
 
+// Async file cleanup helper — never blocks the event loop
+async function cleanupFile(filePath?: string) {
+    if (filePath) {
+        try { await fs.promises.unlink(filePath); } catch (_) { /* already deleted or inaccessible */ }
+    }
+}
+
+// MIME type lookup for common output formats
+const MIME_TYPES: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'epub': 'application/epub+zip',
+    'mobi': 'application/x-mobipocket-ebook',
+    'azw3': 'application/vnd.amazon.ebook',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'webp': 'image/webp',
+    'tiff': 'image/tiff',
+    'gif': 'image/gif',
+    'svg': 'image/svg+xml',
+};
+
+function getMimeType(format: string): string {
+    return MIME_TYPES[format] || 'application/octet-stream';
+}
+
 export class CloudConvertController {
     private getClient = () => {
         if (!process.env.CLOUDCONVERT_API_KEY) {
@@ -19,6 +45,96 @@ export class CloudConvertController {
         }
         return new CloudConvert(process.env.CLOUDCONVERT_API_KEY);
     }
+
+    /**
+     * Generic CloudConvert job orchestration — eliminates 200+ lines of duplication.
+     * Handles: create job → upload → wait → download → stream response.
+     */
+    private async executeCloudConvertJob(
+        filePath: string,
+        originalName: string,
+        inputFormat: string,
+        outputFormat: string,
+        res: Response,
+        extraTaskOptions: Record<string, any> = {}
+    ): Promise<boolean> {
+        const cc = this.getClient();
+
+        const job = await cc.jobs.create({
+            tasks: {
+                "import-my-file": { operation: "import/upload" },
+                "convert-my-file": {
+                    operation: "convert",
+                    input: "import-my-file",
+                    input_format: inputFormat as any,
+                    output_format: outputFormat,
+                    ...extraTaskOptions,
+                },
+                "export-my-file": { operation: "export/url", input: "convert-my-file" }
+            }
+        });
+
+        const uploadTask = job.tasks.find(task => task.name === "import-my-file");
+        if (!uploadTask) throw new Error("Import task not found");
+
+        const uploadStream = fs.createReadStream(filePath);
+        await cc.tasks.upload(uploadTask, uploadStream, originalName);
+
+        console.log(`Waiting for CloudConvert ${inputFormat.toUpperCase()} → ${outputFormat.toUpperCase()} job...`);
+        const finishedJob = await cc.jobs.wait(job.id);
+
+        // Log errors for debugging
+        finishedJob.tasks.forEach(task => {
+            if (task.status === 'error') {
+                console.error(`CloudConvert Task ${task.name} Error: ${task.message}`);
+            }
+        });
+
+        if (finishedJob.status === 'error') {
+            const errorTask = finishedJob.tasks.find(t => t.status === 'error');
+            throw new Error(errorTask?.message || "CloudConvert Job Failed");
+        }
+
+        const exportTask = finishedJob.tasks.find(task => task.name === "export-my-file");
+        const fileUrl = exportTask?.result?.files?.[0]?.url;
+
+        if (!fileUrl) {
+            throw new Error("No output file URL found in CloudConvert response");
+        }
+
+        console.log(`CloudConvert successful, streaming result...`);
+        const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
+
+        res.setHeader("Content-Type", getMimeType(outputFormat));
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`
+        );
+        downloadResponse.data.pipe(res);
+        return true;
+    }
+
+    /**
+     * Attempt LibreOffice local fallback conversion.
+     */
+    private async libreOfficeFallback(
+        filePath: string,
+        originalName: string,
+        outputFormat: string,
+        res: Response
+    ): Promise<void> {
+        const fileBuffer = await fs.promises.readFile(filePath);
+        const resultBuffer = await convertAsync(fileBuffer, `.${outputFormat}`, undefined);
+
+        res.setHeader("Content-Type", getMimeType(outputFormat));
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`
+        );
+        res.send(resultBuffer);
+    }
+
+    // --- Public route handlers ---
 
     convertVsdxToJpg = async (req: Request, res: Response) => {
         let filePath: string | undefined;
@@ -37,89 +153,14 @@ export class CloudConvertController {
 
             console.log(`Starting conversion: ${originalName} (${inputFormat}) to ${outputFormat}`);
 
-            // Option 1: Try CloudConvert if API key is present
-            if (process.env.CLOUDCONVERT_API_KEY) {
-                try {
-                    console.log("Attempting CloudConvert...");
-                    const cc = this.getClient();
-
-                    // 1. Create a CloudConvert job
-                    const job = await cc.jobs.create({
-                        tasks: {
-                            "import-my-file": {
-                                operation: "import/upload"
-                            },
-                            "convert-my-file": {
-                                operation: "convert",
-                                input: "import-my-file",
-                                input_format: inputFormat as any,
-                                output_format: outputFormat,
-                                engine: "office", // Prefer office engine for VSDX
-                            },
-                            "export-my-file": {
-                                operation: "export/url",
-                                input: "convert-my-file"
-                            }
-                        }
-                    });
-
-                    // 2. Upload the file
-                    const uploadTask = job.tasks.find(task => task.name === "import-my-file");
-                    if (!uploadTask) throw new Error("Import task not found");
-
-                    const uploadStream = fs.createReadStream(filePath);
-                    await cc.tasks.upload(uploadTask, uploadStream, originalName);
-
-                    // 3. Wait for the job to complete
-                    console.log("Waiting for CloudConvert job...");
-                    const finishedJob = await cc.jobs.wait(job.id);
-
-                    // Log task results
-                    finishedJob.tasks.forEach(task => {
-                        if (task.status === 'error') {
-                            console.error(`CloudConvert Task ${task.name} Error: ${task.message}`);
-                        }
-                    });
-
-                    if (finishedJob.status === 'error') {
-                        const errorTask = finishedJob.tasks.find(t => t.status === 'error');
-                        throw new Error(errorTask?.message || "CloudConvert Job Failed");
-                    }
-
-                    // 4. Get the output file URL
-                    const exportTask = finishedJob.tasks.find(task => task.name === "export-my-file");
-                    const fileUrl = exportTask?.result?.files?.[0]?.url;
-
-                    if (fileUrl) {
-                        console.log("CloudConvert Successful, downloading result...");
-                        const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
-
-                        const mimeType = outputFormat === 'pdf' ? 'application/pdf' : `image/${outputFormat === 'jpg' ? 'jpeg' : outputFormat}`;
-                        res.setHeader("Content-Type", mimeType);
-                        res.setHeader(
-                            "Content-Disposition",
-                            `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`
-                        );
-
-                        return downloadResponse.data.pipe(res);
-                    }
-                } catch (ccError: any) {
-                    console.warn(`CloudConvert failed (${ccError.message}), attempting local LibreOffice fallback...`);
-                    try {
-                        const fileBuffer = fs.readFileSync(filePath);
-                        const resultBuffer = await convertAsync(fileBuffer, `.${outputFormat}`, undefined);
-                        const mimeType = outputFormat === 'pdf' ? 'application/pdf' : `image/${outputFormat === 'jpg' ? 'jpeg' : outputFormat}`;
-                        res.setHeader("Content-Type", mimeType);
-                        res.setHeader("Content-Disposition", `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
-                        return res.send(resultBuffer);
-                    } catch (fallbackError: any) {
-                        throw new Error(`CloudConvert Failed (${ccError.message}) and local fallback failed (${fallbackError.message})`);
-                    }
-                }
-            } else {
-                throw new Error("CloudConvert API Key is missing. Conversion cannot proceed.");
+            try {
+                await this.executeCloudConvertJob(filePath, originalName, inputFormat, outputFormat, res, {
+                    engine: "office"
+                });
+            } catch (ccError: any) {
+                console.warn(`CloudConvert failed (${ccError.message}), attempting local LibreOffice fallback...`);
+                await this.libreOfficeFallback(filePath, originalName, outputFormat, res);
             }
-
         } catch (error: any) {
             console.error("VSDX conversion error:", error);
             if (!res.headersSent) {
@@ -129,9 +170,7 @@ export class CloudConvertController {
                 });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
-            }
+            await cleanupFile(filePath);
         }
     }
 
@@ -149,108 +188,22 @@ export class CloudConvertController {
 
             console.log(`Starting conversion: ${originalName} (${inputFormat}) to ${outputFormat} via CloudConvert`);
 
-            if (!process.env.CLOUDCONVERT_API_KEY) {
-                throw new Error("CloudConvert API Key is missing. Cannot perform conversion.");
-            }
-
-            const cc = this.getClient();
-
-            // 1. Create a CloudConvert job
-            const job = await cc.jobs.create({
-                tasks: {
-                    "import-my-file": {
-                        operation: "import/upload"
-                    },
-                    "convert-my-file": {
-                        operation: "convert",
-                        input: "import-my-file",
-                        input_format: inputFormat as any,
-                        output_format: outputFormat,
-                    },
-                    "export-my-file": {
-                        operation: "export/url",
-                        input: "convert-my-file"
-                    }
-                }
-            });
-
-            // 2. Upload the file
-            const uploadTask = job.tasks.find(task => task.name === "import-my-file");
-            if (!uploadTask) throw new Error("Import task not found");
-
-            const uploadStream = fs.createReadStream(filePath);
-            await cc.tasks.upload(uploadTask, uploadStream, originalName);
-
-            // 3. Wait for the job to complete
-            console.log(`Waiting for CloudConvert ${inputFormat.toUpperCase()} to ${outputFormat.toUpperCase()} job...`);
-            const finishedJob = await cc.jobs.wait(job.id);
-
-            // Log task results
-            finishedJob.tasks.forEach(task => {
-                if (task.status === 'error') {
-                    console.error(`CloudConvert Task ${task.name} Error: ${task.message}`);
-                }
-            });
-
-            if (finishedJob.status === 'error') {
-                const errorTask = finishedJob.tasks.find(t => t.status === 'error');
-                throw new Error(errorTask?.message || "CloudConvert Job Failed");
-            }
-
-            // 4. Get the output file URL
-            const exportTask = finishedJob.tasks.find(task => task.name === "export-my-file");
-            const fileUrl = exportTask?.result?.files?.[0]?.url;
-
-            if (fileUrl) {
-                console.log(`CloudConvert ${inputFormat.toUpperCase()} to ${outputFormat.toUpperCase()} Successful, downloading result...`);
-                const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
-
-                const mimeTypes: Record<string, string> = {
-                    'pdf': 'application/pdf',
-                    'epub': 'application/epub+zip',
-                    'mobi': 'application/x-mobipocket-ebook',
-                    'azw3': 'application/vnd.amazon.ebook'
-                };
-
-                res.setHeader("Content-Type", mimeTypes[outputFormat] || "application/octet-stream");
-                res.setHeader(
-                    "Content-Disposition",
-                    `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`
-                );
-
-                return downloadResponse.data.pipe(res);
-            } else {
-                throw new Error("No output file URL found in CloudConvert response");
-            }
-
-        } catch (error: any) {
-            console.warn(`CloudConvert failed (${error.message}), attempting local LibreOffice fallback for ${inputFormat} to ${outputFormat}...`);
             try {
-                const fileBuffer = fs.readFileSync(filePath!);
-                const resultBuffer = await convertAsync(fileBuffer, `.${outputFormat}`, undefined);
-
-                const mimeTypes: Record<string, string> = {
-                    'pdf': 'application/pdf',
-                    'epub': 'application/epub+zip',
-                    'mobi': 'application/x-mobipocket-ebook',
-                    'azw3': 'application/vnd.amazon.ebook'
-                };
-                res.setHeader("Content-Type", mimeTypes[outputFormat] || "application/octet-stream");
-                res.setHeader("Content-Disposition", `attachment; filename=${req.file!.originalname.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
-                return res.send(resultBuffer);
-            } catch (fallbackError: any) {
-                console.error("Local fallback also failed:", fallbackError);
-                if (!res.headersSent) {
-                    res.status(500).json({
-                        error: "Conversion failed",
-                        message: `CloudConvert: ${error.message}. Local: ${fallbackError.message}`,
-                    });
-                }
+                await this.executeCloudConvertJob(filePath, originalName, inputFormat, outputFormat, res);
+            } catch (ccError: any) {
+                console.warn(`CloudConvert failed (${ccError.message}), attempting local LibreOffice fallback...`);
+                await this.libreOfficeFallback(filePath, originalName, outputFormat, res);
+            }
+        } catch (error: any) {
+            console.error(`Ebook conversion error (${inputFormat} → ${outputFormat}):`, error);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message || "An unexpected error occurred during conversion",
+                });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { console.error("Failed to delete temp file:", e); }
-            }
+            await cleanupFile(filePath);
         }
     }
 
@@ -300,64 +253,22 @@ export class CloudConvertController {
 
             console.log(`Starting Outlook conversion: ${originalName} to PDF`);
 
-            if (!process.env.CLOUDCONVERT_API_KEY) {
-                throw new Error("CloudConvert API Key is missing.");
-            }
-
-            const cc = this.getClient();
-            const job = await cc.jobs.create({
-                tasks: {
-                    "import-my-file": { operation: "import/upload" },
-                    "convert-my-file": {
-                        operation: "convert",
-                        input: "import-my-file",
-                        input_format: inputFormat as any,
-                        output_format: "pdf",
-                    },
-                    "export-my-file": { operation: "export/url", input: "convert-my-file" }
-                }
-            });
-
-            const uploadTask = job.tasks.find(task => task.name === "import-my-file");
-            if (!uploadTask) throw new Error("Import task not found");
-
-            await cc.tasks.upload(uploadTask, fs.createReadStream(filePath), originalName);
-            const finishedJob = await cc.jobs.wait(job.id);
-
-            if (finishedJob.status === 'error') {
-                const errorTask = finishedJob.tasks.find(t => t.status === 'error');
-                throw new Error(errorTask?.message || "CloudConvert Job Failed");
-            }
-
-            const exportTask = finishedJob.tasks.find(task => task.name === "export-my-file");
-            const fileUrl = exportTask?.result?.files?.[0]?.url;
-
-            if (fileUrl) {
-                const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
-                res.setHeader("Content-Type", "application/pdf");
-                res.setHeader("Content-Disposition", `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.pdf`);
-                return downloadResponse.data.pipe(res);
-            } else {
-                throw new Error("No output file URL found");
+            try {
+                await this.executeCloudConvertJob(filePath, originalName, inputFormat, "pdf", res);
+            } catch (ccError: any) {
+                console.warn(`CloudConvert failed (${ccError.message}), attempting local LibreOffice fallback...`);
+                await this.libreOfficeFallback(filePath, originalName, "pdf", res);
             }
         } catch (error: any) {
-            console.warn(`CloudConvert failed (${error.message}), attempting local LibreOffice fallback for Outlook to PDF...`);
-            try {
-                const fileBuffer = fs.readFileSync(filePath!);
-                const resultBuffer = await convertAsync(fileBuffer, `.pdf`, undefined);
-                res.setHeader("Content-Type", "application/pdf");
-                res.setHeader("Content-Disposition", `attachment; filename=${req.file!.originalname.replace(/\.[^/.]+$/, '')}.pdf`);
-                return res.send(resultBuffer);
-            } catch (fallbackError: any) {
-                console.error("Local fallback also failed:", fallbackError);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: "Conversion failed", message: `CloudConvert: ${error.message}. Local: ${fallbackError.message}` });
-                }
+            console.error("Outlook conversion error:", error);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message || "An unexpected error occurred during conversion",
+                });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { }
-            }
+            await cleanupFile(filePath);
         }
     }
 
@@ -380,52 +291,14 @@ export class CloudConvertController {
 
             console.log(`Starting Image conversion: ${originalName} (${inputFormat}) to ${outputFormat} with quality ${quality || 'default'}`);
 
-            if (!process.env.CLOUDCONVERT_API_KEY) {
-                throw new Error("CloudConvert API Key is missing.");
-            }
-
-            const cc = this.getClient();
-            const job = await cc.jobs.create({
-                tasks: {
-                    "import-my-file": { operation: "import/upload" },
-                    "convert-my-file": {
-                        operation: "convert",
-                        input: "import-my-file",
-                        input_format: inputFormat as any,
-                        output_format: outputFormat,
-                        ...(quality ? { quality: parseInt(quality) } : {})
-                    },
-                    "export-my-file": { operation: "export/url", input: "convert-my-file" }
-                }
-            });
-
-            const uploadTask = job.tasks.find(task => task.name === "import-my-file");
-            if (!uploadTask) throw new Error("Import task not found");
-
-            await cc.tasks.upload(uploadTask, fs.createReadStream(filePath), originalName);
-            const finishedJob = await cc.jobs.wait(job.id);
-
-            if (finishedJob.status === 'error') {
-                const errorTask = finishedJob.tasks.find(t => t.status === 'error');
-                throw new Error(errorTask?.message || "CloudConvert Job Failed");
-            }
-
-            const exportTask = finishedJob.tasks.find(task => task.name === "export-my-file");
-            const fileUrl = exportTask?.result?.files?.[0]?.url;
-
-            if (fileUrl) {
-                const downloadResponse = await axios.get(fileUrl, { responseType: 'stream' });
-                const mimeType = outputFormat === 'pdf' ? 'application/pdf' : `image/${outputFormat === 'jpg' ? 'jpeg' : outputFormat}`;
-                res.setHeader("Content-Type", mimeType);
-                res.setHeader("Content-Disposition", `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
-                return downloadResponse.data.pipe(res);
-            } else {
-                throw new Error("No output file URL found");
-            }
-        } catch (error: any) {
-            console.warn(`CloudConvert failed (${error.message}), attempting local Sharp fallback for Image...`);
             try {
-                const fileBuffer = fs.readFileSync(filePath!);
+                await this.executeCloudConvertJob(filePath, originalName, inputFormat, outputFormat, res, {
+                    ...(quality ? { quality: parseInt(quality) } : {})
+                });
+            } catch (ccError: any) {
+                console.warn(`CloudConvert failed (${ccError.message}), attempting local Sharp fallback...`);
+                // Sharp-based local fallback for images
+                const fileBuffer = await fs.promises.readFile(filePath);
                 let sharpInstance = sharp(fileBuffer);
                 const outFormat = outputFormat === 'jpg' ? 'jpeg' : outputFormat;
                 if (outFormat === 'jpeg') {
@@ -436,20 +309,20 @@ export class CloudConvertController {
                     sharpInstance = sharpInstance.webp({ quality: quality ? parseInt(quality) : 100 });
                 }
                 const resultBuffer = await sharpInstance.toBuffer();
-                const mimeType = `image/${outFormat}`;
-                res.setHeader("Content-Type", mimeType);
-                res.setHeader("Content-Disposition", `attachment; filename=${req.file!.originalname.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
-                return res.send(resultBuffer);
-            } catch (fallbackError: any) {
-                console.error("Local fallback also failed:", fallbackError);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: "Conversion failed", message: `CloudConvert: ${error.message}. Local: ${fallbackError.message}` });
-                }
+                res.setHeader("Content-Type", getMimeType(outputFormat));
+                res.setHeader("Content-Disposition", `attachment; filename=${originalName.replace(/\.[^/.]+$/, '')}.${outputFormat}`);
+                res.send(resultBuffer);
+            }
+        } catch (error: any) {
+            console.error("Image conversion error:", error);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Conversion failed",
+                    message: error.message || "An unexpected error occurred during conversion",
+                });
             }
         } finally {
-            if (filePath && fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (e) { }
-            }
+            await cleanupFile(filePath);
         }
     }
 }

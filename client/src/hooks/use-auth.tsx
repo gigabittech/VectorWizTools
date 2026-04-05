@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User, LoginRequest } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { connectWithToken, disconnectSocket } from "@/lib/socket";
+import { useEffect } from "react";
 
 type AuthContextType = {
     user: User | null;
@@ -17,6 +19,14 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // Initialize socket connection if token exists on load
+    useEffect(() => {
+        const token = localStorage.getItem("auth-token");
+        if (token) {
+            connectWithToken(token);
+        }
+    }, []);
 
     const {
         data: user,
@@ -55,6 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         onSuccess: (data: any) => {
             if (data.token) {
                 localStorage.setItem("auth-token", data.token);
+                // Connect socket with the new token
+                connectWithToken(data.token);
             }
             queryClient.setQueryData(["/api/auth/me"], data.user);
             toast({
@@ -77,6 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         onSuccess: () => {
             localStorage.removeItem("auth-token");
+            // Disconnect socket on logout
+            disconnectSocket();
             queryClient.setQueryData(["/api/auth/me"], null);
             toast({
                 title: "Logged out",

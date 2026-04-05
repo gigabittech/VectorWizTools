@@ -342,13 +342,18 @@ export class DatabaseStorage implements IStorage {
 
     // Internal Links
     async getToolInternalLinks(toolId: string): Promise<(ToolInternalLinkType & { relatedTool?: Tool })[]> {
-        const links = await db.select().from(toolInternalLinks).where(eq(toolInternalLinks.toolId, toolId));
-        return Promise.all(links.map(async link => {
-            const [relatedTool] = await db.select().from(tools).where(eq(tools.id, link.relatedToolId)).limit(1);
-            return {
-                ...link,
-                relatedTool: relatedTool || undefined
-            };
+        const links = await db
+            .select({
+                link: toolInternalLinks,
+                relatedTool: tools
+            })
+            .from(toolInternalLinks)
+            .leftJoin(tools, eq(toolInternalLinks.relatedToolId, tools.id))
+            .where(eq(toolInternalLinks.toolId, toolId));
+
+        return links.map(row => ({
+            ...row.link,
+            relatedTool: row.relatedTool || undefined
         }));
     }
 
