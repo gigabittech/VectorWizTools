@@ -29,7 +29,7 @@ const PDF_PAD = new Uint8Array([
   0x28, 0xBF, 0x4E, 0x5E, 0x4E, 0x75, 0x8A, 0x41,
   0x64, 0x00, 0x4E, 0x56, 0xFF, 0xFA, 0x01, 0x08,
   0x2E, 0x2E, 0x00, 0xB6, 0xD0, 0x68, 0x3E, 0x80,
-  0x2F, 0x0C, 0xA9, 0xFE, 0x64, 0x53, 0x69, 0x7A,
+  0x2F, 0x0C, 0xA9, 0xFE,  0x64, 0x53, 0x69, 0x7A,
 ]);
 
 // P = -1028  →  u32 = 0xFFFFFBFC = 4294966268
@@ -52,7 +52,11 @@ function u32le(n: number): Uint8Array {
 }
 
 function hexOf(b: Uint8Array): string {
-  return Array.from(b).map(v => v.toString(16).padStart(2, "0")).join("").toUpperCase();
+  let hex = "";
+  for (let i = 0; i < b.length; i++) {
+    hex += b[i].toString(16).padStart(2, "0");
+  }
+  return hex.toUpperCase();
 }
 
 /** PDF binary ↔ string (latin-1, lossless for binary data) */
@@ -75,7 +79,8 @@ function md5(input: Uint8Array): Uint8Array {
     4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21];
   const ml = input.length;
-  const pd = [...input, 0x80];
+  const pd = Array.from(input);
+  pd.push(0x80);
   while (pd.length % 64 !== 56) pd.push(0);
   const bits = ml * 8;
   for (let i = 0; i < 8; i++) pd.push((bits / Math.pow(2, i * 8)) & 0xFF);
@@ -186,9 +191,8 @@ async function aesEncrypt(key: Uint8Array, plaintext: Uint8Array): Promise<Uint8
     "raw", key, { name: "AES-CBC" }, false, ["encrypt"]
   );
   // SubtleCrypto adds its own PKCS7 on top of our padded input
-  const cipherWithExtraPad = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-CBC", iv }, cryptoKey, padded)
-  );
+  const cipherBuffer = await crypto.subtle.encrypt({ name: "AES-CBC", iv }, cryptoKey, padded);
+  const cipherWithExtraPad = new Uint8Array(cipherBuffer);
   // Strip the extra 16-byte block SubtleCrypto added
   const ciphertext = cipherWithExtraPad.slice(0, cipherWithExtraPad.length - 16);
 
@@ -270,7 +274,8 @@ async function encryptStrings(bodyBytes: Uint8Array, objKey: Uint8Array): Promis
       if (decoded.length > 0) {
         const enc = await aesEncrypt(objKey, decoded);
         result.push(0x3C);
-        for (const byte of enc) {
+        for (let j = 0; j < enc.length; j++) {
+          const byte = enc[j];
           const h = byte.toString(16).padStart(2, "0").toUpperCase();
           result.push(h.charCodeAt(0), h.charCodeAt(1));
         }
@@ -289,7 +294,8 @@ async function encryptStrings(bodyBytes: Uint8Array, objKey: Uint8Array): Promis
         const decoded = new Uint8Array(norm.match(/.{2}/g)!.map(h => parseInt(h, 16)));
         const enc = await aesEncrypt(objKey, decoded);
         result.push(0x3C);
-        for (const byte of enc) {
+        for (let j = 0; j < enc.length; j++) {
+          const byte = enc[j];
           const h = byte.toString(16).padStart(2, "0").toUpperCase();
           result.push(h.charCodeAt(0), h.charCodeAt(1));
         }
@@ -391,7 +397,8 @@ async function encryptPDF(pdfBytes: Uint8Array, password: string): Promise<Uint8
 
   // xref
   const xrefOff = parts.reduce((s, p) => s + p.length, 0);
-  const maxObj = Math.max(...offsets.keys());
+  const offsetsKeys = Array.from(offsets.keys());
+  const maxObj = offsetsKeys.length > 0 ? Math.max(...offsetsKeys) : 0;
   let xref = `xref\n0 ${maxObj + 1}\n0000000000 65535 f \n`;
   for (let i = 1; i <= maxObj; i++) {
     const off = offsets.get(i);
@@ -479,7 +486,7 @@ export default function ProtectPDF() {
       const arrayBuffer = await files[0].file.arrayBuffer();
       await new Promise<void>(r => setTimeout(r, 60));
       const encryptedBytes = await encryptPDF(new Uint8Array(arrayBuffer), password);
-      const blob = new Blob([encryptedBytes], { type: "application/pdf" });
+      const blob = new Blob([encryptedBytes as BlobPart], { type: "application/pdf" });
       setProcessedBlob(blob);
       setStatus("success");
       toast({ title: "Protected!", description: "PDF encrypted with AES-128. No server involved." });
