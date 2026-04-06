@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
+import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage";
 import {
   insertQuoteRequestSchema,
@@ -9,309 +10,51 @@ import {
 } from "@shared/schema";
 import { sendQuoteRequestNotification, sendTestEmail } from "./emailService";
 import { generateAIImage } from "./aiImageService";
-import { comparePassword, generateToken, hashPassword } from "./authUtils";
+import { comparePassword, generateToken, hashPassword, verifyToken } from "./authUtils";
 import { protect } from "./authMiddleware";
 import { toolController } from "./toolController";
 import { pdfToolsController, upload } from "./pdfToolsController";
 import { cloudConvertController } from "./cloudConvertController";
 
+import { registerAuthRoutes } from "./controllers/auth.controller";
+import { registerQuoteRoutes } from "./controllers/quote.controller";
+import { registerAiRoutes } from "./controllers/ai.controller";
+import rateLimit from "express-rate-limit";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-
-// Configure multer for quote request file uploads
-const quoteUploadDir = path.join(process.cwd(), "uploads", "quote-requests");
-if (!fs.existsSync(quoteUploadDir)) {
-  fs.mkdirSync(quoteUploadDir, { recursive: true });
-}
-
-const storage_multer = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, quoteUploadDir);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
-const upload_quote = multer({
-  storage: storage_multer,
-  limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
-});
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // --- Auth Routes ---
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = loginSchema.parse(req.body);
-      const user = await storage.getUserByUsername(username);
-
-      if (!user || !(await comparePassword(password, user.password))) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-
-      const token = generateToken({
-        userId: user.id,
-        username: user.username,
-        role: user.role
-      });
-
-      // Set cookie for browser-based auth
-      const isProduction = process.env.NODE_ENV === "production";
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: isProduction, // Use true only in production
-        sameSite: isProduction ? "none" : "lax", // 'none' for cross-site if needed, 'lax' for development
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // Extend to 30 days
-      });
-
-      res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-        },
-        token,
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Internal server error" });
+  const httpServer = createServer(app);
+  const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");
+  const socketPath = (BASE_PATH + "/api/socket.io").replace(/\/\//g, "/");
+  
+  const io = new SocketIOServer(httpServer, {
+    path: socketPath,
+    cors: {
+      origin: process.env.FRONTEND_URL || "http://localhost:5000",
+      methods: ["GET", "POST"]
     }
   });
 
-  app.get("/api/auth/me", protect, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json({
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        name: user.name,
-        email: user.email
-      });
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(" ")[1];
+    if (!token) return next(new Error("Authentication error"));
+    const decoded = verifyToken(token);
+    if (!decoded || decoded.role !== "admin") return next(new Error("Admin access required"));
+    socket.data.user = decoded;
+    next();
   });
 
-  app.patch("/api/auth/me", protect, async (req: any, res) => {
-    try {
-      const { username, name, email, password, oldPassword } = req.body;
-      const updateData: any = {};
-
-      const user = await storage.getUser(req.user.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      if (username) updateData.username = username;
-      if (name) updateData.name = name;
-      if (email) updateData.email = email;
-
-      if (password) {
-        if (!oldPassword) {
-          return res.status(400).json({ message: "Current password is required to change your password." });
-        }
-        const isMatch = await comparePassword(oldPassword, user.password);
-        if (!isMatch) {
-          return res.status(400).json({ message: "Incorrect current password." });
-        }
-        if (password.length < 6) {
-          return res.status(400).json({ message: "Password must be at least 6 characters long." });
-        }
-        updateData.password = await hashPassword(password);
-      }
-
-      const updatedUser = await storage.updateUser(req.user.userId, updateData);
-
-      res.json({
-        id: updatedUser.id,
-        username: updatedUser.username,
-        role: updatedUser.role,
-        name: updatedUser.name,
-        email: updatedUser.email
-      });
-    } catch (error: any) {
-      console.error("User update error:", error);
-      res.status(500).json({ message: error.message || "Failed to update profile" });
-    }
+  io.on("connection", (socket) => {
+    socket.join("admins");
   });
 
-  // --- Admin User Management Routes ---
-  app.get("/api/users", protect, async (req: any, res) => {
-    try {
-      if (req.user.role !== "admin") {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      const users = await storage.getAllUsers();
-      res.json(users.map(u => ({ id: u.id, username: u.username, name: u.name, email: u.email, role: u.role, createdAt: u.createdAt })));
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
-
-  app.post("/api/users", protect, async (req: any, res) => {
-    try {
-      if (req.user.role !== "admin") {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      const { username, password, email, name, role } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      const hashedPassword = await hashPassword(password);
-
-      const newUser = await storage.createUser({
-        username,
-        password: hashedPassword,
-        email: email || undefined,
-        name: name || undefined,
-        role: role || "admin"
-      });
-
-      res.status(201).json({ id: newUser.id, username: newUser.username, name: newUser.name, email: newUser.email, role: newUser.role });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to create user" });
-    }
-  });
-
-  app.patch("/api/users/:id", protect, async (req: any, res) => {
-    try {
-      if (req.user.role !== "admin") {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      const { username, email, name, password, role } = req.body;
-      const updateData: any = {};
-
-      if (username) updateData.username = username;
-      if (email !== undefined) updateData.email = email;
-      if (name !== undefined) updateData.name = name;
-      if (role) updateData.role = role;
-
-      if (password) {
-        updateData.password = await hashPassword(password);
-      }
-
-      const updatedUser = await storage.updateUser(req.params.id, updateData);
-      res.json({ id: updatedUser.id, username: updatedUser.username, name: updatedUser.name, email: updatedUser.email, role: updatedUser.role });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to update user" });
-    }
-  });
-
-  app.delete("/api/users/:id", protect, async (req: any, res) => {
-    try {
-      if (req.user.role !== "admin") {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      if (req.params.id === req.user.userId) {
-        return res.status(400).json({ message: "You cannot delete your own account" });
-      }
-      await storage.deleteUser(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to delete user" });
-    }
-  });
-
-  app.post("/api/auth/logout", (_req, res) => {
-    res.clearCookie("token");
-    res.json({ message: "Logged out successfully" });
-  });
+  // Mount extracted controllers
+  registerAuthRoutes(app);
+  registerQuoteRoutes(app, io);
+  registerAiRoutes(app);
 
   // --- Quote Request Routes ---
-  app.post("/api/quote-requests", upload_quote.array("files"), async (req, res) => {
-    try {
-      const body = req.body;
 
-      // Convert numeric/boolean strings from FormData if necessary
-      const data = insertQuoteRequestSchema.parse({
-        ...body,
-      });
-
-      // Handle file URLs
-      const fileUrls = (req.files as Express.Multer.File[])?.map(file => {
-        return `/uploads/quote-requests/${file.filename}`;
-      }) || [];
-
-      // Create quote request with file URLs
-      const quoteRequest = await storage.createQuoteRequest({
-        ...data,
-        fileUrls
-      });
-
-      // Send email notifications
-      await sendQuoteRequestNotification({
-        firstName: quoteRequest.firstName || '',
-        lastName: quoteRequest.lastName || '',
-        email: quoteRequest.email,
-        projectDetails: quoteRequest.projectDetails,
-        numberOfFiles: quoteRequest.numberOfFiles || '',
-        turnaroundTime: quoteRequest.turnaroundTime || '',
-        status: quoteRequest.status,
-        fileUrls: quoteRequest.fileUrls || []
-      });
-
-      res.json(quoteRequest);
-    } catch (error) {
-      console.error("Quote request error:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid quote request data", details: error.errors });
-      }
-      res.status(500).json({ error: "Failed to submit quote request" });
-    }
-  });
-
-  // PROTECTED: Get all quote requests
-  app.get("/api/quote-requests", protect, async (_req, res) => {
-    try {
-      const quoteRequests = await storage.getAllQuoteRequests();
-      res.json(quoteRequests);
-    } catch (error) {
-      console.error("Failed to fetch quote requests:", error);
-      res.status(500).json({ error: "Failed to fetch quote requests" });
-    }
-  });
-
-  // PROTECTED: Update quote request status
-  app.patch("/api/quote-requests/:id", protect, async (req, res) => {
-    try {
-      const id = req.params.id;
-      const data = req.body;
-      const result = await storage.updateQuoteRequest(id, data);
-      res.json(result);
-    } catch (error: any) {
-      console.error("Failed to update quote request:", error);
-      res.status(500).json({ error: error.message || "Failed to update quote request" });
-    }
-  });
-
-  // PROTECTED: Delete quote request
-  app.delete("/api/quote-requests/:id", protect, async (req, res) => {
-    try {
-      const id = req.params.id;
-      await storage.deleteQuoteRequest(id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Failed to delete quote request:", error);
-      res.status(500).json({ error: error.message || "Failed to delete quote request" });
-    }
-  });
 
   // --- Email Settings Routes ---
   app.get("/api/email-settings", protect, async (_req, res) => {
@@ -370,16 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PROTECTED: Get all AI image generations
-  app.get("/api/ai-generations", protect, async (_req, res) => {
-    try {
-      const generations = await storage.getAllAIImageGenerations();
-      res.json(generations);
-    } catch (error) {
-      console.error("Failed to fetch AI image generations:", error);
-      res.status(500).json({ error: "Failed to fetch AI image generations" });
-    }
-  });
+
 
   // --- Tool Routes ---
   app.post("/api/tools/turnaround", async (req, res) => {
@@ -417,111 +151,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tools/ai-image-generator", async (req, res) => {
-    try {
-      const { prompt, model, size, quality, style, n } = req.body;
-
-      if (!prompt || typeof prompt !== "string" || prompt.trim().length < 10) {
-        return res.status(400).json({
-          error: "Prompt is required and must be at least 10 characters long"
-        });
-      }
-
-      if (!model || !["dall-e-3", "dall-e-2", "stable-diffusion", "gemini", "free-model"].includes(model)) {
-        return res.status(400).json({
-          error: "Invalid model. Must be one of: dall-e-3, dall-e-2, stable-diffusion, gemini, free-model"
-        });
-      }
-
-      const result = await generateAIImage({
-        prompt: prompt.trim(),
-        model,
-        size: size || "1024x1024",
-        quality,
-        style,
-        n: n || 1,
-      });
-
-      if (result.imageUrl) {
-        try {
-          const provider = model.startsWith("dall-e") ? "openai" :
-            model === "stable-diffusion" || model === "free-model" ? "stability-ai" :
-              model === "gemini" ? "google" : "replicate";
-
-          let costCents: number | undefined;
-          if (model === "dall-e-3") {
-            costCents = quality === "hd" ? 8 : 4;
-          } else if (model === "dall-e-2") {
-            costCents = 2;
-          }
-
-          await storage.createAIImageGeneration({
-            prompt: prompt.trim(),
-            model,
-            size: size || "1024x1024",
-            quality: quality || undefined,
-            style: style || undefined,
-            imageUrl: result.imageUrl,
-            provider,
-            costCents,
-          });
-        } catch (dbError) {
-          console.error("Failed to store AI image generation in database:", dbError);
-        }
-      }
-
-      res.json(result);
-    } catch (error: any) {
-      console.error("AI image generation error:", error);
-      res.status(500).json({
-        error: error.message || "Failed to generate image. Please check your API keys and try again."
-      });
-    }
-  });
-
-  app.get("/api/tools/ai-image-proxy", async (req, res) => {
-    try {
-      const imageUrl = req.query.url as string;
-
-      if (!imageUrl) {
-        return res.status(400).json({ error: "Image URL is required" });
-      }
-
-      try {
-        new URL(imageUrl);
-      } catch {
-        return res.status(400).json({ error: "Invalid URL format" });
-      }
-
-      const imageResponse = await fetch(imageUrl, {
-        headers: {
-          'Accept': 'image/*',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      });
-
-      if (!imageResponse.ok) {
-        return res.status(imageResponse.status).json({
-          error: `Failed to fetch image: ${imageResponse.statusText}`
-        });
-      }
-
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const contentType = imageResponse.headers.get("content-type") || "image/png";
-
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Length", imageBuffer.byteLength);
-      res.setHeader("Cache-Control", "public, max-age=31536000");
-
-      res.send(Buffer.from(imageBuffer));
-    } catch (error: any) {
-      console.error("Image proxy error:", error);
-      res.status(500).json({
-        error: error.message || "Failed to proxy image"
-      });
-    }
-  });
-
   // --- Tool Management Routes ---
   app.get("/api/tools", toolController.getAllTools);
   app.get("/api/tools/:id", toolController.getTool);
@@ -531,24 +160,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/tools/:id", protect, toolController.updateTool);
   app.delete("/api/tools/:id", protect, toolController.deleteTool);
 
+  const toolsLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, 
+    max: 20,
+    message: { error: "Too many conversion requests. Please try again later." }
+  });
+
   // --- pdf tools route ---
-  app.post("/api/tools/pdf-to-pptx", upload.single("file"), pdfToolsController.convertPdfToPptx);
-  app.post("/api/tools/pdf-to-word", upload.single("file"), pdfToolsController.convertPdfToWord);
-  app.post("/api/tools/word-to-pdf", upload.single("file"), pdfToolsController.convertWordToPdf);
-  app.post("/api/tools/pptx-to-pdf", upload.single("file"), pdfToolsController.convertPptxToPdf);
-  app.post("/api/tools/remove-pdf-watermark", upload.single("file"), pdfToolsController.removeWatermark);
+  app.post("/api/tools/pdf-to-pptx", toolsLimiter, upload.single("file"), pdfToolsController.convertPdfToPptx);
+  app.post("/api/tools/pdf-to-word", toolsLimiter, upload.single("file"), pdfToolsController.convertPdfToWord);
+  app.post("/api/tools/word-to-pdf", toolsLimiter, upload.single("file"), pdfToolsController.convertWordToPdf);
+  app.post("/api/tools/pptx-to-pdf", toolsLimiter, upload.single("file"), pdfToolsController.convertPptxToPdf);
+  app.post("/api/tools/remove-pdf-watermark", toolsLimiter, upload.single("file"), pdfToolsController.removeWatermark);
 
   // --- CloudConvert routes ---
-  app.post("/api/tools/vsdx-to-jpg", upload.single("file"), cloudConvertController.convertVsdxToJpg);
-  app.post("/api/tools/jpg-to-vsdx", upload.single("file"), cloudConvertController.convertJpgToVsdx);
-  app.post("/api/tools/epub-to-pdf", upload.single("file"), cloudConvertController.convertEpubToPdf);
-  app.post("/api/tools/pdf-to-epub", upload.single("file"), cloudConvertController.convertPdfToEpub);
-  app.post("/api/tools/mobi-to-pdf", upload.single("file"), cloudConvertController.convertMobiToPdf);
-  app.post("/api/tools/pdf-to-mobi", upload.single("file"), cloudConvertController.convertPdfToMobi);
-  app.post("/api/tools/azw3-to-pdf", upload.single("file"), cloudConvertController.convertAzw3ToPdf);
-  app.post("/api/tools/pdf-to-azw3", upload.single("file"), cloudConvertController.convertPdfToAzw3);
-  app.post("/api/tools/outlook-to-pdf", upload.single("file"), cloudConvertController.convertOutlookToPdf);
-  app.post("/api/tools/tiff-to-jpg", upload.single("file"), cloudConvertController.convertImage);
+  app.post("/api/tools/vsdx-to-jpg", toolsLimiter, upload.single("file"), cloudConvertController.convertVsdxToJpg);
+  app.post("/api/tools/jpg-to-vsdx", toolsLimiter, upload.single("file"), cloudConvertController.convertJpgToVsdx);
+  app.post("/api/tools/epub-to-pdf", toolsLimiter, upload.single("file"), cloudConvertController.convertEpubToPdf);
+  app.post("/api/tools/pdf-to-epub", toolsLimiter, upload.single("file"), cloudConvertController.convertPdfToEpub);
+  app.post("/api/tools/mobi-to-pdf", toolsLimiter, upload.single("file"), cloudConvertController.convertMobiToPdf);
+  app.post("/api/tools/pdf-to-mobi", toolsLimiter, upload.single("file"), cloudConvertController.convertPdfToMobi);
+  app.post("/api/tools/azw3-to-pdf", toolsLimiter, upload.single("file"), cloudConvertController.convertAzw3ToPdf);
+  app.post("/api/tools/pdf-to-azw3", toolsLimiter, upload.single("file"), cloudConvertController.convertPdfToAzw3);
+  app.post("/api/tools/outlook-to-pdf", toolsLimiter, upload.single("file"), cloudConvertController.convertOutlookToPdf);
+  app.post("/api/tools/tiff-to-jpg", toolsLimiter, upload.single("file"), cloudConvertController.convertImage);
 
   // --- CMS Management Routes ---
   app.patch("/api/tools/:id/seo", protect, async (req, res) => {
@@ -695,6 +330,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
+  // Global Multer error handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: "File too large. Maximum size is 50MB." });
+    }
+    next(err);
+  });
+
   return httpServer;
 }

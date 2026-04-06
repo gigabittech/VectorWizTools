@@ -67,7 +67,7 @@ export default function ToolsManagement() {
             }
         },
         validate: {
-            slug: (value) => {
+            slug: (value: string) => {
                 if (!value) return "Slug is required";
                 const isDuplicate = tools.some((t: any) => t.slug === value && t.id !== editingTool?.id);
                 return isDuplicate ? "This slug is already in use by another tool" : null;

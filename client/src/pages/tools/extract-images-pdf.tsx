@@ -41,19 +41,22 @@ export default function ExtractImagesPDF() {
       // Extract images from all pages
       for (let i = 0; i < pdf.getPageCount(); i++) {
         const page = pdf.getPage(i);
-        const { xObject } = page.node.Resources() || {};
+        const resources = page.node.Resources();
         
-        if (xObject) {
-          const xObjectKeys = xObject.keys();
-          for (const key of xObjectKeys) {
-            const xObjectValue = xObject.get(key);
-            if (xObjectValue && xObjectValue instanceof PDFDocument) {
-              // This is a simplified extraction - full implementation would handle all image types
-              try {
-                const imageBytes = await xObjectValue.save();
-                images.push(new Blob([imageBytes], { type: 'image/png' }));
-              } catch (e) {
-                // Skip if not extractable
+        if (resources && typeof resources === 'object' && 'xObject' in resources) {
+          const xObject = (resources as any).xObject;
+          if (xObject && typeof xObject === 'object') {
+            const xObjectKeys = Object.keys(xObject);
+            for (const key of xObjectKeys) {
+              const xObjectValue = (xObject as any)[key];
+              if (xObjectValue && typeof xObjectValue.save === 'function') {
+                // This is a simplified extraction - full implementation would handle all image types
+                try {
+                  const imageBytes = await xObjectValue.save();
+                  images.push(new Blob([imageBytes as BlobPart], { type: 'image/png' }));
+                } catch (e) {
+                  // Skip if not extractable
+                }
               }
             }
           }
@@ -188,4 +191,3 @@ export default function ExtractImagesPDF() {
     </ToolLayout>
   );
 }
-

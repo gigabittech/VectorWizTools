@@ -69,7 +69,7 @@ export default function RemoveBackgroundTool() {
     try {
       // Use AI to remove background (pass File directly)
       const blob = await removeBackground(imageFile, {
-        model: "medium", // "small" | "medium" | "large"
+        model: "isnet", // "isnet" | "isnet_fp16" | "isnet_quint8"
       });
 
       // Create object URL for preview

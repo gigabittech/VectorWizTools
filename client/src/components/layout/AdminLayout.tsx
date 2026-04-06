@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu } from "@mantine/core";
 import {
@@ -14,13 +14,16 @@ import {
     Loader,
     Globe,
     ArrowRightLeft,
-    UserCog
+    UserCog,
+    FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import logoImage from "@assets/VectorWiz-logo_1760804742760.png";
 import logoIcon from "@assets/VectorWiz_Icon.png";
 import { useAuth } from "@/hooks/use-auth";
+import { useNotifications, AppNotification } from "@/hooks/useNotifications";
+import { formatDistanceToNow } from "date-fns";
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -31,6 +34,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const [location, setLocation] = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
+    
+    // Abstracted notifications custom hook
+    const { 
+        notifications, 
+        unreadCount, 
+        markAsRead, 
+        markAllAsRead 
+    } = useNotifications();
+
+    const handleNotificationClick = (notif: AppNotification) => {
+        markAsRead(notif.id);
+        setLocation(notif.path);
+    };
     
     const toggleExpand = (label: string) => {
         setExpandedItems(prev => 
@@ -235,10 +251,63 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button className="relative text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-all">
-                            <Bell size={20} />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                        </button>
+                        <Menu shadow="md" width={320} position="bottom-end" radius="md">
+                            <Menu.Target>
+                                <button className="relative text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-all">
+                                    <Bell size={20} />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm border-2 border-white">
+                                            {unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+                            </Menu.Target>
+                            <Menu.Dropdown p={0} className="w-80 shadow-xl overflow-hidden rounded-xl border border-gray-100">
+                                <div className="flex items-center justify-between p-3 border-b border-gray-100 bg-gray-50/50">
+                                    <span className="font-semibold text-sm text-gray-800">Notifications</span>
+                                    {unreadCount > 0 && (
+                                        <button 
+                                            onClick={markAllAsRead}
+                                            className="text-xs text-[#0B9F47] hover:text-[#0A8E3F] font-medium transition-colors"
+                                        >
+                                            Mark all as read
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="max-h-80 overflow-y-auto">
+                                    {notifications.length > 0 ? (
+                                        notifications.map((notif) => (
+                                            <div 
+                                                key={notif.id} 
+                                                onClick={() => handleNotificationClick(notif)}
+                                                className={`flex items-start gap-3 p-3 border-b border-gray-50 cursor-pointer transition-colors hover:bg-gray-50 ${!notif.isRead ? 'bg-[#0B9F47]/5' : ''}`}
+                                            >
+                                                <div className={`mt-1 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${!notif.isRead ? 'bg-[#0B9F47]/10 text-[#0B9F47]' : 'bg-gray-100 text-gray-500'}`}>
+                                                    {notif.type === 'quote' ? <FileText size={14} /> : <Bell size={14} />}
+                                                </div>
+                                                <div className="flex-1 min-w-0 pb-1">
+                                                    <div className="flex items-start justify-between gap-1 mb-0.5">
+                                                        <span className={`text-sm truncate leading-tight ${!notif.isRead ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                                            {notif.title}
+                                                        </span>
+                                                        {!notif.isRead && (
+                                                            <span className="mt-1.5 w-2 h-2 rounded-full bg-[#0B9F47] flex-shrink-0 shadow-sm" />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 line-clamp-1 mb-1">{notif.description}</p>
+                                                    <p className="text-[10px] text-gray-400 font-medium">{formatDistanceToNow(new Date(notif.timestamp), { addSuffix: true })}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-8 text-center text-gray-500 flex flex-col items-center">
+                                            <Bell size={24} className="text-gray-300 mb-2" />
+                                            <span className="text-sm">No notifications yet</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </Menu.Dropdown>
+                        </Menu>
                         <div className="w-px h-6 bg-gray-200 mx-1"></div>
                         <Menu shadow="md" width={220} position="bottom-end" radius="md">
                             <Menu.Target>

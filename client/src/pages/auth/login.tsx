@@ -113,11 +113,11 @@ export default function LoginPage() {
                                             label: { marginBottom: '8px', fontWeight: 600, color: '#475569' }
                                         }}
                                     />
-                                    <Box className="flex justify-between items-center px-1">
+                                    {/* <Box className="flex justify-between items-center px-1">
                                         <Anchor href="#" size="sm" className="text-[#0B9F47] font-semibold hover:text-[#098a3e] no-underline hover:underline">
                                             Forgot Password?
                                         </Anchor>
-                                    </Box>
+                                    </Box> */}
                                 </Stack>
 
                                 <Button
