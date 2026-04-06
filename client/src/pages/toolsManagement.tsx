@@ -83,6 +83,23 @@ export default function ToolsManagement() {
         return Array.from(cats).map(c => ({ value: c, label: c }));
     }, [tools]);
 
+    const toggleStatusMutation = useMutation({
+        mutationFn: async ({ id, is_active }: { id: string; is_active: string }) => {
+            return await apiRequest("PATCH", `/api/tools/${id}`, { is_active });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/tools"] });
+            toast({ title: "Status Updated", description: "Tool status has been updated successfully." });
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to update status",
+                variant: "destructive"
+            });
+        }
+    });
+
     const updateToolMutation = useMutation({
         mutationFn: async ({ id, data }: { id: string; data: any }) => {
             const { seo, contents, ...toolData } = data;
@@ -290,9 +307,16 @@ export default function ToolsManagement() {
                                             </Badge>
                                         </Table.Td>
                                         <Table.Td>
-                                            <Badge color={tool.is_active === 'active' ? 'green' : 'red'} variant="dot">
-                                                {tool.is_active}
-                                            </Badge>
+                                            <Switch
+                                                checked={tool.is_active === 'active'}
+                                                onChange={(event) => {
+                                                    const newStatus = event.currentTarget.checked ? 'active' : 'in_active';
+                                                    toggleStatusMutation.mutate({ id: tool.id, is_active: newStatus });
+                                                }}
+                                                color="green"
+                                                size="sm"
+                                                disabled={toggleStatusMutation.isPending && toggleStatusMutation.variables?.id === tool.id}
+                                            />
                                         </Table.Td>
                                         <Table.Td>
                                             <Group gap="xs" justify="flex-end">
