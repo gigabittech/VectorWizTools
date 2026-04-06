@@ -12,7 +12,7 @@ async function getSmtpTransporter(settings: any) {
   const pass = settings?.smtpPass || process.env.BREVO_API_KEY || '';
   const secure = settings?.encryption === 'ssl' || port === 465;
 
-  console.log(`[SMTP] Attempting connection: ${host}:${port}`);
+  console.log(`[SMTP] Attempting connection: ${host}:${port} | User: ${user || '(not set)'} | Pass: ${pass ? '(set, ' + pass.length + ' chars)' : '(not set)'} | Secure: ${secure}`);
 
   return nodemailer.createTransport({
     host,
@@ -219,7 +219,7 @@ export async function sendQuoteRequestNotification(quoteData: {
       </html>
     `;
 
-    // Admin Notification
+    // Notification Payloads
     const adminPayload: any = {
       sender: { name: senderName, email: senderEmail },
       to: [{ email: senderEmail }],
@@ -231,14 +231,29 @@ export async function sendQuoteRequestNotification(quoteData: {
     if (ccEmails.length > 0) adminPayload.cc = ccEmails.map(e => ({ email: e.trim() }));
     if (bccEmails.length > 0) adminPayload.bcc = bccEmails.map(e => ({ email: e.trim() }));
 
-    if (provider === 'brevo' && apiKey) {
-      console.log(`[BREVO API] Sending notification. From: ${senderEmail}, To: ${senderEmail}, CC Count: ${ccEmails.length}`);
+    const clientSubject = 'We’ve Received Your Quote Request – VectorWiz';
+    const clientPayload: any = {
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: quoteData.email }],
+      replyTo: { email: senderEmail },
+      subject: clientSubject,
+      htmlContent: clientTemplate
+    };
 
+    let adminSentSuccessfully = false;
+    let clientSentSuccessfully = false;
+
+    // Phase 1: Try Brevo API if configured
+    if (provider === 'brevo' && apiKey) {
+      console.log(`[BREVO API] Attempting direct notification. Sender: ${senderEmail}`);
+
+      // Try Admin Notify
       try {
         await axios.post(BREVO_API_URL, adminPayload, {
           headers: { 'api-key': apiKey, 'Content-Type': 'application/json' }
         });
         console.log(`[BREVO API] Admin notification sent successfully.`);
+        adminSentSuccessfully = true;
         await storage.createEmailLog({
           recipient: senderEmail,
           subject: adminPayload.subject,
@@ -255,19 +270,13 @@ export async function sendQuoteRequestNotification(quoteData: {
         });
       }
 
-      // Client Notification
+      // Try Client Notify
       try {
-        const clientSubject = 'We’ve Received Your Quote Request – VectorWiz';
-        await axios.post(BREVO_API_URL, {
-          sender: { name: senderName, email: senderEmail },
-          to: [{ email: quoteData.email }],
-          replyTo: { email: senderEmail },
-          subject: clientSubject,
-          htmlContent: clientTemplate
-        }, {
+        await axios.post(BREVO_API_URL, clientPayload, {
           headers: { 'api-key': apiKey, 'Content-Type': 'application/json' }
         });
         console.log(`[BREVO API] Client confirmation sent successfully.`);
+        clientSentSuccessfully = true;
         await storage.createEmailLog({
           recipient: quoteData.email,
           subject: clientSubject,
@@ -278,41 +287,58 @@ export async function sendQuoteRequestNotification(quoteData: {
         console.error(`[BREVO API ERROR - CLIENT]`, errorMsg);
         await storage.createEmailLog({
           recipient: quoteData.email,
-          subject: 'We’ve Received Your Quote Request – VectorWiz',
+          subject: clientSubject,
           status: "failed",
           errorMessage: errorMsg
         });
       }
+    }
 
-    } else {
+    // Phase 2: SMTP Fallback (Execute if Brevo failed OR if SMTP selected primary)
+    if (!adminSentSuccessfully || !clientSentSuccessfully) {
+      const mode = (provider === 'brevo' && apiKey) ? "FALLBACK" : "PRIMARY";
+      console.log(`[SMTP ${mode}] Initializing transporter for remaining emails.`);
+      
       const transporter = await getSmtpTransporter(settings);
-      try {
-        await transporter.sendMail({
-          from: `"${senderName}" <${senderEmail}>`,
-          to: senderEmail,
-          cc: ccEmails,
-          bcc: bccEmails,
-          replyTo: quoteData.email,
-          subject: adminPayload.subject,
-          html: emailTemplate
-        });
-        await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "sent" });
-      } catch (e: any) {
-        await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "failed", errorMessage: e.message });
+
+      // Fallback Admin
+      if (!adminSentSuccessfully) {
+        try {
+          await transporter.sendMail({
+            from: `"${senderName}" <${senderEmail}>`,
+            to: senderEmail,
+            cc: ccEmails,
+            bcc: bccEmails,
+            replyTo: quoteData.email,
+            subject: adminPayload.subject,
+            html: emailTemplate
+          });
+          console.log(`[SMTP ${mode}] Admin notification sent successfully.`);
+          adminSentSuccessfully = true;
+          await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "sent" });
+        } catch (e: any) {
+          console.error(`[SMTP ${mode} ERROR - ADMIN]`, e.message);
+          await storage.createEmailLog({ recipient: senderEmail, subject: adminPayload.subject, status: "failed", errorMessage: e.message });
+        }
       }
 
-      try {
-        const clientSubject = 'We’ve Received Your Quote Request – VectorWiz';
-        await transporter.sendMail({
-          from: `"${senderName}" <${senderEmail}>`,
-          to: quoteData.email,
-          replyTo: senderEmail,
-          subject: clientSubject,
-          html: clientTemplate
-        });
-        await storage.createEmailLog({ recipient: quoteData.email, subject: clientSubject, status: "sent" });
-      } catch (e: any) {
-        await storage.createEmailLog({ recipient: quoteData.email, subject: 'We’ve Received Your Quote Request – VectorWiz', status: "failed", errorMessage: e.message });
+      // Fallback Client
+      if (!clientSentSuccessfully) {
+        try {
+          await transporter.sendMail({
+            from: `"${senderName}" <${senderEmail}>`,
+            to: quoteData.email,
+            replyTo: senderEmail,
+            subject: clientSubject,
+            html: clientTemplate
+          });
+          console.log(`[SMTP ${mode}] Client confirmation sent successfully.`);
+          clientSentSuccessfully = true;
+          await storage.createEmailLog({ recipient: quoteData.email, subject: clientSubject, status: "sent" });
+        } catch (e: any) {
+          console.error(`[SMTP ${mode} ERROR - CLIENT]`, e.message);
+          await storage.createEmailLog({ recipient: quoteData.email, subject: clientSubject, status: "failed", errorMessage: e.message });
+        }
       }
     }
   } catch (error: any) {
@@ -329,8 +355,12 @@ export async function sendTestEmail(targetEmail: string, settings: any) {
   const senderName = settings?.senderName || process.env.BREVO_SENDER_NAME || 'VectorWiz';
   const apiKey = settings?.brevoApiKey || process.env.BREVO_API_KEY || '';
 
+  let sentSuccessfully = false;
+  let lastError = "";
+
   try {
     if (provider === 'brevo' && apiKey) {
+      console.log(`[BREVO API TEST] Attempting verification.`);
       try {
         const response = await axios.post(BREVO_API_URL, {
           sender: { name: senderName, email: senderEmail },
@@ -346,11 +376,12 @@ export async function sendTestEmail(targetEmail: string, settings: any) {
           subject: 'Success - VectorWiz Email Settings',
           status: "sent"
         });
-
-        return { success: true, message: "Verification successful! Response ID: " + response.data.messageId };
+        
+        sentSuccessfully = true;
+        return { success: true, message: "Verification successful via Brevo API! Response ID: " + response.data.messageId };
       } catch (err: any) {
         const errorData = err.response?.data || {};
-        const detail = errorData.message || err.message;
+        lastError = errorData.message || err.message;
         console.error('[BREVO TEST ERROR]', errorData);
 
         await storage.createEmailLog({
@@ -359,40 +390,48 @@ export async function sendTestEmail(targetEmail: string, settings: any) {
           status: "failed",
           errorMessage: JSON.stringify(errorData)
         });
-
-        return { success: false, error: `Connection failed: ${detail}` };
+        
+        console.log("[FALLBACK] Brevo API Test failed, trying SMTP...");
       }
-    } else {
+    }
+
+    // SMTP Fallback or Direct SMTP
+    if (!sentSuccessfully) {
+      const mode = (provider === 'brevo' && apiKey) ? "FALLBACK" : "PRIMARY";
       const transporter = await getSmtpTransporter(settings);
+      
       try {
         await transporter.sendMail({
           from: `"${senderName}" <${senderEmail}>`,
           to: targetEmail,
-          subject: 'Success - VectorWiz SMTP',
-          html: `<h2>SMTP Verified!</h2><p>Your SMTP server is responding correctly.</p>`
+          subject: `Success - VectorWiz SMTP (${mode})`,
+          html: `<h2>SMTP Verified!</h2><p>Your SMTP server is responding correctly. (Mode: ${mode})</p>${lastError ? `<p style="color:red">Note: Brevo API failed with: ${lastError}</p>` : ''}`
         });
 
         await storage.createEmailLog({
           recipient: targetEmail,
-          subject: 'Success - VectorWiz SMTP',
+          subject: `Success - VectorWiz SMTP (${mode})`,
           status: "sent"
         });
 
-        return { success: true, message: "SMTP verified! Email sent." };
+        return { 
+          success: true, 
+          message: mode === "FALLBACK" 
+            ? `Brevo API failed, but SMTP Fallback worked! Email sent.` 
+            : `SMTP verified! Email sent.` 
+        };
       } catch (err: any) {
         await storage.createEmailLog({
           recipient: targetEmail,
-          subject: 'Success - VectorWiz SMTP',
+          subject: `Verification Failed - VectorWiz`,
           status: "failed",
           errorMessage: err.message
         });
-        return { success: false, error: err.message };
+        return { success: false, error: `Both Brevo API and SMTP failed. SMTP Error: ${err.message}` };
       }
     }
   } catch (err: any) {
-    const errorData = err.response?.data || {};
-    const detail = errorData.message || err.message;
-    console.error('[BREVO TEST ERROR]', errorData);
-    return { success: false, error: `Connection failed: ${detail}` };
+    return { success: false, error: `Connection failed: ${err.message}` };
   }
+  return { success: false, error: "Unknown error occurred during test." };
 }
