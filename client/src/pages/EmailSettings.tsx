@@ -246,11 +246,53 @@ export default function EmailSettings() {
                                                     Connect to any SMTP server like Gmail, Outlook, or Amazon SES.
                                                 </Alert>
 
+                                                {/* Gmail App Password Warning */}
+                                                {form.values.smtpHost?.includes('gmail') && (
+                                                    <Alert 
+                                                        icon={<AlertCircle size={16} />} 
+                                                        title="⚠️ Gmail requires an App Password" 
+                                                        color="orange" 
+                                                        variant="light" 
+                                                        radius="md"
+                                                    >
+                                                        Gmail does <b>not</b> allow your regular password here. You must create an <b>App Password</b>:
+                                                        <ol style={{ marginTop: 8, paddingLeft: 20, fontSize: 13, lineHeight: 1.7 }}>
+                                                            <li>Go to <b>myaccount.google.com</b> → Security</li>
+                                                            <li>Enable <b>2-Step Verification</b> if not already active</li>
+                                                            <li>Search for <b>"App Passwords"</b> → Select App: Mail</li>
+                                                            <li>Copy the 16-character code and paste it in the Password field below</li>
+                                                        </ol>
+                                                        <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: '#e67700', fontWeight: 600, fontSize: 13 }}>
+                                                            → Open App Passwords settings
+                                                        </a>
+                                                    </Alert>
+                                                )}
+
+                                                {/* Common SMTP Quick Guide */}
+                                                <Alert icon={<Info size={16} />} title="Common SMTP Settings" color="blue" variant="light" radius="md">
+                                                    <table style={{ fontSize: 12, width: '100%', borderCollapse: 'collapse' }}>
+                                                        <thead>
+                                                            <tr>
+                                                                <th style={{ textAlign: 'left', paddingBottom: 4, color: '#495057' }}>Provider</th>
+                                                                <th style={{ textAlign: 'left', paddingBottom: 4, color: '#495057' }}>Host</th>
+                                                                <th style={{ textAlign: 'left', paddingBottom: 4, color: '#495057' }}>Port</th>
+                                                                <th style={{ textAlign: 'left', paddingBottom: 4, color: '#495057' }}>Encryption</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr><td>Gmail</td><td>smtp.gmail.com</td><td>587</td><td>TLS (App Password)</td></tr>
+                                                            <tr><td>Outlook</td><td>smtp-mail.outlook.com</td><td>587</td><td>TLS</td></tr>
+                                                            <tr><td>Brevo</td><td>smtp-relay.brevo.com</td><td>587</td><td>TLS</td></tr>
+                                                            <tr><td>Amazon SES</td><td>email-smtp.us-east-1.amazonaws.com</td><td>587</td><td>TLS</td></tr>
+                                                        </tbody>
+                                                    </table>
+                                                </Alert>
+
                                                 <Grid gutter="md">
                                                     <Grid.Col span={{ base: 12, md: 8 }}>
                                                         <TextInput 
                                                             label="SMTP Host" 
-                                                            placeholder="smtp.your-server.com"
+                                                            placeholder="smtp.gmail.com"
                                                             required={form.values.emailProvider === "smtp"}
                                                             {...form.getInputProps("smtpHost")}
                                                         />
@@ -269,7 +311,8 @@ export default function EmailSettings() {
                                                     <Grid.Col span={{ base: 12, md: 6 }}>
                                                         <TextInput 
                                                             label="SMTP Username" 
-                                                            placeholder="user@example.com"
+                                                            placeholder="your@gmail.com"
+                                                            description="Usually your full email address"
                                                             required={form.values.emailProvider === "smtp"}
                                                             {...form.getInputProps("smtpUser")}
                                                         />
@@ -279,6 +322,7 @@ export default function EmailSettings() {
                                                             label="SMTP Password" 
                                                             type="password" 
                                                             placeholder="••••••••"
+                                                            description={form.values.smtpHost?.includes('gmail') ? "⚠️ Use App Password, not your Google account password" : "Your SMTP password or API key"}
                                                             required={form.values.emailProvider === "smtp"}
                                                             {...form.getInputProps("smtpPass")}
                                                         />
@@ -288,14 +332,15 @@ export default function EmailSettings() {
                                                 <Select
                                                   label="Encryption Method"
                                                   data={[
-                                                    { value: "tls", label: "STARTTLS (Standard 587)" },
-                                                    { value: "ssl", label: "SSL/TLS (Standard 465)" },
-                                                    { value: "none", label: "None (Insecure)" },
+                                                    { value: "tls", label: "STARTTLS (Standard - Port 587)" },
+                                                    { value: "ssl", label: "SSL/TLS (Standard - Port 465)" },
+                                                    { value: "none", label: "None (Insecure - Not Recommended)" },
                                                   ]}
                                                   {...form.getInputProps("encryption")}
                                                 />
                                             </Stack>
                                         </Tabs.Panel>
+
                                     </Tabs>
                                 </Paper>
 
