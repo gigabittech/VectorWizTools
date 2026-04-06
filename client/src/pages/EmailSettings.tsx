@@ -64,8 +64,8 @@ export default function EmailSettings() {
             encryption: "tls",
         },
         validate: {
-            senderEmail: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
-            senderName: (value) => (value.length < 2 ? "Too short" : null),
+            senderEmail: (value: string) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
+            senderName: (value: string) => (value.length < 2 ? "Too short" : null),
         },
     });
 

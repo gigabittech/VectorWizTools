@@ -6,12 +6,104 @@ import {
 } from "@mantine/core";
 import { DatePickerInput, DatesRangeValue } from "@mantine/dates";
 import { Eye, Trash2, Search, Filter, Mail, Calendar, User, FileText, CheckCircle, Clock, AlertCircle, X } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback, memo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
+import { socket } from "@/lib/socket";
 import { QuoteRequest } from "@shared/schema";
+import { BASE_PATH } from "@/lib/queryClient";
+
+// Memoized row component — only re-renders when its specific quote data changes
+const QuoteRow = memo(({ quote, index, activePage, itemsPerPage, onView, onDelete, onStatusChange, getStatusColor, getStatusIcon }: {
+    quote: QuoteRequest;
+    index: number;
+    activePage: number;
+    itemsPerPage: number;
+    onView: (q: QuoteRequest) => void;
+    onDelete: (id: string) => void;
+    onStatusChange: (id: string, val: string | null) => void;
+    getStatusColor: (s: string) => string;
+    getStatusIcon: (s: string) => React.ReactNode;
+}) => (
+    <Table.Tr>
+        <Table.Td>
+            <Text size="sm" fw={500} c="dimmed">
+                {(activePage - 1) * itemsPerPage + index + 1}
+            </Text>
+        </Table.Td>
+        <Table.Td>
+            <Stack gap={0}>
+                <Text size="sm" fw={600}>{format(new Date(quote.createdAt), "MMM d, yyyy")}</Text>
+                <Text size="xs" c="dimmed">{format(new Date(quote.createdAt), "h:mm a")}</Text>
+            </Stack>
+        </Table.Td>
+        <Table.Td>
+            <Stack gap={0}>
+                <Text size="sm" fw={600}>{quote.firstName} {quote.lastName}</Text>
+                <Group gap={4}>
+                    <Mail size={12} className="text-blue-500" />
+                    <Text size="xs" c="dimmed">{quote.email}</Text>
+                </Group>
+            </Stack>
+        </Table.Td>
+        <Table.Td>
+            <Stack gap={4}>
+                <Group gap="xs">
+                    <Badge variant="light" color="blue" radius="sm" size="xs">
+                        {quote.numberOfFiles || "1"} Files
+                    </Badge>
+                    <Badge variant="filled" color={quote.turnaroundTime?.includes('Rush') ? 'red' : 'green'} radius="sm" size="xs">
+                        {quote.turnaroundTime || "Regular"}
+                    </Badge>
+                </Group>
+                <Text size="xs" lineClamp={1} c="dimmed" style={{ maxWidth: 250 }}>
+                    {quote.projectDetails}
+                </Text>
+            </Stack>
+        </Table.Td>
+        <Table.Td>
+            <Select
+                size="xs"
+                w={130}
+                data={[
+                    { value: "pending", label: "Pending" },
+                    { value: "in_progress", label: "In Progress" },
+                    { value: "completed", label: "Completed" },
+                    { value: "cancelled", label: "Cancelled" },
+                ]}
+                value={quote.status}
+                onChange={(val) => onStatusChange(quote.id, val)}
+                leftSection={getStatusIcon(quote.status)}
+                variant="filled"
+                radius="md"
+                styles={{
+                    input: {
+                        backgroundColor: `var(--mantine-color-${getStatusColor(quote.status)}-1)`,
+                        color: `var(--mantine-color-${getStatusColor(quote.status)}-9)`,
+                        fontWeight: 600,
+                        border: 'none'
+                    }
+                }}
+            />
+        </Table.Td>
+        <Table.Td>
+            <Group gap="xs" justify="flex-end">
+                <Tooltip label="View Full Details">
+                    <ActionIcon variant="light" color="blue" radius="md" size="md" onClick={() => onView(quote)}>
+                        <Eye size={18} />
+                    </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Delete Request">
+                    <ActionIcon variant="light" color="red" radius="md" size="md" onClick={() => onDelete(quote.id)}>
+                        <Trash2 size={18} />
+                    </ActionIcon>
+                </Tooltip>
+            </Group>
+        </Table.Td>
+    </Table.Tr>
+));
 
 export default function QuotesData() {
     const { toast } = useToast();
@@ -31,7 +123,44 @@ export default function QuotesData() {
 
     const { data: quoteRequests = [], isLoading } = useQuery<QuoteRequest[]>({
         queryKey: ["/api/quote-requests"],
+        staleTime: Infinity,
     });
+
+    useEffect(() => {
+        const handleNewQuote = (newQuote: any) => {
+            queryClient.setQueryData(["/api/quote-requests"], (oldData: any) => {
+                return [newQuote, ...(oldData || [])];
+            });
+        };
+        
+        const handleUpdateQuote = (updatedQuote: any) => {
+            queryClient.setQueryData(["/api/quote-requests"], (oldData: any) => {
+                return (oldData || []).map((quote: any) => 
+                    quote.id === updatedQuote.id ? updatedQuote : quote
+                );
+            });
+            // Also update viewing modal if it's currently open for this quote
+            setViewingQuote(prev => prev && prev.id === updatedQuote.id ? updatedQuote : prev);
+        };
+        
+        const handleDeleteQuote = (deletedId: string) => {
+            queryClient.setQueryData(["/api/quote-requests"], (oldData: any) => {
+                return (oldData || []).filter((quote: any) => quote.id !== deletedId);
+            });
+            // Auto close view modal if the viewing quote was deleted by someone else
+            setViewingQuote(prev => prev && prev.id === deletedId ? null : prev);
+        };
+        
+        socket.on("new_quote_request", handleNewQuote);
+        socket.on("update_quote_request", handleUpdateQuote);
+        socket.on("delete_quote_request", handleDeleteQuote);
+        
+        return () => {
+            socket.off("new_quote_request", handleNewQuote);
+            socket.off("update_quote_request", handleUpdateQuote);
+            socket.off("delete_quote_request", handleDeleteQuote);
+        };
+    }, []);
 
     const updateStatusMutation = useMutation({
         mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -113,15 +242,21 @@ export default function QuotesData() {
         }
     };
 
-    const handleViewDetails = (quote: QuoteRequest) => {
-        setViewingQuote(quote);
-        setViewModalOpened(true);
-    };
+    // handleViewDetails and handleDeleteClick moved below with useCallback
 
-    const handleDeleteClick = (id: string) => {
+    const handleDeleteClick = useCallback((id: string) => {
         setQuoteToDelete(id);
         setDeleteModalOpened(true);
-    };
+    }, []);
+
+    const handleViewDetails = useCallback((quote: QuoteRequest) => {
+        setViewingQuote(quote);
+        setViewModalOpened(true);
+    }, []);
+
+    const handleStatusChange = useCallback((id: string, val: string | null) => {
+        updateStatusMutation.mutate({ id, status: val || 'pending' });
+    }, [updateStatusMutation]);
 
     const confirmDelete = () => {
         if (quoteToDelete) {
@@ -199,82 +334,18 @@ export default function QuotesData() {
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {paginatedQuotes.map((quote, index) => (
-                                        <Table.Tr key={quote.id}>
-                                            <Table.Td>
-                                                <Text size="sm" fw={500} c="dimmed">
-                                                    {(activePage - 1) * itemsPerPage + index + 1}
-                                                </Text>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Stack gap={0}>
-                                                    <Text size="sm" fw={600}>{format(new Date(quote.createdAt), "MMM d, yyyy")}</Text>
-                                                    <Text size="xs" c="dimmed">{format(new Date(quote.createdAt), "h:mm a")}</Text>
-                                                </Stack>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Stack gap={0}>
-                                                    <Text size="sm" fw={600}>{quote.firstName} {quote.lastName}</Text>
-                                                    <Group gap={4}>
-                                                        <Mail size={12} className="text-blue-500" />
-                                                        <Text size="xs" c="dimmed">{quote.email}</Text>
-                                                    </Group>
-                                                </Stack>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Stack gap={4}>
-                                                    <Group gap="xs">
-                                                        <Badge variant="light" color="blue" radius="sm" size="xs">
-                                                            {quote.numberOfFiles || "1"} Files
-                                                        </Badge>
-                                                        <Badge variant="filled" color={quote.turnaroundTime?.includes('Rush') ? 'red' : 'green'} radius="sm" size="xs">
-                                                            {quote.turnaroundTime || "Regular"}
-                                                        </Badge>
-                                                    </Group>
-                                                    <Text size="xs" lineClamp={1} c="dimmed" style={{ maxWidth: 250 }}>
-                                                        {quote.projectDetails}
-                                                    </Text>
-                                                </Stack>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Select
-                                                    size="xs"
-                                                    w={130}
-                                                    data={[
-                                                        { value: "pending", label: "Pending" },
-                                                        { value: "in_progress", label: "In Progress" },
-                                                        { value: "completed", label: "Completed" },
-                                                        { value: "cancelled", label: "Cancelled" },
-                                                    ]}
-                                                    value={quote.status}
-                                                    onChange={(val) => updateStatusMutation.mutate({ id: quote.id, status: val || 'pending' })}
-                                                    leftSection={getStatusIcon(quote.status)}
-                                                    variant="filled"
-                                                    radius="md"
-                                                    styles={{
-                                                        input: {
-                                                            backgroundColor: `var(--mantine-color-${getStatusColor(quote.status)}-1)`,
-                                                            color: `var(--mantine-color-${getStatusColor(quote.status)}-9)`,
-                                                            fontWeight: 600,
-                                                            border: 'none'
-                                                        }
-                                                    }}
-                                                />
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Group gap="xs" justify="flex-end">
-                                                    <Tooltip label="View Full Details">
-                                                        <ActionIcon variant="light" color="blue" radius="md" size="md" onClick={() => handleViewDetails(quote)}>
-                                                            <Eye size={18} />
-                                                        </ActionIcon>
-                                                    </Tooltip>
-                                                    <Tooltip label="Delete Request">
-                                                        <ActionIcon variant="light" color="red" radius="md" size="md" onClick={() => handleDeleteClick(quote.id)}>
-                                                            <Trash2 size={18} />
-                                                        </ActionIcon>
-                                                    </Tooltip>
-                                                </Group>
-                                            </Table.Td>
-                                        </Table.Tr>
+                                        <QuoteRow
+                                            key={quote.id}
+                                            quote={quote}
+                                            index={index}
+                                            activePage={activePage}
+                                            itemsPerPage={itemsPerPage}
+                                            onView={handleViewDetails}
+                                            onDelete={handleDeleteClick}
+                                            onStatusChange={handleStatusChange}
+                                            getStatusColor={getStatusColor}
+                                            getStatusIcon={getStatusIcon}
+                                        />
                                     ))}
                                     {filteredQuotes.length === 0 && (
                                         <Table.Tr>
