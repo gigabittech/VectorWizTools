@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
+import { prefixUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Book, FileText, Download, Loader2 } from "lucide-react";
@@ -27,7 +28,7 @@ export default function EPUBToPDF() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/tools/epub-to-pdf", {
+      const response = await fetch(prefixUrl("/api/tools/epub-to-pdf"), {
         method: "POST",
         body: formData,
       });
