@@ -7,7 +7,7 @@ const socketPath = (BASE_PATH + "/api/socket.io").replace(/\/\//g, "/");
 const token = localStorage.getItem("auth-token");
 export const socket: Socket = io({ 
     path: socketPath,
-    autoConnect: true,
+    autoConnect: false,
     auth: token ? { token } : undefined
 });
 
