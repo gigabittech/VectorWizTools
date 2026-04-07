@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
+import { prefixUrl } from "@/lib/queryClient";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import DownloadButton from "@/components/tools/shared/DownloadButton";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ export default function MSOutlookToPDF() {
     formData.append("file", files[0].file);
 
     try {
-      const response = await fetch("/api/tools/outlook-to-pdf", {
+      const response = await fetch(prefixUrl("/api/tools/outlook-to-pdf"), {
         method: "POST",
         body: formData,
       });

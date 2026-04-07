@@ -4,6 +4,7 @@ import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUpload
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { prefixUrl } from "@/lib/queryClient";
 import { FileText } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { Document, Packer, Paragraph } from "docx";
@@ -34,7 +35,7 @@ export default function PDFToWord() {
       const formData = new FormData();
       formData.append("file", files[0].file);
 
-      const res = await fetch("/api/tools/pdf-to-word", {
+      const res = await fetch(prefixUrl("/api/tools/pdf-to-word"), {
         method: "POST",
         body: formData,
       });
