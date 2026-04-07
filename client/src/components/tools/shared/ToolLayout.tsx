@@ -65,6 +65,9 @@ export default function ToolLayout({
 
   const isLoading = isCmsLoading || isSeoSettingsLoading;
 
+  console.log("cmsData", cmsData, toolId, derivedSlug);
+  console.log("seoSettings", seoSettings);
+
 
   // Use CMS data if available, otherwise fallback to props
   const toolName = cmsData?.name || initialTitle || "VectorWiz Tool";
