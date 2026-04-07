@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { insertQuoteRequestSchema, type InsertQuoteRequest } from "@shared/schema";
+import { prefixUrl } from "@/lib/queryClient";
 import { Send, CheckCircle, UploadCloud, FileText, Trash2, Loader, User, Mail } from "lucide-react";
 import { Text } from "@mantine/core";
 
@@ -88,10 +89,11 @@ export default function QuoteRequestForm({
 
   const submitMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      // Use absolute URL if embedded, otherwise relative
-      const endpoint = isEmbedded 
-        ? `${import.meta.env.VITE_API_URL || window.location.origin}/api/quote-requests`
-        : "/api/quote-requests";
+      // Use absolute URL if embedded and an API URL is provided, otherwise relative with prefixUrl (BASE_PATH)
+      const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+      const endpoint = isEmbedded && apiBase
+        ? `${apiBase}${prefixUrl("/api/quote-requests")}`
+        : prefixUrl("/api/quote-requests");
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -149,7 +151,7 @@ export default function QuoteRequestForm({
           </div>
           <h2 className={`text-2xl font-bold mb-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>Thank You!</h2>
           <p className={`${mutedTextColor} mb-6`}>
-            Your quote request has been submitted successfully with {files.length} attached files. We'll review your project and get back to you within 24 hours.
+            Your quote request has been submitted successfully. We'll review your project and get back to you within 24 hours.
           </p>
           <Button
             onClick={() => setIsSubmitted(false)}

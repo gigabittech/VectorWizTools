@@ -3,6 +3,7 @@ import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { prefixUrl } from "@/lib/queryClient";
 import { Book, FileText, Download, Loader2 } from "lucide-react";
 import { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import ProcessingIndicator from "@/components/tools/shared/ProcessingIndicator";
@@ -27,7 +28,7 @@ export default function AZW3ToPDF() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/tools/azw3-to-pdf", {
+      const response = await fetch(prefixUrl("/api/tools/azw3-to-pdf"), {
         method: "POST",
         body: formData,
       });

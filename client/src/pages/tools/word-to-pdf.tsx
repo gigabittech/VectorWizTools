@@ -4,6 +4,7 @@ import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUpload
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { prefixUrl } from "@/lib/queryClient";
 import { FileText } from "lucide-react";
 
 export default function WordToPDF() {
@@ -31,7 +32,7 @@ export default function WordToPDF() {
       const formData = new FormData();
       formData.append("file", files[0].file);
 
-      const res = await fetch("/api/tools/word-to-pdf", {
+      const res = await fetch(prefixUrl("/api/tools/word-to-pdf"), {
         method: "POST",
         body: formData,
       });
