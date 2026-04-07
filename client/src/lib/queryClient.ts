@@ -38,8 +38,8 @@ export const BASE_PATH = getBasePath();
 // Log in production for debugging
 console.log('[BASE_PATH]', BASE_PATH, 'from window.location.pathname =', window.location.pathname);
 
-function prefixUrl(url: string): string {
-  if (BASE_PATH && url.startsWith("/api")) {
+export function prefixUrl(url: string): string {
+  if (BASE_PATH && (url.startsWith("/api") || url.startsWith("/uploads"))) {
     return `${BASE_PATH}${url}`;
   }
   return url;

@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { prefixUrl } from "@/lib/queryClient";
 import { convertImageFormat, SupportedImageFormat } from "@/lib/imageProcessing";
 import { downloadFile } from "@/lib/fileUtils";
 import { RefreshCw } from "lucide-react";
@@ -62,7 +63,7 @@ export default function VSDXtoJPG() {
                 formData.append("file", file);
                 formData.append("format", targetExt);
 
-                const response = await fetch("/api/tools/vsdx-to-jpg", {
+                const response = await fetch(prefixUrl("/api/tools/vsdx-to-jpg"), {
                     method: "POST",
                     body: formData,
                 });

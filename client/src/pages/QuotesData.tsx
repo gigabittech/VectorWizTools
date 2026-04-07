@@ -8,7 +8,7 @@ import { DatePickerInput, DatesRangeValue } from "@mantine/dates";
 import { Eye, Trash2, Search, Filter, Mail, Calendar, User, FileText, CheckCircle, Clock, AlertCircle, X } from "lucide-react";
 import React, { useState, useMemo, useEffect, useCallback, memo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, prefixUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { socket } from "@/lib/socket";
@@ -444,7 +444,7 @@ export default function QuotesData() {
                                             justify="flex-start"
                                             leftSection={<FileText size={16} />}
                                             component="a"
-                                            href={url}
+                                            href={(url && !url.startsWith(BASE_PATH)) ? prefixUrl(url) : (url || "#")}
                                             target="_blank"
                                             size="xs"
                                         >

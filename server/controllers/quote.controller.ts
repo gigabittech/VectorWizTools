@@ -22,7 +22,7 @@ export function registerQuoteRoutes(app: Express, io: SocketIOServer) {
         fileUrls
       });
 
-      await sendQuoteRequestNotification({
+      sendQuoteRequestNotification({
         firstName: quoteRequest.firstName || '',
         lastName: quoteRequest.lastName || '',
         email: quoteRequest.email,
@@ -31,7 +31,7 @@ export function registerQuoteRoutes(app: Express, io: SocketIOServer) {
         turnaroundTime: quoteRequest.turnaroundTime || '',
         status: quoteRequest.status,
         fileUrls: quoteRequest.fileUrls || []
-      });
+      }).catch(err => console.error("Failed to send quote notification in background:", err));
 
       io.to("admins").emit("new_quote_request", quoteRequest);
 
