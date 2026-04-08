@@ -15,7 +15,7 @@ import { protect } from "./authMiddleware";
 import { toolController } from "./toolController";
 import { pdfToolsController, upload } from "./pdfToolsController";
 import { cloudConvertController } from "./cloudConvertController";
-
+import { getInstagramImages, proxyInstagramImage } from "./controllers/instagramController";
 import { registerAuthRoutes } from "./controllers/auth.controller";
 import { registerQuoteRoutes } from "./controllers/quote.controller";
 import { registerAiRoutes } from "./controllers/ai.controller";
@@ -55,6 +55,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Quote Request Routes ---
 
+
+  app.get("/api/instagram-images", getInstagramImages);
+  app.get("/api/instagram-image-proxy", proxyInstagramImage);
 
   // --- Email Settings Routes ---
   app.get("/api/email-settings", protect, async (_req, res) => {
