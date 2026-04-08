@@ -25,7 +25,7 @@ import multer from "multer";
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");
-  const socketPath = (BASE_PATH + "/api/socket.io").replace(/\/\//g, "/");
+  const socketPath = "/api/socket.io";
   
   const io = new SocketIOServer(httpServer, {
     path: socketPath,
