@@ -26,7 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   const BASE_PATH = (process.env.BASE_PATH || "").replace(/\/$/, "");
   const socketPath = "/api/socket.io";
-  
+
   const io = new SocketIOServer(httpServer, {
     path: socketPath,
     cors: {
@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/tools/:id", protect, toolController.deleteTool);
 
   const toolsLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, 
+    windowMs: 60 * 60 * 1000,
     max: 20,
     message: { error: "Too many conversion requests. Please try again later." }
   });
@@ -312,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- SEO Settings Routes ---
-  app.get("/api/seo-settings", protect, async (_req, res) => {
+  app.get("/api/seo-settings", async (_req, res) => {
     try {
       const result = await storage.getSeoSettings();
       res.json(result || {});
