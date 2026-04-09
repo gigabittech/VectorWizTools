@@ -62,6 +62,7 @@ const imageTools = [
     { name: "Font to Vector", description: "Convert fonts to vector outlines", category: "Image Tools", route: "/tools/font-to-vector", icon: "🔤" },
     { name: "Turnaround Estimator", description: "Estimate turnaround time for vector services", category: "Image Tools", route: "/tools/turnaround-estimator", icon: "⏱️" },
     { name: "Color Extractor", description: "Extract colors from images", category: "Image Tools", route: "/tools/color-extractor", icon: "🎨" },
+    { name: "Instagram Image Downloader", description: "Download high-quality images from Instagram posts easily. Just paste the link and download.", category: "Image Tools", route: "/tools/instagram-image-download", icon: "📸" },
 ];
 
 const pdfTools = [
@@ -220,6 +221,7 @@ const TOOL_COMPONENT_MAP: Record<string, string> = {
     "vsdx-to-jpg": "VSDXtoJPG",
     "png-to-webp": "PNGtoWebP",
     "jpg-to-webp": "JPGtoWebP",
+    "instagram-image-download": "InstagramDownloader",
 };
 
 async function seed() {
