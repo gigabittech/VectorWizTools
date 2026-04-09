@@ -256,52 +256,54 @@ export default function ToolsLandingPage() {
         variants={itemVariants}
       >
         <div className="max-w-7xl mx-auto">
-          {/* Glassmorphism Filter Buttons */}
+          {/* Compact Pill Filter Buttons */}
           <motion.div
-            className="flex items-center justify-center mb-8"
+            className="flex items-center justify-center mb-10 pb-2 sm:pb-0 px-2 w-full"
             variants={itemVariants}
           >
-            <div className="inline-flex items-center gap-2 p-1.5 rounded-full backdrop-blur-md bg-white/60 border border-white/40 shadow-lg" data-testid="category-filters">
+            <div className="flex items-center bg-white rounded-full p-1 shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-full" data-testid="category-filters">
               <button
                 onClick={() => setActiveCategory("all")}
                 className={`
-                  flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
+                  flex flex-row items-center justify-center whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-2.5 rounded-full transition-all duration-300
                   ${activeCategory === "all"
-                    ? "bg-[#0B9F47] text-white shadow-md"
-                    : "text-gray-700 hover:bg-white/40"
+                    ? "bg-[#10A342] text-white"
+                    : "text-[#3A4354] hover:bg-gray-50 bg-transparent"
                   }
                 `}
                 data-testid="filter-all"
               >
-                All Tools ({allTools.length})
+                <span className="text-[11px] sm:text-[13px] md:text-[15px] font-medium tracking-normal md:tracking-wide">All Tools ({allTools.length})</span>
               </button>
+              
               <button
                 onClick={() => setActiveCategory("Image Tools")}
                 className={`
-                  flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
+                  flex flex-row items-center gap-1 sm:gap-2 whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-2.5 rounded-full transition-all duration-300
                   ${activeCategory === "Image Tools"
-                    ? "bg-[#0B9F47] text-white shadow-md"
-                    : "text-gray-700 hover:bg-white/40"
+                    ? "bg-[#10A342] text-white"
+                    : "text-[#3A4354] hover:bg-gray-50 bg-transparent"
                   }
                 `}
                 data-testid="filter-image"
               >
-                <ImageIcon className="h-4 w-4" />
-                Image Tools ({imageToolsTotal})
+                <ImageIcon className={`h-[12px] w-[12px] sm:h-[14px] sm:w-[14px] md:h-[18px] md:w-[18px] stroke-[1.5] flex-shrink-0 ${activeCategory === "Image Tools" ? "text-white" : "text-[#64748B]"}`} />
+                <span className="text-[11px] sm:text-[13px] md:text-[15px] font-medium tracking-normal md:tracking-wide">Image Tools ({imageToolsTotal})</span>
               </button>
+
               <button
                 onClick={() => setActiveCategory("PDF Tools")}
                 className={`
-                  flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
+                  flex flex-row items-center gap-1 sm:gap-2 whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-2.5 rounded-full transition-all duration-300
                   ${activeCategory === "PDF Tools"
-                    ? "bg-[#0B9F47] text-white shadow-md"
-                    : "text-gray-700 hover:bg-white/40"
+                    ? "bg-[#10A342] text-white"
+                    : "text-[#3A4354] hover:bg-gray-50 bg-transparent"
                   }
                 `}
                 data-testid="filter-pdf"
               >
-                <FileText className="h-4 w-4" />
-                PDF Tools ({pdfToolsTotal})
+                <FileText className={`h-[12px] w-[12px] sm:h-[14px] sm:w-[14px] md:h-[18px] md:w-[18px] stroke-[1.5] flex-shrink-0 ${activeCategory === "PDF Tools" ? "text-white" : "text-[#64748B]"}`} />
+                <span className="text-[11px] sm:text-[13px] md:text-[15px] font-medium tracking-normal md:tracking-wide">PDF Tools ({pdfToolsTotal})</span>
               </button>
             </div>
           </motion.div>
