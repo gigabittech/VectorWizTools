@@ -459,4 +459,4 @@ function ToolCard({ tool }: { tool: Tool }) {
   }
 
   return content;
-}
+} 

@@ -116,6 +116,7 @@ import JPGtoVSDX from "./pages/tools/image_tools/jpg-to-vsdx";
 import VSDXtoJPG from "./pages/tools/image_tools/vsdx-to-jpg";
 import PNGtoWebP from "./pages/tools/image_tools/png-to-webp";
 import JPGtoWebP from "./pages/tools/image_tools/jpg-to-webp";
+import InstagramDownloader from "@/pages/tools/instagram-downloader";
 import EmbedQuoteForm from "@/pages/EmbedQuoteForm";
 import EmbedGenerator from "@/pages/EmbedGenerator";
 import Dashboard from "@/pages/dashboard";
@@ -253,6 +254,7 @@ const COMPONENT_MAP: Record<string, React.ComponentType> = {
   VSDXtoJPG,
   PNGtoWebP,
   JPGtoWebP,
+  InstagramDownloader,
 };
 
 function Router() {
