@@ -1,21 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Container, Grid, Group, Paper, Stack, Title, Text, Badge, Alert, Divider } from "@mantine/core";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
-import { ArrowLeft, FileImage, FileDown, Images, Info, Loader2, Settings } from "lucide-react";
-
+import { FileImage, FileDown, Images, Info, Loader2, Settings } from "lucide-react";
 import JSZip from "jszip";
+import ToolLayout from "@/components/tools/shared/ToolLayout";
 
 // Import pdfjs-dist and configure worker
 import { GlobalWorkerOptions, getDocument, type PDFDocumentProxy } from "pdfjs-dist";
 
 // Configure worker - use jsdelivr CDN with correct .mjs extension
-// Note: pdfjs-dist 4.x uses .mjs (ES module) instead of .js
 GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
 
-// Optimal scale for high-quality conversion (2.5x provides excellent quality without excessive memory usage)
+// Optimal scale for high-quality conversion
 const OPTIMAL_SCALE = 2.5;
 
 type RenderedPage = {
@@ -27,7 +25,7 @@ type RenderedPage = {
 };
 
 // Maximum JPEG quality for best output
-const MAX_JPEG_QUALITY = 1.0; // 100%
+const MAX_JPEG_QUALITY = 1.0; 
 
 export default function PDFToJPG() {
   const [file, setFile] = useState<File | null>(null);
@@ -36,10 +34,6 @@ export default function PDFToJPG() {
   const [numPages, setNumPages] = useState<number | null>(null);
   const pdfRef = useRef<PDFDocumentProxy | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    document.title = "PDF to JPG - VectorWiz";
-  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] || null;
@@ -123,39 +117,17 @@ export default function PDFToJPG() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      <div className="text-white" style={{ backgroundColor: '#09183a' }}>
-        <Container size="xl" py="xl">
-          <div className="mb-6">
-            <Link href="/tools">
-              <Button 
-                variant="ghost" 
-                className="text-white/90 hover:text-white hover:bg-white/10 mb-6"
-              >
-                <ArrowLeft size={16} className="mr-2" />
-                Back to Tools
-              </Button>
-            </Link>
-          </div>
-
-          <Group align="flex-start" gap="xl" wrap="nowrap">
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg" style={{ backgroundColor: '#489c51' }}>
-              <Images className="h-10 w-10 text-white" />
-            </div>
-            <div className="flex-1">
-              <Title order={1} size="h1" mb="md" className="text-white">PDF to JPG</Title>
-              <Text size="lg" className="text-white/90 mb-4 max-w-2xl">
-                Convert each page of your PDF into maximum quality JPG images with automatic optimal settings, directly in your browser.
-              </Text>
-              <Group gap="xs" mt="md">
-                <Badge size="lg" variant="light" className="text-white border-white/30" style={{ backgroundColor: 'rgba(72, 156, 81, 0.3)' }}>No upload needed</Badge>
-                <Badge size="lg" variant="light" className="text-white border-white/30" style={{ backgroundColor: 'rgba(72, 156, 81, 0.3)' }}>Fast & secure</Badge>
-              </Group>
-            </div>
-          </Group>
-        </Container>
-      </div>
-
+    <ToolLayout
+      toolId="pdf-to-jpg"
+      title="PDF to JPG"
+      description="Convert each page of your PDF into maximum quality JPG images with automatic optimal settings, directly in your browser."
+      category="PDF Tools"
+      howToSteps={[
+        { name: "Upload PDF", text: "Select a PDF file from your device" },
+        { name: "Process", text: "Click 'Convert to JPG' to process all pages" },
+        { name: "Download", text: "Save individual pages or download all as a ZIP file" }
+      ]}
+    >
       <Container size="xl" py="xl">
         <Grid gutter="xl">
           <Grid.Col span={{ base: 12, lg: 6 }}>
@@ -263,8 +235,6 @@ export default function PDFToJPG() {
           </Grid.Col>
         </Grid>
       </Container>
-    </div>
+    </ToolLayout>
   );
 }
-
-
