@@ -1,470 +1,246 @@
-import { Mail, MapPin, Phone, Facebook, Instagram, Star } from "lucide-react";
-import { SiX, SiPinterest } from "react-icons/si";
-import { Link } from "wouter";
+import { Mail, MapPin, Phone, Facebook, Instagram, Download } from "lucide-react";
+import { SiX, SiPinterest, SiLinkedin } from "react-icons/si";
+
+const LOCATIONS = [
+  { text: "United States", url: "https://vectorwiz.com/usa-clipping-path-service/" },
+  { text: "Australia", url: "https://vectorwiz.com/australia-clipping-path-service/" },
+  { text: "New Zealand", url: "https://vectorwiz.com/new-zealand-clipping-path-service/" },
+  { text: "United Kingdom", url: "https://vectorwiz.com/united-kingdom-clipping-path-service/" },
+  { text: "Canada", url: "https://vectorwiz.com/canada-clipping-path-service/" },
+  { text: "Italy", url: "https://vectorwiz.com/italy-clipping-path-service/" },
+  { text: "Denmark", url: "https://vectorwiz.com/denmark-clipping-path-service/" },
+];
+
+const VECTOR_SERVICES = [
+  { text: "Vector Silhouette Service", url: "https://vectorwiz.com/vector-silhouette-service/" },
+  { text: "Vector Line Drawing", url: "https://vectorwiz.com/vector-line-drawing/" },
+  { text: "Vector Art Conversion", url: "https://vectorwiz.com/vector-art-conversion-service/" },
+  { text: "Vector Logo Conversion", url: "https://vectorwiz.com/vector-logo-conversion-service/" },
+  { text: "Badge Vector Conversion", url: "https://vectorwiz.com/badge-vector-conversion/" },
+  { text: "Pets Vector Conversion", url: "https://vectorwiz.com/pets-vector-conversion/" },
+  { text: "Vehicles Vector Conversion", url: "https://vectorwiz.com/vehicles-vector-conversion/" },
+  { text: "JPG to Vector Conversion", url: "https://vectorwiz.com/jpg-to-vector-conversion/" },
+  { text: "Image to Vector Conversion", url: "https://vectorwiz.com/image-to-vector-conversion/" },
+  { text: "PDF to Vector Conversion", url: "https://vectorwiz.com/convert-pdf-to-vector-file/" },
+  { text: "AI Image to Vector Conversion", url: "https://vectorwiz.com/ai-image-to-vector-conversion/" },
+];
+
+const OTHER_SERVICES = [
+  { text: "Clipping Path", url: "https://vectorwiz.com/clipping-path-service/" },
+  { text: "Background Removal", url: "https://vectorwiz.com/background-removal-service/" },
+  { text: "Image Masking", url: "https://vectorwiz.com/image-masking-service/" },
+  { text: "Photo Retouching", url: "https://vectorwiz.com/professional-photo-retouching-service/" },
+  { text: "Logo Design", url: "https://vectorwiz.com/logo-design/" },
+  { text: "Shadow", url: "https://vectorwiz.com/shadow-adding-service/" },
+  { text: "Color Change", url: "https://vectorwiz.com/photoshop-color-change-service/" },
+  { text: "Ghost Mannequin", url: "https://vectorwiz.com/ghost-mannequin-service/" },
+  { text: "Multi Clipping Path Service", url: "https://vectorwiz.com/multi-clipping-path-service/" },
+  { text: "eCommerce Image Editing Partner", url: "https://vectorwiz.com/ecommerce-image-editing-service/" },
+];
+
+const BOTTOM_LINKS = [
+  { text: "About", url: "https://vectorwiz.com/about/" },
+  { text: "Portfolio", url: "https://vectorwiz.com/portfolio/" },
+  { text: "Insights", url: "https://vectorwiz.com/insights/" },
+  { text: "Privacy", url: "https://vectorwiz.com/privacy-policy/" },
+  { text: "Terms", url: "https://vectorwiz.com/terms-and-conditions/" },
+  { text: "Sitemap", url: "https://vectorwiz.com/sitemap_index.xml" },
+  { text: "Profiles", url: "https://vectorwiz.com/online-profiles/" },
+];
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer
-      className="text-white"
-      style={{ background: "linear-gradient(75deg, #06183C 0%, #20448B 100%)" }}
+      className="text-white pt-20 pb-5 px-5 lg:px-10 overflow-hidden font-sans bg-[#06193C]"
       data-testid="main-footer"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Main Sections Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[35px] mb-16">
           
-          {/* Services Column 1 */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Vector Services</h3>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="https://vectorwiz.com/vector-silhouette-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-silhouette"
-                >
-                  Vector Silhouette
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/vector-line-drawing/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-line-drawing"
-                >
-                  Vector Line Drawing
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/vector-art-conversion-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-art-conversion"
-                >
-                  Vector Art Conversion
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/vector-logo-conversion-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-logo-conversion"
-                >
-                  Vector Logo Conversion
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/badge-vector-conversion/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-badge"
-                >
-                  Badge Vector Conversion
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/pets-vector-conversion/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-pets"
-                >
-                  Pets Vector Conversion
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/vehicles-vector-conversion/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-vehicles"
-                >
-                  Vehicles Vector Conversion
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/jpg-to-vector-conversion/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-jpg-to-vector"
-                >
-                  JPG to Vector
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/image-to-vector-conversion/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-image-to-vector"
-                >
-                  Image to Vector
-                </a>
-              </li>
+          {/* Column 1: Locations */}
+          <div className="flex flex-col">
+            <h3 className="text-[20px] font-light leading-[1.4] mb-4 text-[#FFFFFF]">Locations</h3>
+            <ul className="space-y-[12px] mb-6">
+              {LOCATIONS.map((loc, idx) => (
+                <li key={idx}>
+                  <a
+                    href={loc.url}
+                    className="text-[#FFFFFF80] hover:text-white text-[15px] transition-colors duration-300"
+                  >
+                    {loc.text}
+                  </a>
+                </li>
+              ))}
             </ul>
-          </div>
-
-          {/* Services Column 2 */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Image Services</h3>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="https://vectorwiz.com/ecommerce-image-editing-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-ecommerce"
-                >
-                  eCommerce Image Editing
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-clipping-path"
-                >
-                  Clipping Path Services
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/background-removal-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-background-removal"
-                >
-                  Background Removal
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/image-masking-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-image-masking"
-                >
-                  Image Masking
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/professional-photo-retouching-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-photo-retouching"
-                >
-                  Photo Retouching
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/logo-design/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-logo-design"
-                >
-                  Logo Design
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/shadow-adding-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-shadow-adding"
-                >
-                  Shadow Adding
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/photoshop-color-change-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-color-change"
-                >
-                  Color Change
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/ghost-mannequin-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-ghost-mannequin"
-                >
-                  Ghost Mannequin
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/multi-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-service-multi-clipping"
-                >
-                  Multi Clipping Path
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Locations Column 1 */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Locations We Serve</h3>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="https://vectorwiz.com/usa-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-usa"
-                >
-                  United States
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/australia-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-australia"
-                >
-                  Australia
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/new-zealand-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-new-zealand"
-                >
-                  New Zealand
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/united-kingdom-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-uk"
-                >
-                  United Kingdom
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/canada-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-canada"
-                >
-                  Canada
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/germany-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-germany"
-                >
-                  Germany
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/france-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-france"
-                >
-                  France
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/netherlands-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-netherlands"
-                >
-                  Netherlands
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/italy-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-italy"
-                >
-                  Italy
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/sweden-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-sweden"
-                >
-                  Sweden
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/denmark-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-denmark"
-                >
-                  Denmark
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://vectorwiz.com/ireland-clipping-path-service/"
-                  className="text-gray-300 hover:text-white text-sm transition-colors"
-                  data-testid="footer-location-ireland"
-                >
-                  Ireland
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Office Addresses */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Our Offices</h3>
-            <div className="space-y-6">
-              {/* Wyoming Office */}
-              <div>
-                <h4 className="text-sm font-semibold text-white mb-2">Wyoming Office</h4>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-[#0B9F47] flex-shrink-0 mt-0.5" />
-                    <p className="text-gray-300 text-sm">
-                      1309 Coffeen Ave STE 1200<br />
-                      Sheridan, WY 82801, USA
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-[#0B9F47] flex-shrink-0" />
-                    <a
-                      href="tel:+19012490909"
-                      className="text-gray-300 hover:text-white text-sm transition-colors"
-                      data-testid="contact-phone-wyoming"
-                    >
-                      +1 901-249-0909
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dhaka Office */}
-              <div>
-                <h4 className="text-sm font-semibold text-white mb-2">Dhaka Office</h4>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-[#0B9F47] flex-shrink-0 mt-0.5" />
-                    <p className="text-gray-300 text-sm">
-                      889, Suite A9, Bashundhara<br />
-                      Apollo Link Road, Vatara<br />
-                      Dhaka 1229, Bangladesh
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-[#0B9F47] flex-shrink-0" />
-                    <a
-                      href="tel:+8801708519767"
-                      className="text-gray-300 hover:text-white text-sm transition-colors"
-                      data-testid="contact-phone-dhaka"
-                    >
-                      +880 1708 519767
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <h4 className="text-sm font-semibold text-white mb-2">Email Us</h4>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-[#0B9F47] flex-shrink-0" />
-                  <a
-                    href="mailto:orders@vectorwiz.com"
-                    className="text-gray-300 hover:text-white text-sm transition-colors"
-                    data-testid="contact-email"
-                  >
-                    orders@vectorwiz.com
-                  </a>
-                </div>
-              </div>
-
-              {/* Social Media */}
-              <div>
-                <h4 className="text-sm font-semibold text-white mb-3">Follow Us</h4>
-                <div className="flex items-center gap-3">
-                  <a
-                    href="https://www.facebook.com/VectorWizard"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-[#0B9F47] transition-colors"
-                    data-testid="social-facebook"
-                    aria-label="Facebook"
-                  >
-                    <Facebook className="h-5 w-5" />
-                  </a>
-                  <a
-                    href="https://www.instagram.com/vectorwiz/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-[#0B9F47] transition-colors"
-                    data-testid="social-instagram"
-                    aria-label="Instagram"
-                  >
-                    <Instagram className="h-5 w-5" />
-                  </a>
-                  <a
-                    href="https://x.com/vectorwizrd"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-[#0B9F47] transition-colors"
-                    data-testid="social-x"
-                    aria-label="X (Twitter)"
-                  >
-                    <SiX className="h-5 w-5" />
-                  </a>
-                  <a
-                    href="https://www.pinterest.com/vectorwiz"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-[#0B9F47] transition-colors"
-                    data-testid="social-pinterest"
-                    aria-label="Pinterest"
-                  >
-                    <SiPinterest className="h-5 w-5" />
-                  </a>
-                  <a
-                    href="https://www.trustpilot.com/review/vectorwiz.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-[#0B9F47] transition-colors"
-                    data-testid="social-trustpilot"
-                    aria-label="TrustPilot"
-                  >
-                    <Star className="h-5 w-5" />
-                  </a>
-                </div>
-              </div>
+            <div className="flex flex-col items-start gap-4">
+              <a
+                href="https://www.google.com/search?sca_esv=f233e2a091c16e55&hl=en&authuser=0&sxsrf=ANbL-n77QcuW_57HKE8hFmBzX1-rOK3h4w:1772087054528&kgmid=/g/11mkhzl788&q=VectorWiz&shndl=30&source=sh/x/loc/uni/m1/1&kgs=32ddd1d11324767b&shem=shrtsdl&utm_source=shrtsdl,sh/x/loc/uni/m1/1#lrd=0x862c106857159955:0xee8e2245d4fb9636,3,,,,"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center bg-[#10A342] border border-[#10A342] text-white px-[25px] py-[12px] rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 hover:bg-white hover:text-[#10A342]"
+              >
+                REVIEW US ON GOOGLE
+              </a>
+              <a
+                href="https://www.trustpilot.com/evaluate/vectorwiz.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center bg-transparent border border-[#00B67A] text-[#00B67A] px-[25px] py-[12px] rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 hover:bg-[#00B67A] hover:text-white"
+              >
+                REVIEW US ON TRUSTPILOT
+              </a>
             </div>
+          </div>
+
+          {/* Column 2: Vector Conversion Services */}
+          <div>
+            <h3 className="text-[20px] font-light leading-[1.4] mb-4 text-[#FFFFFF]">
+              <a href="https://vectorwiz.com/vector-conversion-services/" className="hover:text-white transition-colors">
+                Vector Conversion Services
+              </a>
+            </h3>
+            <ul className="space-y-[12px]">
+              {VECTOR_SERVICES.map((service, idx) => (
+                <li key={idx}>
+                  <a
+                    href={service.url}
+                    className="text-[#FFFFFF80] hover:text-white text-[15px] transition-colors duration-300"
+                  >
+                    {service.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 3: Other Services */}
+          <div>
+            <h3 className="text-[20px] font-light leading-[1.4] mb-4 text-[#FFFFFF]">
+              <a href="https://vectorwiz.com/services/" className="hover:text-white transition-colors">
+                Other Services
+              </a>
+            </h3>
+            <ul className="space-y-[12px]">
+              {OTHER_SERVICES.map((service, idx) => (
+                <li key={idx}>
+                  <a
+                    href={service.url}
+                    className="text-[#FFFFFF80] hover:text-white text-[15px] transition-colors duration-300"
+                  >
+                    {service.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 4: Offices */}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-[20px] font-light leading-[1.4] mb-4 text-[#FFFFFF]">Wyoming Office</h3>
+              <ul className="space-y-[12px]">
+                <li className="flex items-start gap-2 text-[#FFFFFF80]">
+                  <MapPin className="h-[18px] w-[18px] mt-[5px]" />
+                  <span className="text-[15px] leading-[1.5]">1309 Coffeen Ave STE 1200, Sheridan, WY 82801, USA.</span>
+                </li>
+                <li>
+                  <a href="tel:9012490909" className="flex items-center gap-2 text-[#FFFFFF80] hover:text-white text-[15px] transition-colors duration-300">
+                    <Phone className="h-[18px] w-[18px]" />
+                    <span>+1 901-249-0909</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-[20px] font-light leading-[1.4] mb-4 text-[#FFFFFF]">Dhaka Office</h3>
+              <ul className="space-y-[12px]">
+                <li>
+                  <a
+                    href="https://www.google.com.bd/maps/place/Gigabit+Tech+Studio/@23.8068437,90.4265009,18z/data=!3m1!4b1!4m6!3m5!1s0x3755b86633cbd889:0xba858098958135d9!8m2!3d23.8068412!4d90.4275952!16s%2Fg%2F11cnb9vmtm?hl=en"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2 text-[#FFFFFF80] hover:text-white transition-colors duration-300"
+                  >
+                    <MapPin className="h-[18px] w-[18px] mt-[5px]" />
+                    <span className="text-[15px] leading-[1.5]">889, Suite A9, Bashundhara Apollo Link Road, Vatara, Dhaka 1229, Bangladesh</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="tel:01708519767" className="flex items-center gap-2 text-[#FFFFFF80] hover:text-white text-[15px] transition-colors duration-300">
+                    <Phone className="h-[18px] w-[18px]" />
+                    <span>+880 1708 519767</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <a
+              href="https://vectorwiz.com/wp-content/uploads/2026/04/VectorWiz-Company-Profile.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center bg-transparent border border-[#00B67A] text-white hover:bg-[#00B67A] px-[15px] py-[10px] rounded-[30px] text-[15px] transition-all duration-300 gap-3"
+            >
+              VectorWiz Company Profile
+              <Download className="h-5 w-5" />
+            </a>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-white/10 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-gray-300 text-sm" data-testid="footer-copyright">
-              © 2025 VectorWiz. All rights reserved.
-            </div>
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-[10px] pt-4 border-t border-transparent">
+          {/* Copyright */}
+          <p className="text-[#FFFFFF80] text-[14px] leading-[24px]">
+            Copyright © {currentYear} VectorWiz · All rights reserved.
+          </p>
 
-            {/* Legal Links */}
-            <div className="flex flex-wrap items-center gap-6">
+          {/* Social Icons */}
+          <div className="flex items-center gap-[6px]">
+            {[
+              { icon: Facebook, url: "https://www.facebook.com/VectorWizard", label: "Facebook" },
+              { icon: SiLinkedin, url: "https://www.linkedin.com/company/vectorwiz/", label: "Linkedin" },
+              { icon: Instagram, url: "https://www.instagram.com/vectorwiz/", label: "Instagram" },
+              { icon: SiX, url: "https://twitter.com/vectorwizrd", label: "Twitter" },
+              { icon: SiPinterest, url: "https://www.pinterest.com/vectorwiz", label: "Pinterest" },
+            ].map((social, idx) => (
               <a
-                href="https://vectorwiz.com/privacy-policy/"
-                className="text-gray-300 hover:text-white text-sm transition-colors"
-                data-testid="footer-privacy-link"
+                key={idx}
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#0B9F47] text-white hover:bg-[#20448B] p-2 rounded-[30px] transition-all duration-300 flex items-center justify-center w-8 h-8"
+                aria-label={social.label}
               >
-                Privacy Policy
+                <social.icon className="h-4 w-4" />
               </a>
+            ))}
+            <a
+              href="https://www.trustpilot.com/review/vectorwiz.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#0B9F47] text-white hover:bg-[#20448B] p-2 rounded-[30px] transition-all duration-300 flex items-center justify-center w-8 h-8"
+              aria-label="Trustpilot"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 60.89" className="h-4 w-4 fill-current">
+                <path d="M64,23.27H39.56L32,0,24.44,23.27,0,23.25,19.79,37.64,12.22,60.89,32,46.52,51.78,60.89,44.23,37.64Z" />
+              </svg>
+            </a>
+          </div>
+
+          {/* Footer Links */}
+          <div className="flex flex-wrap justify-center lg:justify-end gap-[20px]">
+            {BOTTOM_LINKS.map((link, idx) => (
               <a
-                href="https://vectorwiz.com/terms-and-conditions/"
-                className="text-gray-300 hover:text-white text-sm transition-colors"
-                data-testid="footer-terms-link"
+                key={idx}
+                href={link.url}
+                className="text-[#FFFFFF80] hover:text-white text-[14px] leading-[24px] transition-colors duration-300"
               >
-                Terms & Conditions
+                {link.text}
               </a>
-            </div>
+            ))}
           </div>
         </div>
       </div>

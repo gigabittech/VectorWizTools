@@ -44,11 +44,15 @@ export default function ToolLayout({
   const [location] = useLocation();
 
   // Auto-detect slug from URL if not provided
-  // Paths are typically /tools/:slug
+  // Paths are typically /tools/:slug or just /:slug
   const derivedSlug = useMemo(() => {
-    if (slug) return slug;
-    const match = location.match(/\/tools\/([^\/]+)$/);
-    return match ? match[1] : null;
+    if (slug) return slug.toLowerCase();
+    // Extract slug from URL (e.g., /tools/slug or /slug)
+    const pathParts = location.split('/').filter(Boolean);
+    // If it's something like /tools/my-tool, we want 'my-tool'
+    // If it's just /my-tool, we also want 'my-tool'
+    const lastPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : null;
+    return lastPart ? lastPart.toLowerCase() : null;
   }, [location, slug]);
 
   // Fetch CMS data if toolId or slug is provided
@@ -56,14 +60,31 @@ export default function ToolLayout({
   const { data: cmsData, isLoading: isCmsLoading } = useQuery<any>({
     queryKey: [queryKey],
     enabled: !!queryKey,
+    staleTime: 1000 * 60 * 5, // 5 minute cache
   });
 
   // Fetch global SEO settings for fallback
   const { data: seoSettings, isLoading: isSeoSettingsLoading } = useQuery<any>({
     queryKey: ["/api/seo-settings"],
+    staleTime: 1000 * 60 * 60, // 1 hour cache
   });
 
-  const isLoading = isCmsLoading || isSeoSettingsLoading;
+  // We only block rendering if we ARE expecting CMS data but it's still loading
+  const isLoading = isCmsLoading;
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log("[ToolLayout DEBUG]", { 
+        toolId, 
+        derivedSlug, 
+        queryKey, 
+        hasCmsData: !!cmsData, 
+        cmsSeo: cmsData?.seo,
+        isCmsLoading,
+        isSeoLoading: isSeoSettingsLoading
+      });
+    }
+  }, [cmsData, toolId, derivedSlug, queryKey, isCmsLoading, isSeoSettingsLoading]);
 
 
   // Use CMS data if available, otherwise fallback to props
@@ -71,25 +92,33 @@ export default function ToolLayout({
   const toolTitle = cmsData?.title || initialTitle || toolName;
   const toolDescription = cmsData?.description || initialDescription || "";
   const toolCategory = cmsData?.category || initialCategory;
-  const toolKeywords = cmsData?.seo?.metaKeywords?.split(',').map((k: string) => k.trim()) || initialKeywords;
+  
+  // keywords from CMS (tool_seo table) or fallback to props
+  const toolKeywords = useMemo(() => {
+    if (cmsData?.seo?.metaKeywords) {
+      return cmsData.seo.metaKeywords.split(',').map((k: string) => k.trim());
+    }
+    return initialKeywords;
+  }, [cmsData?.seo?.metaKeywords, initialKeywords]);
 
   // Format how-to steps for schema if CMS provides them or they are passed as props
   const formattedSteps = cmsData?.howToSteps || initialHowToSteps || [];
 
   useEffect(() => {
-    if (isLoading) return;
+    // We update metadata as soon as we have enough data (either CMS or fallbacks)
+    if (isCmsLoading) return;
 
     // Priority Logic:
     // 1. Tool-specific SEO data from tool_seo table (cmsData.seo)
     // 2. Default SEO values from seo_settings table (seoSettings)
     // 3. Last fallback to tool-related fields or hardcoded values
 
-    const seoTitle = cmsData?.seo?.metaTitle || seoSettings?.defaultMetaTitle || `${toolTitle} - Free Online Tool | VectorWiz`;
+    const seoTitle = cmsData?.seo?.metaTitle || seoSettings?.defaultMetaTitle || `${toolTitle} - VectorWiz`;
     const seoDescription = cmsData?.seo?.metaDescription || seoSettings?.defaultMetaDescription || toolDescription;
     const seoOgTitle = cmsData?.seo?.ogTitle || seoTitle;
     const seoOgDescription = cmsData?.seo?.ogDescription || seoDescription;
     const seoOgImage = cmsData?.seo?.ogImage || seoSettings?.defaultOgImage;
-    const seoCanonical = cmsData?.seo?.canonicalUrl || window.location.href;
+    const seoCanonical = cmsData?.seo?.canonicalUrl || window.location.origin + location;
     const seoRobots = `${cmsData?.seo?.indexStatus || 'index'}, ${cmsData?.seo?.followStatus || 'follow'}`;
 
     // Set page metadata using helper function
@@ -100,7 +129,7 @@ export default function ToolLayout({
       ogTitle: seoOgTitle,
       ogDescription: seoOgDescription,
       ogType: 'website',
-      ogUrl: window.location.href,
+      ogUrl: window.location.origin + location,
       ogImage: seoOgImage || undefined,
       canonicalUrl: seoCanonical,
       robots: seoRobots
