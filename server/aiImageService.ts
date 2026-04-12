@@ -235,16 +235,16 @@ async function generateWithPollinations(options: {
   size?: string;
 }): Promise<ImageGenerationResult> {
   const { prompt, size = "1024x1024" } = options;
-  
+
   // Parse size
   const [width, height] = size.split("x").map(Number);
-  
+
   // Pollinations.ai simple URL generation
   const seed = Math.floor(Math.random() * 1000000);
   const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width || 1024}&height=${height || 1024}&seed=${seed}&nologo=true`;
 
   console.log(`✅ Success with Pollinations AI: ${imageUrl}`);
-  
+
   return { imageUrl };
 }
 
@@ -308,3 +308,65 @@ async function generateWithGemini(options: {
   }
 }
 
+
+/**
+ * Analyze an image using Google Gemini (OCR / Text Extraction)
+ * Direct API Call Implementation for Maximum Reliability
+ */
+export async function analyzeImage(imageBuffer: Buffer, mimeType: string): Promise<{ text: string }> {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Gemini API key not configured. Please set GEMINI_API_KEY environment variable.");
+  }
+
+  // Candidates for model names and API versions
+  const candidates = [
+    { version: "v1beta", model: "gemini-1.5-flash" },
+    { version: "v1", model: "gemini-1.5-flash" },
+    { version: "v1beta", model: "gemini-1.5-pro" },
+    { version: "v1", model: "gemini-1.5-flash-8b" }
+  ];
+
+  let lastError: any;
+
+  for (const candidate of candidates) {
+    try {
+      console.log(`[OCR] Direct Tunnel attempting ${candidate.model} via ${candidate.version}...`);
+      
+      const url = `https://generativelanguage.googleapis.com/${candidate.version}/models/${candidate.model}:generateContent?key=${apiKey}`;
+      
+      const response = await axios.post(url, {
+        contents: [{
+          parts: [
+            { text: "Extract all text from this image exactly as it appears. No markdown, no commentary. Just raw text." },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: imageBuffer.toString("base64")
+              }
+            }
+          ]
+        }]
+      }, {
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (text) {
+        console.log(`[OCR] Success with ${candidate.model}!`);
+        return { text: text.trim() };
+      }
+      
+      throw new Error(`Model ${candidate.model} returned empty content.`);
+    } catch (error: any) {
+      const apiError = error.response?.data?.error?.message || error.message;
+      console.warn(`[OCR] ${candidate.model} failed: ${apiError}`);
+      lastError = apiError;
+      continue; // Try next candidate
+    }
+  }
+
+  throw new Error(`CRITICAL: All AI Vision models failed. Last error: ${lastError}`);
+}

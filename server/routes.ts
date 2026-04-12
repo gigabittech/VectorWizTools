@@ -9,7 +9,7 @@ import {
   insertEmailSettingsSchema
 } from "@shared/schema";
 import { sendQuoteRequestNotification, sendTestEmail } from "./emailService";
-import { generateAIImage } from "./aiImageService";
+import { generateAIImage, analyzeImage } from "./aiImageService";
 import { comparePassword, generateToken, hashPassword, verifyToken } from "./authUtils";
 import { protect } from "./authMiddleware";
 import { toolController } from "./toolController";
@@ -21,6 +21,7 @@ import { registerQuoteRoutes } from "./controllers/quote.controller";
 import { registerAiRoutes } from "./controllers/ai.controller";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
+import fs from "fs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -187,6 +188,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tools/pdf-to-azw3", toolsLimiter, upload.single("file"), cloudConvertController.convertPdfToAzw3);
   app.post("/api/tools/outlook-to-pdf", toolsLimiter, upload.single("file"), cloudConvertController.convertOutlookToPdf);
   app.post("/api/tools/tiff-to-jpg", toolsLimiter, upload.single("file"), cloudConvertController.convertImage);
+
+  // --- OCR / Image to Text route ---
+  app.post("/api/tools/image-to-text", toolsLimiter, upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      console.log(`[OCR] Processing file: ${req.file.originalname} (${req.file.mimetype})`);
+
+      let imageBuffer: Buffer;
+      if (req.file.buffer) {
+        imageBuffer = req.file.buffer;
+      } else if (req.file.path) {
+        imageBuffer = await fs.promises.readFile(req.file.path);
+        // Clean up temp file immediately after reading
+        try { await fs.promises.unlink(req.file.path); } catch (e) { console.error("Temp file cleanup error:", e); }
+      } else {
+        return res.status(400).json({ error: "Image data not found" });
+      }
+
+      const result = await analyzeImage(imageBuffer, req.file.mimetype);
+      console.log(`[OCR] Successfully extracted text for: ${req.file.originalname}`);
+      res.json({ text: result.text });
+    } catch (error: any) {
+      console.error("OCR Route error:", error);
+      res.status(500).json({ error: error.message || "Failed to extract text from image" });
+    }
+  });
 
   // --- CMS Management Routes ---
   app.patch("/api/tools/:id/seo", protect, async (req, res) => {
