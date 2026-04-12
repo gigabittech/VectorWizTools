@@ -235,8 +235,10 @@ async function seed() {
         ];
 
         for (const user of userRoles) {
-            const existingUser = await storage.getUserByUsername(user.username);
-            if (!existingUser) {
+            const existingByName = await storage.getUserByUsername(user.username);
+            const existingByEmail = await storage.getUserByEmail(user.email);
+
+            if (!existingByName && !existingByEmail) {
                 const hashedPassword = await hashPassword(user.password);
                 await storage.createUser({
                     username: user.username,
@@ -246,6 +248,8 @@ async function seed() {
                     email: user.email,
                 });
                 console.log(`✅ User created: ${user.username} (${user.role})`);
+            } else {
+                console.log(`📡 User already exists, skipping: ${user.username} (Email: ${user.email})`);
             }
         }
 
