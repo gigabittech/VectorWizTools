@@ -22,6 +22,7 @@ import { registerAiRoutes } from "./controllers/ai.controller";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import fs from "fs";
+import axios from "axios";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -54,9 +55,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerQuoteRoutes(app, io);
   registerAiRoutes(app);
 
-  // --- Quote Request Routes ---
-
-
   app.get("/api/instagram-images", getInstagramImages);
   app.get("/api/instagram-image-proxy", proxyInstagramImage);
 
@@ -67,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(settings || {});
     } catch (error) {
       console.error("Error fetching email settings:", error instanceof Error ? error.message : "Unknown error");
-      res.json({}); // Return empty object to prevent UI crash if DB schema is missing columns
+      res.json({});
     }
   });
 
@@ -101,11 +99,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!testEmail) {
         return res.status(400).json({ error: "Test email address is required" });
       }
-
       const tempSettings = insertEmailSettingsSchema.partial().parse(tempSettingsRaw);
-
       const result = await sendTestEmail(testEmail, tempSettings);
-
       if (result.success) {
         res.json({ message: "Test email sent successfully!" });
       } else {
@@ -117,13 +112,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
   // --- Tool Routes ---
   app.post("/api/tools/turnaround", async (req, res) => {
     try {
       const { service, complexity, fileCount } = req.body;
-
       const baseDays: Record<string, number> = {
         IMAGE_TO_VECTOR: 3,
         LOGO_VECTORIZATION: 3,
@@ -131,19 +123,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         DXF_CUTTER_READY: 4,
         RASTER_TO_VECTOR: 3,
       };
-
       const complexityMultiplier: Record<string, number> = {
         simple: 0.8,
         medium: 1.0,
         complex: 1.5,
       };
-
       const days = Math.ceil(
         (baseDays[service] || 3) *
         (complexityMultiplier[complexity] || 1.0) *
         (fileCount > 10 ? 1.3 : 1.0)
       );
-
       res.json({
         estimatedDays: days,
         description: `${days}-${days + 2} business days`,
@@ -170,14 +159,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     message: { error: "Too many conversion requests. Please try again later." }
   });
 
-  // --- pdf tools route ---
+  // --- PDF Tools Routes ---
   app.post("/api/tools/pdf-to-pptx", toolsLimiter, upload.single("file"), pdfToolsController.convertPdfToPptx);
   app.post("/api/tools/pdf-to-word", toolsLimiter, upload.single("file"), pdfToolsController.convertPdfToWord);
   app.post("/api/tools/word-to-pdf", toolsLimiter, upload.single("file"), pdfToolsController.convertWordToPdf);
   app.post("/api/tools/pptx-to-pdf", toolsLimiter, upload.single("file"), pdfToolsController.convertPptxToPdf);
   app.post("/api/tools/remove-pdf-watermark", toolsLimiter, upload.single("file"), pdfToolsController.removeWatermark);
 
-  // --- CloudConvert routes ---
+  // --- CloudConvert Routes ---
   app.post("/api/tools/vsdx-to-jpg", toolsLimiter, upload.single("file"), cloudConvertController.convertVsdxToJpg);
   app.post("/api/tools/jpg-to-vsdx", toolsLimiter, upload.single("file"), cloudConvertController.convertJpgToVsdx);
   app.post("/api/tools/epub-to-pdf", toolsLimiter, upload.single("file"), cloudConvertController.convertEpubToPdf);
@@ -189,32 +178,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tools/outlook-to-pdf", toolsLimiter, upload.single("file"), cloudConvertController.convertOutlookToPdf);
   app.post("/api/tools/tiff-to-jpg", toolsLimiter, upload.single("file"), cloudConvertController.convertImage);
 
-  // --- OCR / Image to Text route ---
-  app.post("/api/tools/image-to-text", toolsLimiter, upload.single("file"), async (req, res) => {
+  // --- OCR / Image to Text Route ---
+  // ⚠️ IMPORTANT: Uses separate memoryStorage uploader — NOT the pdfToolsController's `upload`
+  // because pdfToolsController upload may use diskStorage which breaks on serverless/Antigravity
+  const ocrUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (_req, file, cb) => {
+      const allowed = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+      if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Unsupported file type: ${file.mimetype}. Please use JPEG, PNG, GIF, or WebP.`));
+      }
+    }
+  });
+
+  app.post("/api/tools/image-to-text", toolsLimiter, ocrUpload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No image file provided" });
+        return res.status(400).json({ error: "No image file provided. Please upload an image." });
       }
 
-      console.log(`[OCR] Processing file: ${req.file.originalname} (${req.file.mimetype})`);
+      console.log(`[OCR] Processing: ${req.file.originalname} | ${req.file.mimetype} | ${(req.file.size / 1024).toFixed(1)}KB`);
 
-      let imageBuffer: Buffer;
-      if (req.file.buffer) {
-        imageBuffer = req.file.buffer;
-      } else if (req.file.path) {
-        imageBuffer = await fs.promises.readFile(req.file.path);
-        // Clean up temp file immediately after reading
-        try { await fs.promises.unlink(req.file.path); } catch (e) { console.error("Temp file cleanup error:", e); }
-      } else {
-        return res.status(400).json({ error: "Image data not found" });
+      // With memoryStorage, buffer is always available directly
+      const imageBuffer = req.file.buffer;
+
+      if (!imageBuffer || imageBuffer.length === 0) {
+        return res.status(400).json({ error: "Uploaded file is empty or corrupted." });
       }
 
       const result = await analyzeImage(imageBuffer, req.file.mimetype);
-      console.log(`[OCR] Successfully extracted text for: ${req.file.originalname}`);
-      res.json({ text: result.text });
+
+      console.log(`[OCR] Done: ${result.text.length} chars extracted from ${req.file.originalname}`);
+
+      return res.status(200).json({
+        text: result.text,
+        charCount: result.text.length
+      });
+
     } catch (error: any) {
-      console.error("OCR Route error:", error);
-      res.status(500).json({ error: error.message || "Failed to extract text from image" });
+      console.error("[OCR] Error:", error.message);
+
+      // Send specific error messages back to client
+      const status = error.message?.includes("API key") ? 500
+        : error.message?.includes("too large") ? 413
+          : error.message?.includes("Rate limit") ? 429
+            : 500;
+
+      return res.status(status).json({
+        error: error.message || "Failed to extract text from image."
+      });
     }
   });
 
@@ -365,8 +380,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Global Multer error handler
   app.use((err: any, req: any, res: any, next: any) => {
-    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: "File too large. Maximum size is 50MB." });
+    if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ error: "File too large. Maximum size is 10MB for images, 50MB for documents." });
+    }
+    if (err.message?.includes("Unsupported file type")) {
+      return res.status(415).json({ error: err.message });
     }
     next(err);
   });

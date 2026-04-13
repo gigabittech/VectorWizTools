@@ -121,17 +121,21 @@ export default function ImageToText() {
         });
 
         if (!response.ok) {
-          let errorMessage = "AI Engine unavailable";
+          let errorMessage = "Extraction failed";
           try {
             const errorData = await response.json();
-            errorMessage = errorData.error || errorData.message || errorMessage;
+            errorMessage = errorData.error || errorMessage;
           } catch (e) {
-            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            errorMessage = `Server error: ${response.status}`;
           }
           throw new Error(errorMessage);
         }
 
         const data = await response.json();
+
+        if (!data.text) {
+          throw new Error("No text was found in this image.");
+        }
 
         setProgress(100);
         setExtractedText(data.text);

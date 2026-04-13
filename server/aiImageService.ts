@@ -313,60 +313,88 @@ async function generateWithGemini(options: {
  * Analyze an image using Google Gemini (OCR / Text Extraction)
  * Direct API Call Implementation for Maximum Reliability
  */
-export async function analyzeImage(imageBuffer: Buffer, mimeType: string): Promise<{ text: string }> {
-  const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey) {
-    throw new Error("Gemini API key not configured. Please set GEMINI_API_KEY environment variable.");
+export async function analyzeImage(imageBuffer: Buffer, mimeType: string): Promise<{ text: string }> {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+
+  if (!apiKey.trim()) {
+    throw new Error("GEMINI_API_KEY is not set in environment variables.");
   }
 
-  // Candidates for model names and API versions
-  const candidates = [
-    { version: "v1beta", model: "gemini-1.5-flash" },
-    { version: "v1", model: "gemini-1.5-flash" },
-    { version: "v1beta", model: "gemini-1.5-pro" },
-    { version: "v1", model: "gemini-1.5-flash-8b" }
+  const supportedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  const mediaType = supportedTypes.includes(mimeType) ? mimeType : "image/jpeg";
+
+  console.log(`[OCR] GEMINI_API_KEY found: ${apiKey.substring(0, 12)}...`);
+
+  // ✅ আপনার API key এ verified available models
+  const models = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-001",
+    "gemini-2.5-flash",
   ];
 
-  let lastError: any;
+  let lastError = "";
 
-  for (const candidate of candidates) {
+  for (const model of models) {
     try {
-      console.log(`[OCR] Direct Tunnel attempting ${candidate.model} via ${candidate.version}...`);
-      
-      const url = `https://generativelanguage.googleapis.com/${candidate.version}/models/${candidate.model}:generateContent?key=${apiKey}`;
-      
-      const response = await axios.post(url, {
-        contents: [{
-          parts: [
-            { text: "Extract all text from this image exactly as it appears. No markdown, no commentary. Just raw text." },
-            {
-              inlineData: {
-                mimeType: mimeType,
-                data: imageBuffer.toString("base64")
+      console.log(`[OCR] Trying: ${model}`);
+
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+        {
+          contents: [{
+            parts: [
+              {
+                inline_data: {
+                  mime_type: mediaType,
+                  data: imageBuffer.toString("base64"),
+                }
+              },
+              {
+                text: `You are a precise OCR engine. Extract ALL visible text from this image exactly as it appears.
+
+Rules:
+- Preserve original line breaks and paragraph structure
+- Keep all punctuation, numbers, special characters exactly as shown
+- Do NOT add commentary, explanations, or markdown formatting
+- Do NOT correct spelling mistakes — extract text exactly as-is
+- If handwritten, transcribe as accurately as possible
+- Output ONLY the raw extracted text, nothing else`
               }
-            }
-          ]
-        }]
-      }, {
-        headers: { "Content-Type": "application/json" }
-      });
+            ]
+          }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 4096,
+          }
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+          timeout: 60000,
+        }
+      );
 
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (text) {
-        console.log(`[OCR] Success with ${candidate.model}!`);
+
+      if (text?.trim()) {
+        console.log(`[OCR] ✅ Success with ${model}! ${text.length} chars extracted.`);
         return { text: text.trim() };
       }
-      
-      throw new Error(`Model ${candidate.model} returned empty content.`);
+
+      lastError = `${model} returned empty response`;
+
     } catch (error: any) {
-      const apiError = error.response?.data?.error?.message || error.message;
-      console.warn(`[OCR] ${candidate.model} failed: ${apiError}`);
-      lastError = apiError;
-      continue; // Try next candidate
+      const status = error.response?.status;
+      lastError = error.response?.data?.error?.message || error.message;
+      console.warn(`[OCR] ❌ ${model} failed (${status}): ${lastError}`);
+
+      if (status === 400 || status === 403) {
+        throw new Error(`Gemini API Error (${status}): ${lastError}`);
+      }
+
+      continue;
     }
   }
 
-  throw new Error(`CRITICAL: All AI Vision models failed. Last error: ${lastError}`);
+  throw new Error(`OCR failed. Last error: ${lastError}`);
 }
