@@ -235,16 +235,16 @@ async function generateWithPollinations(options: {
   size?: string;
 }): Promise<ImageGenerationResult> {
   const { prompt, size = "1024x1024" } = options;
-  
+
   // Parse size
   const [width, height] = size.split("x").map(Number);
-  
+
   // Pollinations.ai simple URL generation
   const seed = Math.floor(Math.random() * 1000000);
   const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width || 1024}&height=${height || 1024}&seed=${seed}&nologo=true`;
 
   console.log(`✅ Success with Pollinations AI: ${imageUrl}`);
-  
+
   return { imageUrl };
 }
 
@@ -308,3 +308,224 @@ async function generateWithGemini(options: {
   }
 }
 
+
+/**
+ * Analyze an image using Google Gemini (OCR / Text Extraction)
+ * Direct API Call Implementation for Maximum Reliability
+ */
+
+export async function analyzeImage(imageBuffer: Buffer, mimeType: string): Promise<{ text: string }> {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+
+  if (!apiKey.trim()) {
+    throw new Error("GEMINI_API_KEY is not set in environment variables.");
+  }
+
+  const supportedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  const mediaType = supportedTypes.includes(mimeType) ? mimeType : "image/jpeg";
+
+  console.log(`[OCR] GEMINI_API_KEY found: ${apiKey.substring(0, 12)}...`);
+
+  // ✅ আপনার API key এ verified available models
+  const models = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-001",
+    "gemini-2.5-flash",
+  ];
+
+  let lastError = "";
+
+  for (const model of models) {
+    try {
+      console.log(`[OCR] Trying: ${model}`);
+
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+        {
+          contents: [{
+            parts: [
+              {
+                inline_data: {
+                  mime_type: mediaType,
+                  data: imageBuffer.toString("base64"),
+                }
+              },
+              {
+                text: `You are a precise OCR engine. Extract ALL visible text from this image exactly as it appears.
+
+Rules:
+- Preserve original line breaks and paragraph structure
+- Keep all punctuation, numbers, special characters exactly as shown
+- Do NOT add commentary, explanations, or markdown formatting
+- Do NOT correct spelling mistakes — extract text exactly as-is
+- If handwritten, transcribe as accurately as possible
+- Output ONLY the raw extracted text, nothing else`
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 4096,
+          }
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+          timeout: 60000,
+        }
+      );
+
+      const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (text?.trim()) {
+        console.log(`[OCR] ✅ Success with ${model}! ${text.length} chars extracted.`);
+        return { text: text.trim() };
+      }
+
+      lastError = `${model} returned empty response`;
+
+    } catch (error: any) {
+      const status = error.response?.status;
+      lastError = error.response?.data?.error?.message || error.message;
+      console.warn(`[OCR] ❌ ${model} failed (${status}): ${lastError}`);
+
+      if (status === 400 || status === 403) {
+        throw new Error(`Gemini API Error (${status}): ${lastError}`);
+      }
+
+      continue;
+    }
+  }
+
+  throw new Error(`OCR failed. Last error: ${lastError}`);
+}
+
+/**
+ * Translate text within an image using Google Gemini
+ * Handles both OCR and translation to any target language
+ */
+export async function translateImage(
+  imageBuffer: Buffer,
+  mimeType: string,
+  targetLanguage: string
+): Promise<{ text: string; translatedText: string }> {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+
+  if (!apiKey.trim()) {
+    throw new Error("GEMINI_API_KEY is not set in environment variables.");
+  }
+
+  const supportedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  const mediaType = supportedTypes.includes(mimeType) ? mimeType : "image/jpeg";
+
+  const models = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-001",
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash-lite-001",
+    "gemini-2.5-flash",
+  ];
+
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  let lastError = "";
+
+  for (const model of models) {
+    // প্রতিটা model এ ২ বার try করবে (overload হলে একটু wait করে)
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        console.log(`[Translate] Trying: ${model} | Attempt: ${attempt} -> Target: ${targetLanguage}`);
+
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+          {
+            contents: [{
+              parts: [
+                {
+                  inline_data: {
+                    mime_type: mediaType,
+                    data: imageBuffer.toString("base64"),
+                  }
+                },
+                {
+                  text: `You are a professional polyglot translator and OCR engine.
+
+1. Extract ALL visible text from this image exactly as it appears.
+2. Translate the extracted text into ${targetLanguage}.
+
+Output your response in valid JSON format:
+{
+  "original_text": "the raw extracted text with line breaks",
+  "translated_text": "the high-quality translation into ${targetLanguage}"
+}
+
+Rules:
+- Preserve structural integrity and meaning.
+- Maintain original line breaks in original_text.
+- Do NOT include any explanations or commentary outside the JSON.`
+                }
+              ]
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 8192,
+              response_mime_type: "application/json",
+            }
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+            timeout: 60000,
+          }
+        );
+
+        const resultText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (resultText?.trim()) {
+          try {
+            const parsed = JSON.parse(resultText);
+            if (parsed.original_text && parsed.translated_text) {
+              console.log(`[Translate] ✅ Success with ${model}!`);
+              return {
+                text: parsed.original_text,
+                translatedText: parsed.translated_text
+              };
+            }
+          } catch (e) {
+            console.warn("[Translate] JSON parse failed, returning raw text as fallback");
+            return {
+              text: resultText.trim(),
+              translatedText: resultText.trim()
+            };
+          }
+        }
+
+        lastError = `${model} returned empty response`;
+        break; // empty response হলে next model try করো
+
+      } catch (error: any) {
+        const status = error.response?.status;
+        lastError = error.response?.data?.error?.message || error.message;
+        console.warn(`[Translate] ❌ ${model} attempt ${attempt} failed (${status}): ${lastError}`);
+
+        // 400/403 = key বা request problem, retry করে লাভ নেই
+        if (status === 400 || status === 403) {
+          throw new Error(`Gemini API Error (${status}): ${lastError}`);
+        }
+
+        // 503/429/overload = wait করে retry
+        if (status === 503 || status === 429 || lastError.includes("high demand") || lastError.includes("overload")) {
+          if (attempt === 1) {
+            console.log(`[Translate] Server busy, waiting 3s before retry...`);
+            await sleep(3000); // ৩ সেকেন্ড wait করে আবার try
+            continue;
+          }
+          // attempt 2 ও fail হলে next model এ যাও
+          break;
+        }
+
+        break;
+      }
+    }
+  }
+
+  throw new Error(`সব model busy আছে। একটু পরে আবার try করুন।`);
+}

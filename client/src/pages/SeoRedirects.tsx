@@ -10,6 +10,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "@mantine/form";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CustomRichTextEditor } from "@/components/ui/RichTextEditor";
 
 export default function SeoRedirects() {
     const { toast } = useToast();
@@ -31,6 +32,18 @@ export default function SeoRedirects() {
             defaultMetaTitle: "",
             defaultMetaDescription: "",
             defaultOgImage: "",
+            landingMetaTitle: "",
+            landingMetaDescription: "",
+            landingOgTitle: "",
+            landingOgDescription: "",
+            landingKeywords: "",
+            landingH1: "",
+            landingSubtitle: "",
+            landingCanonicalUrl: "",
+            landingIndexStatus: "index",
+            landingFollowStatus: "follow",
+            landingIntroContent: "",
+            landingBottomContent: "",
             sitemapEnabled: 1,
             schemaEnabled: 1,
         },
@@ -55,6 +68,18 @@ export default function SeoRedirects() {
                 defaultMetaTitle: seoSettings.defaultMetaTitle || "",
                 defaultMetaDescription: seoSettings.defaultMetaDescription || "",
                 defaultOgImage: seoSettings.defaultOgImage || "",
+                landingMetaTitle: seoSettings.landingMetaTitle || "",
+                landingMetaDescription: seoSettings.landingMetaDescription || "",
+                landingOgTitle: seoSettings.landingOgTitle || "",
+                landingOgDescription: seoSettings.landingOgDescription || "",
+                landingKeywords: seoSettings.landingKeywords || "",
+                landingH1: seoSettings.landingH1 || "",
+                landingSubtitle: seoSettings.landingSubtitle || "",
+                landingCanonicalUrl: seoSettings.landingCanonicalUrl || "",
+                landingIndexStatus: seoSettings.landingIndexStatus || "index",
+                landingFollowStatus: seoSettings.landingFollowStatus || "follow",
+                landingIntroContent: seoSettings.landingIntroContent || "",
+                landingBottomContent: seoSettings.landingBottomContent || "",
                 sitemapEnabled: seoSettings.sitemapEnabled ?? 1,
                 schemaEnabled: seoSettings.schemaEnabled ?? 1,
             });
@@ -132,9 +157,12 @@ export default function SeoRedirects() {
                 <Tabs variant="pills" defaultValue="seo" color="green" radius="md">
                     <Tabs.List className="bg-white p-1 rounded-xl border shadow-sm mb-6 inline-flex">
                         <Tabs.Tab value="seo" leftSection={<Globe size={16} />} className="px-6 py-2">
-                            Global SEO Settings
+                            Global SEO
                         </Tabs.Tab>
-                        <Tabs.Tab value="redirects" classNames={{ tab: "hidden" }} leftSection={<ArrowRightLeft size={16} />} className="px-6 py-2">
+                        <Tabs.Tab value="landing" leftSection={<Plus size={16} />} className="px-6 py-2">
+                            Landing Page
+                        </Tabs.Tab>
+                        <Tabs.Tab value="redirects" leftSection={<ArrowRightLeft size={16} />} className="px-6 py-2">
                             URL Redirects
                         </Tabs.Tab>
                     </Tabs.List>
@@ -212,6 +240,113 @@ export default function SeoRedirects() {
                                             loading={updateSeoMutation.isPending}
                                         >
                                             Save Global Settings
+                                        </Button>
+                                    </Group>
+                                </Stack>
+                            </form>
+                        </Paper>
+                    </Tabs.Panel>
+
+                    <Tabs.Panel value="landing">
+                        <Paper withBorder shadow="sm" radius="lg" p="xl" className="bg-white max-w-4xl">
+                            <form onSubmit={seoForm.onSubmit(handleSeoSubmit)}>
+                                <Stack gap="xl">
+                                    <Box>
+                                        <Title order={4} mb="xs">Landing Page Content & Hero</Title>
+                                        <Text size="sm" c="dimmed" mb="lg">Manage the text and content displayed on the main tools landing page.</Text>
+
+                                        <Stack gap="md">
+                                            <Group grow>
+                                                <TextInput
+                                                    label="Landing Page H1 Title"
+                                                    placeholder="Free Online Tools"
+                                                    {...seoForm.getInputProps('landingH1')}
+                                                />
+                                                <TextInput
+                                                    label="Landing Page Subtitle"
+                                                    placeholder="Professional image and PDF tools..."
+                                                    {...seoForm.getInputProps('landingSubtitle')}
+                                                />
+                                            </Group>
+
+                                            <Divider variant="dashed" label="Rich Content Sections" labelPosition="center" />
+                                            <CustomRichTextEditor
+                                                label="Intro Content (Below Hero)"
+                                                value={seoForm.values.landingIntroContent || ''}
+                                                onChange={(val) => seoForm.setFieldValue('landingIntroContent', val)}
+                                            />
+                                            <CustomRichTextEditor
+                                                label="Bottom Content (Above Footer)"
+                                                value={seoForm.values.landingBottomContent || ''}
+                                                onChange={(val) => seoForm.setFieldValue('landingBottomContent', val)}
+                                            />
+                                        </Stack>
+                                    </Box>
+
+                                    <Divider />
+
+                                    <Box>
+                                        <Title order={4} mb="xs">Landing Page SEO & Meta</Title>
+                                        <Text size="sm" c="dimmed" mb="lg">Specific SEO settings to rank the tools landing page on search engines.</Text>
+
+                                        <Stack gap="md">
+                                            <TextInput
+                                                label="Meta Title"
+                                                placeholder="VectorWiz - Professional Tools"
+                                                {...seoForm.getInputProps('landingMetaTitle')}
+                                            />
+                                            <Textarea
+                                                label="Meta Description"
+                                                placeholder="Specific description for the tools landing page..."
+                                                minRows={3}
+                                                {...seoForm.getInputProps('landingMetaDescription')}
+                                            />
+                                            <TextInput
+                                                label="Keywords"
+                                                placeholder="image tools, pdf tools, converter, etc."
+                                                {...seoForm.getInputProps('landingKeywords')}
+                                            />
+                                            <Group grow>
+                                                <TextInput
+                                                    label="OG Title"
+                                                    placeholder="OG Title for Landing Page"
+                                                    {...seoForm.getInputProps('landingOgTitle')}
+                                                />
+                                                <TextInput
+                                                    label="OG Description"
+                                                    placeholder="OG Description for Landing Page"
+                                                    {...seoForm.getInputProps('landingOgDescription')}
+                                                />
+                                            </Group>
+                                            <TextInput
+                                                label="Canonical URL"
+                                                placeholder="https://vectorwiz.com/"
+                                                {...seoForm.getInputProps('landingCanonicalUrl')}
+                                            />
+                                            <Group grow>
+                                                <Select
+                                                    label="Index Status"
+                                                    data={['index', 'noindex']}
+                                                    {...seoForm.getInputProps('landingIndexStatus')}
+                                                />
+                                                <Select
+                                                    label="Follow Status"
+                                                    data={['follow', 'nofollow']}
+                                                    {...seoForm.getInputProps('landingFollowStatus')}
+                                                />
+                                            </Group>
+                                        </Stack>
+                                    </Box>
+
+                                    <Group justify="flex-end" mt="xl">
+                                        <Button
+                                            type="submit"
+                                            color="green"
+                                            size="md"
+                                            leftSection={<Save size={18} />}
+                                            loading={updateSeoMutation.isPending}
+                                        >
+                                            Save Landing Page Settings
                                         </Button>
                                     </Group>
                                 </Stack>
