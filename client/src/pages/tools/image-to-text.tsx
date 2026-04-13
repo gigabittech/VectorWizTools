@@ -34,9 +34,26 @@ export default function ImageToText() {
   const [processingLog, setProcessingLog] = useState<string>("Initializing...");
   const [preprocessedPreview, setPreprocessedPreview] = useState<string | null>(null);
   const [mode, setMode] = useState<"ai" | "matrix">("ai");
+  const [visionRemaining, setVisionRemaining] = useState<number>(5);
 
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    // Initialize or reset Vision AI usage count based on date
+    const today = new Date().toDateString();
+    const storedDate = localStorage.getItem("vision_ai_date");
+    const storedCount = localStorage.getItem("vision_ai_count");
+
+    if (storedDate !== today) {
+      localStorage.setItem("vision_ai_date", today);
+      localStorage.setItem("vision_ai_count", "0");
+      setVisionRemaining(5);
+    } else {
+      const count = parseInt(storedCount || "0");
+      setVisionRemaining(Math.max(0, 5 - count));
+    }
+  }, []);
 
   const handleFilesSelected = (uploadedFiles: UploadedFile[]) => {
     setFiles(uploadedFiles);
@@ -109,6 +126,28 @@ export default function ImageToText() {
     try {
       if (mode === "ai") {
         // --- VISION AI ENGINE (Backend Gemini Call) ---
+        // Check daily limit for Vision AI
+        const today = new Date().toDateString();
+        const storedDate = localStorage.getItem("vision_ai_date");
+        let count = parseInt(localStorage.getItem("vision_ai_count") || "0");
+
+        if (storedDate !== today) {
+          count = 0;
+          localStorage.setItem("vision_ai_date", today);
+          localStorage.setItem("vision_ai_count", "0");
+        }
+
+        if (count >= 5) {
+          toast({
+            title: "Daily Limit Reached",
+            description: "You've used your 5 free Vision AI scans for today. Please use Matrix mode or come back tomorrow.",
+            variant: "destructive"
+          });
+          setStatus("idle");
+          setProgress(0);
+          return;
+        }
+
         setProcessingLog("Connecting to Ultra Vision AI Cloud...");
         setProgress(15);
 
@@ -136,6 +175,11 @@ export default function ImageToText() {
         if (!data.text) {
           throw new Error("No text was found in this image.");
         }
+
+        // Increment usage count on success
+        const newCount = parseInt(localStorage.getItem("vision_ai_count") || "0") + 1;
+        localStorage.setItem("vision_ai_count", newCount.toString());
+        setVisionRemaining(Math.max(0, 5 - newCount));
 
         setProgress(100);
         setExtractedText(data.text);
@@ -220,14 +264,14 @@ export default function ImageToText() {
           >
             <Cpu className="h-4 w-4" /> Vision AI (Ultra Precision)
           </Button>
-          <Button
+            <Button
             onClick={() => setMode("matrix")}
             className={cn(
               "h-12 px-8 rounded-2xl font-black gap-2 transition-all",
               mode === "matrix" ? "bg-[#0B9F47] text-white shadow-lg shadow-green-200" : "bg-transparent text-gray-500 hover:bg-gray-100"
             )}
           >
-            <Settings2 className="h-4 w-4" /> Matrix (Offline Fast)
+            <Settings2 className="h-4 w-4" /> Matrix (Offline Unlimited)
           </Button>
         </div>
 
@@ -241,7 +285,7 @@ export default function ImageToText() {
               <div className="flex items-center gap-3 px-5 py-2.5 bg-green-50 rounded-2xl border border-green-100">
                 <Globe className={cn("h-5 w-5 text-[#0B9F47]", mode === "ai" && "animate-spin-slow")} />
                 <span className="text-sm font-black text-gray-800 tracking-tight">
-                  {mode === "ai" ? "Gemini Ultra Vision Engine" : "Tesseract Matrix Engine v6.1"}
+                  {mode === "ai" ? `Gemini Ultra AI (${visionRemaining} scans left today)` : "Tesseract Matrix Engine (Unlimited)"}
                 </span>
               </div>
               <div className="hidden md:flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
@@ -277,7 +321,7 @@ export default function ImageToText() {
                         {(files[0].file.size / 1024).toFixed(1)} KB
                       </p>
                       <div className="h-1 w-1 rounded-full bg-gray-300" />
-                      <p className="text-sm text-[#0B9F47] font-black uppercase tracking-wider">Ready for {mode === "ai" ? "AI Scan" : "Local Scan"}</p>
+                      <p className="text-sm text-[#0B9F47] font-black uppercase tracking-wider">Ready for {mode === "ai" ? "AI Scan" : "Unlimited Scan"}</p>
                     </div>
                   </div>
                   <Button
@@ -290,13 +334,15 @@ export default function ImageToText() {
                   </Button>
                 </div>
 
-                <Button
-                  onClick={handleExtractText}
-                  className="w-full bg-[#0B9F47] hover:bg-emerald-600 text-white h-20 text-2xl font-black rounded-[2rem] shadow-2xl shadow-green-200/50 transition-all hover:scale-[1.01] active:scale-[0.98] flex items-center justify-center gap-4 group"
-                >
-                  <Wand2 className="h-8 w-8 group-hover:rotate-12 transition-transform" />
-                  {mode === "ai" ? "Start Ultra AI Scan" : "Extract Offline Text"}
-                </Button>
+                <div className="flex justify-center">
+                  <Button
+                    onClick={handleExtractText}
+                    className="w-full max-w-md bg-[#0B9F47] hover:bg-emerald-600 text-white h-16 text-xl font-black rounded-2xl shadow-xl shadow-green-200/40 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-4 group"
+                  >
+                    <Wand2 className="h-6 w-6 group-hover:rotate-12 transition-transform" />
+                    {mode === "ai" ? "Start Ultra AI Scan" : "Extract Offline Text"}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -420,37 +466,6 @@ export default function ImageToText() {
           </div>
         )}
 
-        {/* Pro Feature Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-24">
-          {[
-            {
-              icon: <Wand2 className="h-7 w-7" />,
-              title: "Contextual AI",
-              text: "Our Vision engine understands the context, fixing common OCR typos and layout breaks."
-            },
-            {
-              icon: <Zap className="h-7 w-7" />,
-              title: "Rapid Extraction",
-              text: "Matrix mode runs instantly in-browser using parallel WebWorkers for total privacy."
-            },
-            {
-              icon: <FileText className="h-7 w-7" />,
-              title: "Export Tools",
-              text: "Download instantly or copy with preserved line breaks and document hierarchy."
-            }
-          ].map((feature, i) => (
-            <div key={i} className="bg-white p-10 rounded-[2.5rem] border border-gray-100 hover:border-[#0B9F47]/20 transition-all hover:shadow-2xl group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full -mr-16 -mt-16 group-hover:bg-green-50 transition-colors" />
-              <div className="relative z-10">
-                <div className="w-16 h-16 bg-white rounded-3xl shadow-xl border border-gray-50 flex items-center justify-center text-[#0B9F47] mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all">
-                  {feature.icon}
-                </div>
-                <h4 className="text-2xl font-black text-gray-900 mb-4">{feature.title}</h4>
-                <p className="text-sm text-gray-400 font-bold leading-relaxed">{feature.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
 
       </div>
     </ToolLayout>
