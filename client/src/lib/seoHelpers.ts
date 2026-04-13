@@ -93,6 +93,8 @@ export function setPageMetadata(metadata: {
   ogImage?: string;
   canonicalUrl?: string;
   robots?: string;
+  indexStatus?: 'index' | 'noindex';
+  followStatus?: 'follow' | 'nofollow';
 }): void {
   // Set title
   document.title = metadata.title;
@@ -130,10 +132,14 @@ export function setPageMetadata(metadata: {
   }
 
   // Robots
-  if (metadata.robots) {
+  const robotsValue = metadata.robots || (metadata.indexStatus || metadata.followStatus
+    ? `${metadata.indexStatus || 'index'}, ${metadata.followStatus || 'follow'}`
+    : undefined);
+
+  if (robotsValue) {
     updateMetaTag('meta[name="robots"]', {
       name: 'robots',
-      content: metadata.robots
+      content: robotsValue
     });
   }
 
