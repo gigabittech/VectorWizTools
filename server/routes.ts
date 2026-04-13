@@ -9,7 +9,7 @@ import {
   insertEmailSettingsSchema
 } from "@shared/schema";
 import { sendQuoteRequestNotification, sendTestEmail } from "./emailService";
-import { generateAIImage, analyzeImage } from "./aiImageService";
+import { generateAIImage, analyzeImage, translateImage } from "./aiImageService";
 import { comparePassword, generateToken, hashPassword, verifyToken } from "./authUtils";
 import { protect } from "./authMiddleware";
 import { toolController } from "./toolController";
@@ -229,6 +229,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       return res.status(status).json({
         error: error.message || "Failed to extract text from image."
+      });
+    }
+  });
+
+  app.post("/api/tools/translate-image", toolsLimiter, ocrUpload.single("file"), async (req, res) => {
+    console.log(`[Translate] Request received: ${req.file?.originalname}`);
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided." });
+      }
+
+      const targetLanguage = req.body.targetLanguage || "English";
+      
+      console.log(`[Translate] Processing: ${req.file.originalname} -> ${targetLanguage}`);
+
+      const imageBuffer = req.file.buffer;
+      if (!imageBuffer || imageBuffer.length === 0) {
+        return res.status(400).json({ error: "Uploaded file is empty or corrupted." });
+      }
+
+      const result = await translateImage(imageBuffer, req.file.mimetype, targetLanguage);
+
+      return res.status(200).json({
+        text: result.text,
+        translatedText: result.translatedText
+      });
+
+    } catch (error: any) {
+      console.error("[Translate] Error:", error.message);
+      return res.status(500).json({
+        error: error.message || "Failed to translate image."
       });
     }
   });

@@ -275,7 +275,7 @@ export default function ToolsLandingPage() {
               >
                 <span className="text-[11px] sm:text-[13px] md:text-[15px] font-medium tracking-normal md:tracking-wide">All Tools ({allTools.length})</span>
               </button>
-              
+
               <button
                 onClick={() => setActiveCategory("Image Tools")}
                 className={`
