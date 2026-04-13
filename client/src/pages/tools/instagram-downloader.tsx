@@ -205,11 +205,11 @@ export default function InstagramDownloader() {
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1">
                 <Input
-                  placeholder="https://www.instagram.com/p/..."
+                  placeholder="Enter Instagram Post URL"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && status !== "processing" && handleFetchImage()}
-                  className="h-14 bg-gray-50/50 border-gray-200 focus:border-[#0B9F47] focus:ring-[#0B9F47]/20 pl-4 pr-12 text-lg rounded-xl transition-all"
+                  className="placeholder:text-gray-400 h-14 bg-gray-50/50 border-gray-200 focus:border-[#0B9F47] focus:ring-[#0B9F47]/20 pl-4 pr-12 text-lg rounded-xl transition-all"
                 />
                 {url && (
                   <button
@@ -247,10 +247,6 @@ export default function InstagramDownloader() {
               <div className="flex items-center gap-1.5 bg-gray-50 py-1.5 px-3 rounded-full">
                 <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                 <span>Carousels (Multiple)</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-gray-50 py-1.5 px-3 rounded-full">
-                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                <span>Reels & TV</span>
               </div>
             </div>
           </div>

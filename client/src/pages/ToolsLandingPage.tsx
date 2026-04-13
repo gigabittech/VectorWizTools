@@ -136,15 +136,19 @@ export default function ToolsLandingPage() {
 
   useEffect(() => {
     // Set page metadata dynamically from database or fallback to defaults
+    // Use landing page specific SEO if available, otherwise fallback to global defaults or hardcoded strings
     setPageMetadata({
-      title: seoSettings?.defaultMetaTitle || "Free Online Image & PDF Tools - VectorWiz",
-      description: seoSettings?.defaultMetaDescription || "Professional free online tools for image conversion, PDF editing, and file management. Convert formats, resize images, compress files, and more with VectorWiz tools.",
-      keywords: ['image converter', 'PDF tools', 'format converter', 'image resizer', 'file compression', 'vector tools', 'online image tools', 'free PDF editor'],
-      ogTitle: seoSettings?.defaultMetaTitle || "Free Online Image & PDF Tools - VectorWiz",
-      ogDescription: seoSettings?.defaultMetaDescription || "Professional free online tools for image conversion, PDF editing, and file management.",
+      title: seoSettings?.landingMetaTitle || seoSettings?.defaultMetaTitle || "Free Online Image & PDF Tools - VectorWiz",
+      description: seoSettings?.landingMetaDescription || seoSettings?.defaultMetaDescription || "Professional free online tools for image conversion, PDF editing, and file management. Convert formats, resize images, compress files, and more with VectorWiz tools.",
+      keywords: seoSettings?.landingKeywords ? seoSettings.landingKeywords.split(',').map(k => k.trim()) : ['image converter', 'PDF tools', 'format converter', 'image resizer', 'file compression', 'vector tools', 'online image tools', 'free PDF editor'],
+      ogTitle: seoSettings?.landingOgTitle || seoSettings?.landingMetaTitle || seoSettings?.defaultMetaTitle || "Free Online Image & PDF Tools - VectorWiz",
+      ogDescription: seoSettings?.landingOgDescription || seoSettings?.landingMetaDescription || seoSettings?.defaultMetaDescription || "Professional free online tools for image conversion, PDF editing, and file management.",
       ogType: 'website',
       ogUrl: window.location.href,
-      ogImage: seoSettings?.defaultOgImage || undefined
+      ogImage: seoSettings?.defaultOgImage || undefined,
+      canonicalUrl: seoSettings?.landingCanonicalUrl || undefined,
+      indexStatus: (seoSettings?.landingIndexStatus as any) || 'index',
+      followStatus: (seoSettings?.landingFollowStatus as any) || 'follow'
     });
   }, [seoSettings]);
 
@@ -237,17 +241,29 @@ export default function ToolsLandingPage() {
             data-testid="page-title"
             variants={itemVariants}
           >
-            Free Online Tools
+            {seoSettings?.landingH1 || "Free Online Tools"}
           </motion.h1>
           <motion.p
             className="text-xl text-gray-200"
             data-testid="page-subtitle"
             variants={itemVariants}
           >
-            Professional image and PDF tools for all your conversion and editing needs
+            {seoSettings?.landingSubtitle || "Professional image and PDF tools for all your conversion and editing needs"}
           </motion.p>
         </div>
       </motion.section>
+
+      {/* Intro Content from CMS */}
+      {seoSettings?.landingIntroContent && (
+        <section className="py-12 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div 
+              className="prose prose-lg max-w-none text-gray-600"
+              dangerouslySetInnerHTML={{ __html: seoSettings.landingIntroContent }}
+            />
+          </div>
+        </section>
+      )}
 
       {/* Tools Section */}
       <motion.section
@@ -275,7 +291,7 @@ export default function ToolsLandingPage() {
               >
                 <span className="text-[11px] sm:text-[13px] md:text-[15px] font-medium tracking-normal md:tracking-wide">All Tools ({allTools.length})</span>
               </button>
-              
+
               <button
                 onClick={() => setActiveCategory("Image Tools")}
                 className={`
@@ -419,6 +435,18 @@ export default function ToolsLandingPage() {
           )}
         </div>
       </motion.section>
+
+      {/* Bottom Content from CMS */}
+      {seoSettings?.landingBottomContent && (
+        <section className="py-16 bg-white border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div 
+              className="prose prose-lg max-w-none text-gray-600"
+              dangerouslySetInnerHTML={{ __html: seoSettings.landingBottomContent }}
+            />
+          </div>
+        </section>
+      )}
     </motion.div>
   );
 }
