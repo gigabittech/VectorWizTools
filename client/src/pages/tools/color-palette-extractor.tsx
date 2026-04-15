@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import ToolLayout from "@/components/tools/shared/ToolLayout";
 import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUploader";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { extractColors } from "@/lib/imageProcessing";
-import { Palette, Check, Copy } from "lucide-react";
+import { Palette, Check, Copy, Pipette } from "lucide-react";
 
 export default function ColorPaletteExtractor() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -15,12 +15,39 @@ export default function ColorPaletteExtractor() {
   const [colorCount, setColorCount] = useState([5]);
   const [colors, setColors] = useState<string[]>([]);
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
+
+  // Eyedropper state
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const loupCanvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
+  const [hoveredColor, setHoveredColor] = useState<string | null>(null);
+  const [loupPos, setLoupPos] = useState({ x: 0, y: 0, visible: false });
+  const [hintPos, setHintPos] = useState({ x: 0, y: 0 });
+
   const { toast } = useToast();
 
   const handleFilesSelected = (uploadedFiles: UploadedFile[]) => {
     setFiles(uploadedFiles);
     setColors([]);
+    setHoveredColor(null);
   };
+
+  // Draw image onto canvas when file is selected
+  useEffect(() => {
+    if (files.length === 0 || !files[0].preview) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const img = new Image();
+    img.onload = () => {
+      const maxW = Math.min(img.width, 800);
+      const scale = maxW / img.width;
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = files[0].preview;
+  }, [files]);
 
   const handleExtractColors = async () => {
     if (files.length === 0) {
@@ -52,6 +79,116 @@ export default function ColorPaletteExtractor() {
     }
   };
 
+  // ── Eyedropper helpers ──────────────────────────────────────────────────────
+
+  const rgbToHex = (r: number, g: number, b: number): string =>
+    "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+
+  const getBrightness = (r: number, g: number, b: number): number =>
+    (r * 299 + g * 587 + b * 114) / 1000;
+
+  const drawLoupe = useCallback(
+    (srcX: number, srcY: number) => {
+      const canvas = canvasRef.current;
+      const loupe = loupCanvasRef.current;
+      if (!canvas || !loupe) return;
+      const ctx = canvas.getContext("2d");
+      const loupCtx = loupe.getContext("2d");
+      if (!ctx || !loupCtx) return;
+
+      const loupSize = 80;
+      const zoom = 5;
+      const srcSize = Math.floor(loupSize / zoom);
+      const sx = Math.max(0, Math.min(srcX - Math.floor(srcSize / 2), canvas.width - srcSize));
+      const sy = Math.max(0, Math.min(srcY - Math.floor(srcSize / 2), canvas.height - srcSize));
+
+      loupCtx.clearRect(0, 0, loupSize, loupSize);
+      loupCtx.imageSmoothingEnabled = false;
+      loupCtx.drawImage(canvas, sx, sy, srcSize, srcSize, 0, 0, loupSize, loupSize);
+
+      // crosshair
+      loupCtx.strokeStyle = "rgba(255,255,255,0.8)";
+      loupCtx.lineWidth = 1;
+      loupCtx.beginPath();
+      loupCtx.moveTo(loupSize / 2, 0);
+      loupCtx.lineTo(loupSize / 2, loupSize);
+      loupCtx.stroke();
+      loupCtx.beginPath();
+      loupCtx.moveTo(0, loupSize / 2);
+      loupCtx.lineTo(loupSize, loupSize / 2);
+      loupCtx.stroke();
+    },
+    []
+  );
+
+  const handleCanvasMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = Math.floor((e.clientX - rect.left) * scaleX);
+      const y = Math.floor((e.clientY - rect.top) * scaleY);
+      if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const px = ctx.getImageData(x, y, 1, 1).data;
+      const hex = rgbToHex(px[0], px[1], px[2]);
+      setHoveredColor(hex);
+
+      // loupe position (relative to canvas display rect)
+      const dispX = (e.clientX - rect.left);
+      const dispY = (e.clientY - rect.top);
+      const loupSize = 80;
+      const offset = 16;
+      let lx = dispX + offset;
+      let ly = dispY - loupSize - offset;
+      if (lx + loupSize > rect.width) lx = dispX - loupSize - offset;
+      if (ly < 0) ly = dispY + offset;
+      setLoupPos({ x: lx, y: ly, visible: true });
+      setHintPos({ x: lx, y: ly + loupSize + 4 });
+
+      drawLoupe(x, y);
+    },
+    [drawLoupe]
+  );
+
+  const handleCanvasMouseLeave = useCallback(() => {
+    setHoveredColor(null);
+    setLoupPos((p) => ({ ...p, visible: false }));
+  }, []);
+
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = Math.floor((e.clientX - rect.left) * scaleX);
+      const y = Math.floor((e.clientY - rect.top) * scaleY);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const px = ctx.getImageData(x, y, 1, 1).data;
+      const hex = rgbToHex(px[0], px[1], px[2]);
+
+      setColors((prev) => {
+        if (prev.includes(hex)) return prev;
+        return [hex, ...prev];
+      });
+
+      toast({
+        title: "Color picked!",
+        description: `${hex.toUpperCase()} added to palette`,
+      });
+    },
+    [toast]
+  );
+
+  // ── Existing helpers ────────────────────────────────────────────────────────
+
   const copyToClipboard = (color: string) => {
     navigator.clipboard.writeText(color);
     setCopiedColor(color);
@@ -63,7 +200,7 @@ export default function ColorPaletteExtractor() {
   };
 
   const copyAllColors = () => {
-    const colorList = colors.join(', ');
+    const colorList = colors.join(", ");
     navigator.clipboard.writeText(colorList);
     toast({
       title: "Copied!",
@@ -75,17 +212,17 @@ export default function ColorPaletteExtractor() {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
       ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
-        }
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
       : { r: 0, g: 0, b: 0 };
   };
 
   const getTextColor = (hex: string): string => {
     const rgb = hexToRgb(hex);
     const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-    return brightness > 128 ? '#000000' : '#FFFFFF';
+    return brightness > 128 ? "#000000" : "#FFFFFF";
   };
 
   return (
@@ -98,10 +235,12 @@ export default function ColorPaletteExtractor() {
         { name: "Upload Image", text: "Click or drag and drop your image file" },
         { name: "Set Color Count", text: "Choose how many colors to extract (3-10)" },
         { name: "Extract", text: "Click Extract Colors to analyze the image" },
+        { name: "Pick Colors", text: "Hover over the image and click to pick any color manually" },
         { name: "Copy Colors", text: "Click on any color to copy its hex code" },
       ]}
     >
       <div className="space-y-6">
+
         {/* File Upload */}
         <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -126,7 +265,6 @@ export default function ColorPaletteExtractor() {
           <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
             <h2 className="text-xl font-bold mb-4">Extraction Settings</h2>
             <div className="space-y-6">
-              {/* Color Count */}
               <div className="space-y-2">
                 <Label data-testid="label-color-count">Number of Colors: {colorCount[0]}</Label>
                 <Slider
@@ -143,7 +281,6 @@ export default function ColorPaletteExtractor() {
                 </p>
               </div>
 
-              {/* Extract Button */}
               <Button
                 onClick={handleExtractColors}
                 className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
@@ -167,6 +304,99 @@ export default function ColorPaletteExtractor() {
           />
         )}
 
+        {/* ── Eyedropper Canvas ─────────────────────────────────────────────── */}
+        {files.length > 0 && files[0].preview && (
+          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
+            <h2 className="text-xl font-bold mb-1 flex items-center gap-2">
+              <Pipette className="h-5 w-5 text-[#0B9F47]" />
+              Color Picker
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Hover over the image to preview a color — click to add it to the palette.
+            </p>
+
+            {/* Live color preview badge */}
+            <div className="flex items-center gap-3 mb-3 min-h-[36px]">
+              {hoveredColor ? (
+                <>
+                  <div
+                    className="w-8 h-8 rounded-md border border-white/60 shadow-sm flex-shrink-0"
+                    style={{ backgroundColor: hoveredColor }}
+                  />
+                  <span
+                    className="text-sm font-mono font-semibold px-2 py-1 rounded"
+                    style={{
+                      backgroundColor: hoveredColor,
+                      color: getTextColor(hoveredColor),
+                    }}
+                  >
+                    {hoveredColor.toUpperCase()}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    rgb({hexToRgb(hoveredColor).r}, {hexToRgb(hoveredColor).g}, {hexToRgb(hoveredColor).b})
+                  </span>
+                </>
+              ) : (
+                <span className="text-xs text-gray-400 italic">Move mouse over image…</span>
+              )}
+            </div>
+
+            {/* Canvas with loupe overlay */}
+            <div
+              ref={canvasWrapRef}
+              className="relative inline-block w-full"
+              style={{ cursor: "crosshair" }}
+            >
+              <canvas
+                ref={canvasRef}
+                className="block max-w-full h-auto rounded-lg border border-white/40"
+                onMouseMove={handleCanvasMouseMove}
+                onMouseLeave={handleCanvasMouseLeave}
+                onClick={handleCanvasClick}
+                data-testid="eyedropper-canvas"
+              />
+
+              {/* Magnifying loupe */}
+              {loupPos.visible && (
+                <div
+                  className="absolute pointer-events-none z-10 rounded-full overflow-hidden"
+                  style={{
+                    left: loupPos.x,
+                    top: loupPos.y,
+                    width: 80,
+                    height: 80,
+                    border: "3px solid #ffffff",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+                  }}
+                >
+                  <canvas
+                    ref={loupCanvasRef}
+                    width={80}
+                    height={80}
+                    style={{ width: 80, height: 80 }}
+                  />
+                </div>
+              )}
+
+              {/* Hex hint bubble */}
+              {loupPos.visible && hoveredColor && (
+                <div
+                  className="absolute pointer-events-none z-20 text-xs font-mono px-2 py-0.5 rounded whitespace-nowrap"
+                  style={{
+                    left: hintPos.x,
+                    top: hintPos.y,
+                    backgroundColor: hoveredColor,
+                    color: getTextColor(hoveredColor),
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+                  }}
+                >
+                  {hoveredColor.toUpperCase()}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Color Palette Display */}
         {colors.length > 0 && (
           <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6 hover:bg-white/80 transition-all">
@@ -183,18 +413,6 @@ export default function ColorPaletteExtractor() {
               </Button>
             </div>
             <div className="space-y-4">
-              {/* Image Preview */}
-              {files[0].preview && (
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <img
-                    src={files[0].preview}
-                    alt="Source"
-                    className="max-w-full h-auto mx-auto max-h-64 object-contain"
-                    data-testid="preview-image"
-                  />
-                </div>
-              )}
-
               {/* Color Swatches */}
               <div className="grid grid-cols-1 gap-3" data-testid="color-palette">
                 {colors.map((color, index) => {
@@ -214,20 +432,29 @@ export default function ColorPaletteExtractor() {
                           style={{ backgroundColor: color }}
                         >
                           {isCopied && (
-                            <Check className="h-6 w-6" style={{ color: getTextColor(color) }} />
+                            <Check
+                              className="h-6 w-6"
+                              style={{ color: getTextColor(color) }}
+                            />
                           )}
                         </div>
                         <div className="flex-1 p-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <p className="text-xs text-gray-500 mb-1">HEX</p>
-                              <p className="font-mono font-semibold text-sm" data-testid={`hex-${index}`}>
+                              <p
+                                className="font-mono font-semibold text-sm"
+                                data-testid={`hex-${index}`}
+                              >
                                 {color.toUpperCase()}
                               </p>
                             </div>
                             <div>
                               <p className="text-xs text-gray-500 mb-1">RGB</p>
-                              <p className="font-mono text-sm" data-testid={`rgb-${index}`}>
+                              <p
+                                className="font-mono text-sm"
+                                data-testid={`rgb-${index}`}
+                              >
                                 {rgb.r}, {rgb.g}, {rgb.b}
                               </p>
                             </div>
@@ -240,10 +467,15 @@ export default function ColorPaletteExtractor() {
                 })}
               </div>
 
-              {/* Color Palette as Gradient */}
+              {/* Palette as Gradient */}
               <div className="mt-6">
-                <Label className="mb-2 block" data-testid="label-palette-preview">Palette Preview</Label>
-                <div className="h-16 rounded-lg overflow-hidden flex" data-testid="palette-preview">
+                <Label className="mb-2 block" data-testid="label-palette-preview">
+                  Palette Preview
+                </Label>
+                <div
+                  className="h-16 rounded-lg overflow-hidden flex"
+                  data-testid="palette-preview"
+                >
                   {colors.map((color, index) => (
                     <div
                       key={index}
@@ -259,18 +491,26 @@ export default function ColorPaletteExtractor() {
 
               {/* Export Formats */}
               <div className="bg-gray-50 p-4 rounded-lg">
-                <Label className="mb-2 block" data-testid="label-export-formats">Export Formats</Label>
+                <Label className="mb-2 block" data-testid="label-export-formats">
+                  Export Formats
+                </Label>
                 <div className="space-y-2 text-sm">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">CSS Array</p>
-                    <code className="bg-white p-2 rounded block text-xs overflow-x-auto" data-testid="export-css">
-                      [{colors.map(c => `'${c}'`).join(', ')}]
+                    <code
+                      className="bg-white p-2 rounded block text-xs overflow-x-auto"
+                      data-testid="export-css"
+                    >
+                      [{colors.map((c) => `'${c}'`).join(", ")}]
                     </code>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Tailwind Colors</p>
-                    <code className="bg-white p-2 rounded block text-xs overflow-x-auto" data-testid="export-tailwind">
-                      {colors.map((c, i) => `'color${i + 1}': '${c}'`).join(', ')}
+                    <code
+                      className="bg-white p-2 rounded block text-xs overflow-x-auto"
+                      data-testid="export-tailwind"
+                    >
+                      {colors.map((c, i) => `'color${i + 1}': '${c}'`).join(", ")}
                     </code>
                   </div>
                 </div>
@@ -287,16 +527,26 @@ export default function ColorPaletteExtractor() {
               Extract dominant colors from any image to create beautiful color palettes. Perfect for:
             </p>
             <ul>
-              <li><strong>Design Projects:</strong> Match colors from inspiration images</li>
-              <li><strong>Web Development:</strong> Create consistent color schemes</li>
-              <li><strong>Branding:</strong> Extract colors from logos and photos</li>
-              <li><strong>Art & Photography:</strong> Analyze color composition</li>
+              <li>
+                <strong>Design Projects:</strong> Match colors from inspiration images
+              </li>
+              <li>
+                <strong>Web Development:</strong> Create consistent color schemes
+              </li>
+              <li>
+                <strong>Branding:</strong> Extract colors from logos and photos
+              </li>
+              <li>
+                <strong>Art & Photography:</strong> Analyze color composition
+              </li>
             </ul>
             <p className="text-sm text-gray-600 mt-4">
-              <strong>Pro Tip:</strong> Use high-quality images with distinct colors for best results. The tool analyzes the most frequently occurring colors in your image.
+              <strong>Pro Tip:</strong> Use the eyedropper tool to manually pick any specific color
+              from the image, or use Auto Extract to get the dominant colors automatically.
             </p>
           </div>
         </div>
+
       </div>
     </ToolLayout>
   );
