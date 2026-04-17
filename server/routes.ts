@@ -241,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const targetLanguage = req.body.targetLanguage || "English";
-      
+
       console.log(`[Translate] Processing: ${req.file.originalname} -> ${targetLanguage}`);
 
       const imageBuffer = req.file.buffer;
