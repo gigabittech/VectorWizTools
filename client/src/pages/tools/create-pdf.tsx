@@ -1,232 +1,388 @@
 import { useState } from "react";
 import ToolLayout from "@/components/tools/shared/ToolLayout";
 import ProcessingIndicator, { ProcessingStatus } from "@/components/tools/shared/ProcessingIndicator";
-import DownloadButton from "@/components/tools/shared/DownloadButton";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { downloadFile } from "@/lib/fileUtils";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { FilePlus } from "lucide-react";
+import { FileText, Download, Printer, Save, Undo, Redo, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Quote, Type } from "lucide-react";
+import { useEditor, EditorContent, Extension } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Link from "@tiptap/extension-link";
+import { TextStyle } from "@tiptap/extension-text-style";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { cn } from "@/lib/utils";
 
-const pageSizes = [
-  { value: "letter", label: "Letter (8.5 x 11 in)" },
-  { value: "a4", label: "A4 (8.27 x 11.69 in)" },
-  { value: "legal", label: "Legal (8.5 x 14 in)" },
-  { value: "tabloid", label: "Tabloid (11 x 17 in)" },
-];
+// Custom FontSize Extension
+const FontSize = Extension.create<{ types: string[] }>({
+  name: 'fontSize',
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize,
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+  addCommands() {
+    return {
+      setFontSize: fontSize => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize })
+          .run()
+      },
+      unsetFontSize: () => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize: null })
+          .removeEmptyTextStyle()
+          .run()
+      },
+    }
+  },
+})
 
 export default function CreatePDF() {
   const [status, setStatus] = useState<ProcessingStatus>("idle");
-  const [content, setContent] = useState("");
-  const [title, setTitle] = useState("New Document");
-  const [pageSize, setPageSize] = useState("a4");
-  const [processedBlob, setProcessedBlob] = useState<Blob | null>(null);
+  const [title, setTitle] = useState("Untitled Document");
   const { toast } = useToast();
 
-  const getPageDimensions = (size: string) => {
-    switch (size) {
-      case "letter":
-        return { width: 612, height: 792 };
-      case "a4":
-        return { width: 595, height: 842 };
-      case "legal":
-        return { width: 612, height: 1008 };
-      case "tabloid":
-        return { width: 792, height: 1224 };
-      default:
-        return { width: 595, height: 842 };
-    }
-  };
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      TextStyle,
+      FontSize,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      Highlight,
+      Link.configure({
+        openOnClick: false,
+      }),
+    ],
+    content: `
+      <h1>Start writing your document...</h1>
+      <p>This is a professional document editor. You can use <strong>bold</strong>, <em>italic</em>, <u>underline</u>, and more.</p>
+      <ul>
+        <li>Bullet points work seamlessly</li>
+        <li>Paragraph alignment is supported</li>
+      </ul>
+    `,
+    editorProps: {
+      attributes: {
+        class: "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none min-h-full",
+      },
+    },
+  });
 
-  const handleCreate = async () => {
-    if (!content.trim()) {
-      toast({
-        title: "No Content",
-        description: "Please enter some content",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleCreatePDF = async () => {
+    if (!editor) return;
     setStatus("processing");
 
     try {
-      const pdfDoc = await PDFDocument.create();
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const { width, height } = getPageDimensions(pageSize);
-      
-      const page = pdfDoc.addPage([width, height]);
-      const fontSize = 12;
-      const margin = 50;
-      const maxWidth = width - (margin * 2);
-      const maxHeight = height - (margin * 2);
-      
-      // Add title
-      page.drawText(title, {
-        x: margin,
-        y: height - margin - 20,
-        size: 18,
-        font,
-        color: rgb(0, 0, 0),
+      const element = document.getElementById("document-canvas");
+      if (!element) throw new Error("Document canvas not found");
+
+      // Set scale for better quality
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
       });
-      
-      // Add content (simple text wrapping)
-      const lines = content.split('\n');
-      let yPos = height - margin - 50;
-      
-      for (const line of lines) {
-        if (yPos < margin) {
-          // Add new page if needed
-          const newPage = pdfDoc.addPage([width, height]);
-          yPos = height - margin;
-        }
-        
-        // Simple word wrapping
-        const words = line.split(' ');
-        let currentLine = '';
-        
-        for (const word of words) {
-          const testLine = currentLine + (currentLine ? ' ' : '') + word;
-          const textWidth = font.widthOfTextAtSize(testLine, fontSize);
-          
-          if (textWidth > maxWidth && currentLine) {
-            page.drawText(currentLine, {
-              x: margin,
-              y: yPos,
-              size: fontSize,
-              font,
-              color: rgb(0, 0, 0),
-            });
-            yPos -= fontSize + 5;
-            currentLine = word;
-          } else {
-            currentLine = testLine;
-          }
-        }
-        
-        if (currentLine) {
-          page.drawText(currentLine, {
-            x: margin,
-            y: yPos,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-          });
-          yPos -= fontSize + 5;
-        }
+
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      // Handle multi-page if height exceeds A4
+      let heightLeft = pdfHeight;
+      let position = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
       }
 
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      setProcessedBlob(blob);
+      pdf.save(`${title.replace(/\s+/g, "_")}.pdf`);
       setStatus("success");
       toast({
-        title: "Success!",
-        description: "PDF created successfully",
+        title: "Success",
+        description: "PDF document created and downloaded.",
       });
     } catch (error) {
+      console.error(error);
       setStatus("error");
       toast({
-        title: "Creation Failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        title: "Error",
+        description: "Failed to create PDF. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setTimeout(() => setStatus("idle"), 3000);
     }
   };
 
-  const handleDownload = () => {
-    if (!processedBlob) return;
-    downloadFile(processedBlob, `${title || "document"}.pdf`);
-  };
+  if (!editor) return null;
 
   return (
     <ToolLayout
       title="Create PDF"
-      description="Free PDF Creator. Create a new PDF document from text content."
+      description="Professional Word Processor for PDF Creation."
       category="PDF Tools"
-      keywords={["create pdf", "pdf creator", "make pdf", "generate pdf", "new pdf"]}
+      keywords={["create pdf", "online document editor", "word to pdf", "google docs clone", "rich text to pdf"]}
       howToSteps={[
-        { name: "Enter Content", text: "Enter the text content for your PDF" },
-        { name: "Set Options", text: "Choose title and page size" },
-        { name: "Create", text: "Click Create PDF" },
-        { name: "Download", text: "Download your new PDF" },
+        { name: "Write", text: "Write and format your content using the rich text editor." },
+        { name: "Format", text: "Use the toolbar for bold, italic, lists, and alignment." },
+        { name: "Preview", text: "Your content stays in a real A4-styled document view." },
+        { name: "Export", text: "Click 'Create PDF' to generate a professional document." },
       ]}
     >
-      <div className="space-y-6">
-        <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <FilePlus className="h-5 w-5 text-[#0B9F47]" />
-            PDF Settings
-          </h2>
-          <div className="space-y-4">
-            <div>
-              <Label>Title</Label>
+      <div className="flex flex-col min-h-screen bg-gray-50/50 -m-6 md:-m-12">
+        {/* Professional Editor Toolbar */}
+        <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between shadow-sm flex-wrap gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-[300px]">
+            <div className="flex items-center gap-2 px-2 border-r pr-4">
+              <div className="bg-emerald-600 p-1.5 rounded-lg shadow-sm">
+                <FileText className="h-4 w-4 text-white" />
+              </div>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Document title"
+                className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 font-bold text-gray-800 h-8 md:text-base text-sm bg-transparent"
               />
             </div>
-            <div>
-              <Label>Page Size</Label>
-              <Select value={pageSize} onValueChange={setPageSize}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {pageSizes.map(size => (
-                    <SelectItem key={size.value} value={size.value}>
-                      {size.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* Formatting Tools */}
+            <div className="flex items-center gap-1 bg-gray-50/50 border border-gray-200 rounded-xl p-1 shadow-sm">
+              <div className="flex items-center gap-0.5 px-1 border-r border-gray-200 mr-1">
+                 <ToolbarButton
+                   active={editor.isActive("bold")}
+                   onClick={() => editor.chain().focus().toggleBold().run()}
+                   icon={Bold}
+                   tooltip="Bold"
+                 />
+                 <ToolbarButton
+                   active={editor.isActive("italic")}
+                   onClick={() => editor.chain().focus().toggleItalic().run()}
+                   icon={Italic}
+                   tooltip="Italic"
+                 />
+                 <ToolbarButton
+                   active={editor.isActive("underline")}
+                   onClick={() => editor.chain().focus().toggleUnderline().run()}
+                   icon={UnderlineIcon}
+                   tooltip="Underline"
+                 />
+              </div>
+
+              {/* Font Size Controls */}
+              <div className="flex items-center gap-1 px-1 border-r border-gray-200 mr-1">
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50"
+                    onClick={() => {
+                       const currentSize = (editor.getAttributes('textStyle').fontSize || '16px').replace('px', '');
+                       const nextSize = Math.max(8, parseInt(currentSize) - 2);
+                       editor.chain().focus().setFontSize(`${nextSize}px`).run();
+                    }}
+                 >
+                    <span className="text-lg font-medium">−</span>
+                 </Button>
+                 <div className="min-w-[2.5rem] text-center font-mono text-[11px] font-bold text-gray-600">
+                    {(editor.getAttributes('textStyle').fontSize || '16px').replace('px', '')}
+                 </div>
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50"
+                    onClick={() => {
+                       const currentSize = (editor.getAttributes('textStyle').fontSize || '16px').replace('px', '');
+                       const nextSize = Math.min(72, parseInt(currentSize) + 2);
+                       editor.chain().focus().setFontSize(`${nextSize}px`).run();
+                    }}
+                 >
+                    <span className="text-lg font-medium">+</span>
+                 </Button>
+              </div>
+
+              <div className="flex items-center gap-0.5 px-1">
+                <ToolbarButton
+                  active={editor.isActive({ textAlign: "left" })}
+                  onClick={() => editor.chain().focus().setTextAlign("left").run()}
+                  icon={AlignLeft}
+                  tooltip="Align Left"
+                />
+                <ToolbarButton
+                  active={editor.isActive({ textAlign: "center" })}
+                  onClick={() => editor.chain().focus().setTextAlign("center").run()}
+                  icon={AlignCenter}
+                  tooltip="Align Center"
+                />
+                <ToolbarButton
+                  active={editor.isActive({ textAlign: "right" })}
+                  onClick={() => editor.chain().focus().setTextAlign("right").run()}
+                  icon={AlignRight}
+                  tooltip="Align Right"
+                />
+              </div>
             </div>
-            <div>
-              <Label>Content</Label>
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Enter your content here..."
-                rows={10}
-              />
-            </div>
-            <Button
-              onClick={handleCreate}
-              className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
-              size="lg"
-              disabled={status === "processing"}
-            >
-              Create PDF
-            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+             <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-gray-600"
+                onClick={() => editor.chain().focus().undo().run()}
+             >
+                <Undo className="h-4 w-4" />
+             </Button>
+             <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-gray-600"
+                onClick={() => editor.chain().focus().redo().run()}
+             >
+                <Redo className="h-4 w-4" />
+             </Button>
+             <div className="w-[1px] h-6 bg-gray-200 mx-2" />
+             <Button
+                onClick={handleCreatePDF}
+                disabled={status === "processing"}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg gap-2"
+             >
+                {status === "processing" ? (
+                   "Processing..."
+                ) : (
+                   <>
+                      <Download className="h-4 w-4" /> Create PDF
+                   </>
+                )}
+             </Button>
           </div>
         </div>
 
+        {/* Processing State */}
         {status !== "idle" && (
-          <ProcessingIndicator
-            status={status}
-            message="Creating PDF..."
-            successMessage="PDF created successfully!"
-            errorMessage="Failed to create PDF. Please try again."
-          />
+           <div className="fixed bottom-8 right-8 z-[60] w-80 animate-in slide-in-from-bottom-5">
+              <ProcessingIndicator
+                 status={status}
+                 message="Converting your document..."
+                 successMessage="PDF generated successfully!"
+              />
+           </div>
         )}
 
-        {processedBlob && (
-          <div className="backdrop-blur-md bg-white/70 border border-white/40 rounded-xl p-6">
-            <DownloadButton
-              onClick={handleDownload}
-              className="w-full bg-[#0B9F47] hover:bg-[#0B9F47]/90 text-white"
-            >
-              Download PDF
-            </DownloadButton>
+        {/* Document Editing Area */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-12 flex justify-center custom-scrollbar bg-neutral-100/80">
+          <div
+            className="bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08),0_0_1px_rgba(0,0,0,0.1)] min-h-[29.7cm] p-[2.5cm] w-full max-w-[21.6cm] transition-all rounded-sm border border-neutral-200"
+            id="document-canvas"
+          >
+            <div className="document-editor">
+              <EditorContent editor={editor} />
+            </div>
           </div>
-        )}
+        </div>
       </div>
+
+      <style>{`
+        .document-editor .ProseMirror {
+          min-height: 25cm;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          line-height: 1.6;
+          color: #1a202c;
+        }
+        .document-editor .ProseMirror h1 {
+          font-size: 2.5rem;
+          font-weight: 800;
+          margin-bottom: 1.5rem;
+          color: #111827;
+        }
+        .document-editor .ProseMirror p {
+          margin-bottom: 1.25rem;
+        }
+        .document-editor .ProseMirror ul, 
+        .document-editor .ProseMirror ol {
+          margin-bottom: 1.25rem;
+          padding-left: 1.5rem;
+        }
+        .document-editor .ProseMirror li {
+          margin-bottom: 0.5rem;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #9ca3af;
+        }
+      `}</style>
     </ToolLayout>
   );
 }
+
+function ToolbarButton({ active, onClick, icon: Icon, tooltip }: { active: boolean, onClick: () => void, icon: any, tooltip: string }) {
+  return (
+    <Button
+       variant={active ? "secondary" : "ghost"}
+       size="icon"
+       className={cn(
+          "h-8 w-8 transition-colors",
+          active ? "bg-emerald-100 text-emerald-700" : "text-gray-600 hover:bg-gray-100"
+       )}
+       onClick={onClick}
+       title={tooltip}
+    >
+       <Icon className="h-4 w-4" />
+    </Button>
+  );
+}
+
+function Separator() {
+  return <div className="w-[1px] h-4 bg-gray-300 mx-1" />;
+}
+
 

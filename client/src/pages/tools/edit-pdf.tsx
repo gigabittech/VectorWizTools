@@ -4,20 +4,15 @@ import FileUploader, { UploadedFile } from "@/components/tools/shared/FileUpload
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Download, Type, Eraser, Move, Trash2, RotateCw,
-  RotateCcw, Crop, Layers, Image as ImageIcon,
-  Save, Undo, Redo, ZoomIn, ZoomOut, Plus, X,
-  FileText, Ghost
+  Type, Eraser, Move, Trash2, RotateCw, RotateCcw,
+  Crop, Layers, Save, ZoomIn, ZoomOut,
+  Bold, Italic, Link as LinkIcon, ImagePlus,
+  MousePointer2, ExternalLink, X, Check
 } from "lucide-react";
-import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
-import * as pdfjsLib from 'pdfjs-dist';
-import { Canvas, IText, Rect, Image as FabricImage } from "fabric";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
+import { PDFDocument, rgb, StandardFonts, degrees, PDFName, PDFArray } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist";
+import { Canvas, IText, Rect, Image as FabricImage, FabricObject } from "fabric";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,487 +21,802 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-// Set PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PageData {
   pageNumber: number;
+  /** High-res data URL (rendered at RENDER_SCALE) */
   canvasDataUrl: string;
+  /** Logical pt dimensions at scale=1 */
+  logicalWidth: number;
+  logicalHeight: number;
+  /** Pixel dimensions of the rendered image */
+  renderWidth: number;
+  renderHeight: number;
+  viewBox: number[];
   rotation: number;
   isDeleted: boolean;
-  width: number;
-  height: number;
-  viewBox: number[];
 }
 
+interface LinkAnnotation {
+  pageIndex: number;
+  /** Normalised 0-1 coords relative to logical page size */
+  x: number; y: number; w: number; h: number;
+  url: string;
+  text: string;
+}
+
+interface LinkPopupState {
+  visible: boolean;
+  anchorX: number; // viewport px
+  anchorY: number;
+  url: string;
+  selectedText: string;
+  pageIndex: number;
+  /** Page-local CSS px bounding box of the selection */
+  selectionRect: { x: number; y: number; w: number; h: number } | null;
+}
+
+// Render at 2× for sharpness, CSS-scale back down for display
+const RENDER_SCALE = 2;
+
+// ─── Inject PDF.js text-layer CSS once ───────────────────────────────────────
+function ensureTextLayerCSS() {
+  if (document.getElementById("pdfjs-tl-style")) return;
+  const s = document.createElement("style");
+  s.id = "pdfjs-tl-style";
+  s.textContent = `
+    .pdf-tl span, .pdf-tl br {
+      color: transparent;
+      position: absolute;
+      white-space: pre;
+      cursor: text;
+      transform-origin: 0% 0%;
+    }
+    .pdf-tl ::selection {
+      background: rgba(37,99,235,0.28);
+      color: transparent;
+    }
+    .pdf-tl {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      line-height: 1;
+      user-select: text;
+    }
+  `;
+  document.head.appendChild(s);
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function AdvancedPDFEditor() {
-  const [file, setFile] = useState<UploadedFile | null>(null);
-  const [pdfDoc, setPdfDoc] = useState<PDFDocument | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [pdfLibDoc, setPdfLibDoc] = useState<PDFDocument | null>(null);
+  const [pdfjsDoc, setPdfjsDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [pages, setPages] = useState<PageData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTool, setActiveTool] = useState<"select" | "text" | "erase" | "crop">("select");
-  const [zoom, setZoom] = useState(0.8);
+  const [activeTool, setActiveTool] = useState<"select" | "text" | "erase" | "crop" | "link">("select");
+  const [zoom, setZoom] = useState(1.0);
   const [watermark, setWatermark] = useState<{ text: string; opacity: number } | null>(null);
   const [activePageIndex, setActivePageIndex] = useState(0);
+  const [selectedFabricObj, setSelectedFabricObj] = useState<FabricObject | null>(null);
+  const [linkAnnotations, setLinkAnnotations] = useState<LinkAnnotation[]>([]);
+  const [linkPopup, setLinkPopup] = useState<LinkPopupState>({
+    visible: false, anchorX: 0, anchorY: 0,
+    url: "", selectedText: "", pageIndex: 0, selectionRect: null,
+  });
+
   const { toast } = useToast();
+  const fabricRefs = useRef<(Canvas | null)[]>([]);
+  // null = "not yet built at this zoom"; stored div ref = "already built"
+  const textLayerBuilt = useRef<(HTMLDivElement | null)[]>([]);
+  const pageContainerRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const linkUrlInputRef = useRef<HTMLInputElement>(null);
+  const activeToolRef = useRef(activeTool);
+  activeToolRef.current = activeTool;
 
-  const fabricCanvases = useRef<(Canvas | null)[]>([]);
+  // ── Cleanup ────────────────────────────────────────────────────────────────
+  useEffect(() => () => { fabricRefs.current.forEach(c => c?.dispose()); }, []);
 
+  // ── Keyboard ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    return () => {
-      fabricCanvases.current.forEach(c => c?.dispose());
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setLinkPopup(p => ({ ...p, visible: false }));
+        window.getSelection()?.removeAllRanges();
+        return;
+      }
+      const tag = (document.activeElement as HTMLElement)?.tagName;
+      if ((e.key === "Delete" || e.key === "Backspace") && tag !== "INPUT" && tag !== "TEXTAREA") {
+        const fc = fabricRefs.current[activePageIndex];
+        const obj = fc?.getActiveObject();
+        if (obj && !(obj as any).isEditing) { fc?.remove(obj); fc?.renderAll(); }
+      }
     };
-  }, []);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activePageIndex]);
 
-  const handleFilesSelected = async (uploadedFiles: UploadedFile[]) => {
-    if (uploadedFiles.length === 0) return;
-
-    // Cleanup old session
-    fabricCanvases.current.forEach(c => c?.dispose());
-    fabricCanvases.current = [];
+  // ─── Load PDF ──────────────────────────────────────────────────────────────
+  const handleFilesSelected = async (files: UploadedFile[]) => {
+    if (!files.length) return;
+    fabricRefs.current.forEach(c => c?.dispose());
+    fabricRefs.current = [];
+    textLayerBuilt.current = [];
+    pageContainerRefs.current = [];
     setPages([]);
-    setPdfDoc(null);
+    setPdfLibDoc(null);
+    setPdfjsDoc(null);
+    setLinkAnnotations([]);
+    setLinkPopup(p => ({ ...p, visible: false }));
 
+    const uf = files[0];
+    setUploadedFile(uf);
     setIsProcessing(true);
-    const selectedFile = uploadedFiles[0];
-    setFile(selectedFile);
 
     try {
-      const arrayBuffer = await selectedFile.file.arrayBuffer();
-
-      const libDoc = await PDFDocument.load(arrayBuffer);
-      setPdfDoc(libDoc);
-
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdfjsDoc = await loadingTask.promise;
+      const ab = await uf.file.arrayBuffer();
+      const [libDoc, jsDoc] = await Promise.all([
+        PDFDocument.load(ab),
+        pdfjsLib.getDocument({ data: ab.slice(0) }).promise,
+      ]);
+      setPdfLibDoc(libDoc);
+      setPdfjsDoc(jsDoc);
 
       const newPages: PageData[] = [];
-      for (let i = 1; i <= pdfjsDoc.numPages; i++) {
-        const page = await pdfjsDoc.getPage(i);
-        const viewport = page.getViewport({ scale: 2 });
+      for (let i = 1; i <= jsDoc.numPages; i++) {
+        const page = await jsDoc.getPage(i);
+        const logVP = page.getViewport({ scale: 1 });
+        const renVP = page.getViewport({ scale: RENDER_SCALE });
 
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        await page.render({ canvasContext: context!, viewport }).promise;
+        const off = document.createElement("canvas");
+        off.width = renVP.width;
+        off.height = renVP.height;
+        await page.render({ canvasContext: off.getContext("2d")!, viewport: renVP }).promise;
 
         newPages.push({
           pageNumber: i,
-          canvasDataUrl: canvas.toDataURL(),
+          canvasDataUrl: off.toDataURL("image/jpeg", 0.92),
+          logicalWidth: logVP.width,
+          logicalHeight: logVP.height,
+          renderWidth: renVP.width,
+          renderHeight: renVP.height,
+          viewBox: page.view,
           rotation: 0,
           isDeleted: false,
-          width: viewport.width,
-          height: viewport.height,
-          viewBox: page.view
         });
       }
 
+      fabricRefs.current = new Array(newPages.length).fill(null);
+      textLayerBuilt.current = new Array(newPages.length).fill(null);
+      pageContainerRefs.current = new Array(newPages.length).fill(null);
       setPages(newPages);
-      fabricCanvases.current = new Array(newPages.length).fill(null);
-      toast({ title: "Success", description: `PDF loaded with ${newPages.length} pages.` });
+      toast({ title: "PDF Loaded", description: `${newPages.length} page(s) ready.` });
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "Failed to load PDF.", variant: "destructive" });
+      toast({ title: "Load Error", description: "Could not open PDF.", variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const extractText = async (index: number, canvas: Canvas) => {
-    if (!file) return;
-    try {
-      const arrayBuffer = await file.file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdfjsDoc = await loadingTask.promise;
-      const page = await pdfjsDoc.getPage(index + 1);
-      const textContent = await page.getTextContent();
-      const items = textContent.items as any[];
-      const pageData = pages[index];
-      const scale = pageData.width / pageData.viewBox[2];
+  // ─── Init Fabric canvas ────────────────────────────────────────────────────
+  // KEY FIX: set background image with explicit scaleX/scaleY so it fills
+  // the canvas exactly — no cutting off, no distortion.
+  const initFabric = useCallback((pageIdx: number, canvasEl: HTMLCanvasElement) => {
+    if (!canvasEl || fabricRefs.current[pageIdx]) return;
+    const page = pages[pageIdx];
+    if (!page) return;
 
-      const lines: any[][] = [];
-      items.forEach(item => {
-        if (!item.str.trim()) return;
-        const lastLine = lines[lines.length - 1];
-        if (lastLine && Math.abs(lastLine[0].transform[5] - item.transform[5]) < 5) {
-          lastLine.push(item);
-        } else {
-          lines.push([item]);
-        }
-      });
+    const dispW = page.logicalWidth * zoom;
+    const dispH = page.logicalHeight * zoom;
 
-      lines.forEach(lineItems => {
-        lineItems.sort((a, b) => a.transform[4] - b.transform[4]);
-
-        let currentText = "";
-        const startX = lineItems[0].transform[4] * scale;
-        const startY = pageData.height - (lineItems[0].transform[5] * scale) - (lineItems[0].transform[0] * scale);
-        const currentFontSize = lineItems[0].transform[0] * scale;
-
-        lineItems.forEach((item, i) => {
-          currentText += item.str;
-          if (lineItems[i + 1]) {
-            const gap = lineItems[i + 1].transform[4] - (item.transform[4] + item.width);
-            if (gap > 5) currentText += " ";
-          }
-        });
-
-        const text = new IText(currentText, {
-          left: startX,
-          top: startY,
-          fontSize: currentFontSize,
-          fill: "transparent",
-          backgroundColor: "rgba(59, 130, 246, 0.04)",
-          cursorColor: "#3b82f6",
-          padding: 2,
-          hoverCursor: "text",
-          transparentCorners: false,
-          borderColor: "#3b82f6",
-          cornerColor: "#3b82f6",
-          cornerSize: 8,
-        });
-
-        text.on("mousedown", () => {
-          if (text.fill === "transparent") {
-            text.set("backgroundColor", "rgba(59, 130, 246, 0.1)");
-            canvas.renderAll();
-          }
-        });
-
-        (text as any).originalPos = { x: startX, y: startY, w: text.width, h: text.height };
-        (text as any).isExtracted = true;
-
-        text.on("changed", () => {
-          text.set("fill", "#000000");
-          (text as any).isModified = true;
-        });
-
-        canvas.add(text);
-      });
-      canvas.renderAll();
-    } catch (err) {
-      console.error("Text extraction failed", err);
-    }
-  };
-
-  const initFabric = useCallback((index: number, el: HTMLCanvasElement) => {
-    if (!el || fabricCanvases.current[index]) return;
-
-    const page = pages[index];
-    const canvas = new Canvas(el, {
-      width: page.width,
-      height: page.height,
+    const fc = new Canvas(canvasEl, {
+      width: dispW,
+      height: dispH,
+      selection: activeToolRef.current === "select",
     });
 
-    // Handle background
-    FabricImage.fromURL(page.canvasDataUrl).then((img) => {
-      canvas.backgroundImage = img;
-      canvas.renderAll();
-      extractText(index, canvas);
+    FabricImage.fromURL(page.canvasDataUrl).then(img => {
+      // Scale rendered bitmap (renderWidth × renderHeight) → display (dispW × dispH)
+      img.set({
+        left: 0, top: 0,
+        originX: "left", originY: "top",
+        scaleX: dispW / page.renderWidth,
+        scaleY: dispH / page.renderHeight,
+        selectable: false, evented: false,
+      });
+      fc.backgroundImage = img;
+      fc.renderAll();
     });
 
-    fabricCanvases.current[index] = canvas;
-  }, [pages]);
+    fc.on("selection:created", e => setSelectedFabricObj(e.selected?.[0] ?? null));
+    fc.on("selection:updated", e => setSelectedFabricObj(e.selected?.[0] ?? null));
+    fc.on("selection:cleared", () => setSelectedFabricObj(null));
 
+    fabricRefs.current[pageIdx] = fc;
+  }, [pages, zoom]);
+
+  // ─── Init PDF.js text layer ────────────────────────────────────────────────
+  // Re-builds if zoom changes (textLayerBuilt ref is nulled on zoom change).
+  const initTextLayer = useCallback(async (pageIdx: number, div: HTMLDivElement) => {
+    if (!pdfjsDoc || !pages[pageIdx]) return;
+    if (textLayerBuilt.current[pageIdx] === div) return; // already built
+    textLayerBuilt.current[pageIdx] = div;
+
+    ensureTextLayerCSS();
+    div.innerHTML = "";
+    div.className = "pdf-tl";
+
+    const page = pages[pageIdx];
+    const pdfjsPage = await pdfjsDoc.getPage(page.pageNumber);
+    // Viewport must match the CSS display size (logical × zoom)
+    const vp = pdfjsPage.getViewport({ scale: zoom });
+
+    const textContent = await pdfjsPage.getTextContent();
+    const tl = new pdfjsLib.TextLayer({
+      textContentSource: textContent,
+      container: div,
+      viewport: vp,
+    });
+    await tl.render();
+  }, [pdfjsDoc, pages, zoom]);
+
+  // ─── Re-sync Fabric when zoom changes ─────────────────────────────────────
   useEffect(() => {
-    fabricCanvases.current.forEach((canvas, idx) => {
-      if (!canvas || !pages[idx]) return;
+    fabricRefs.current.forEach((fc, idx) => {
+      if (!fc || !pages[idx]) return;
       const page = pages[idx];
-      canvas.setDimensions({
-        width: page.width * zoom,
-        height: page.height * zoom
-      });
-      canvas.setZoom(zoom);
-      canvas.renderAll();
+      const dispW = page.logicalWidth * zoom;
+      const dispH = page.logicalHeight * zoom;
+      fc.setDimensions({ width: dispW, height: dispH });
+      // Re-scale background image
+      const bg = fc.backgroundImage as FabricImage | undefined;
+      if (bg) {
+        bg.set({ scaleX: dispW / page.renderWidth, scaleY: dispH / page.renderHeight });
+      }
+      fc.renderAll();
     });
+    // Force text layers to rebuild at new zoom
+    textLayerBuilt.current = textLayerBuilt.current.map(() => null);
   }, [zoom, pages]);
 
+  // ─── Tool behaviour on Fabric canvases ────────────────────────────────────
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === "Delete" || e.key === "Backspace") && document.activeElement?.tagName !== "INPUT") {
-        const activeCanvas = fabricCanvases.current[activePageIndex];
-        if (!activeCanvas) return;
-        const activeObject = activeCanvas.getActiveObject();
-        if (activeObject && !(activeObject as any).isEditing) {
-          activeCanvas.remove(activeObject);
-          activeCanvas.renderAll();
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activePageIndex]);
+    fabricRefs.current.forEach(fc => {
+      if (!fc) return;
+      fc.isDrawingMode = false;
+      fc.selection = activeTool === "select";
+      fc.defaultCursor = activeTool === "text" ? "crosshair" : "default";
+      fc.off("mouse:down");
 
-  useEffect(() => {
-    fabricCanvases.current.forEach((canvas) => {
-      if (!canvas) return;
-      canvas.isDrawingMode = false;
-      canvas.selection = activeTool === "select";
-      canvas.off("mouse:down");
+      fc.on("mouse:down", opt => {
+        const pointer = fc.getScenePoint(opt.e);
 
-      canvas.on("mouse:down", (opt) => {
-        if (opt.target) return;
-
-        const pointer = canvas.getScenePoint(opt.e);
         if (activeTool === "text") {
-          const text = new IText("New Text", {
-            left: pointer.x,
-            top: pointer.y,
-            fontSize: 40, // Increased for 2x scale canvas
-            fill: "#000000",
-            scaleX: 1,
-            scaleY: 1,
+          if (opt.target) return;
+          const t = new IText("Type here", {
+            left: pointer.x, top: pointer.y,
+            fontSize: 18, fill: "#111827",
+            fontFamily: "Georgia, serif",
           });
-          canvas.add(text);
-          canvas.setActiveObject(text);
-          canvas.renderAll();
-        } else if (activeTool === "erase") {
-          const rect = new Rect({
-            left: pointer.x,
-            top: pointer.y,
-            width: 150,
-            height: 40,
-            fill: "white",
-            stroke: "#ddd",
-            strokeWidth: 1,
-            transparentCorners: false,
+          fc.add(t); fc.setActiveObject(t); t.enterEditing(); fc.renderAll();
+          return;
+        }
+        if (activeTool === "erase") {
+          if (opt.target) { fc.remove(opt.target); fc.renderAll(); return; }
+          fc.add(new Rect({
+            left: pointer.x, top: pointer.y, width: 120, height: 28,
+            fill: "white", stroke: "#e5e7eb", strokeWidth: 1,
+          }));
+          fc.renderAll(); return;
+        }
+        if (activeTool === "crop") {
+          fc.getObjects().filter(o => (o as any).isCropRect).forEach(o => fc.remove(o));
+          const r = new Rect({
+            left: pointer.x, top: pointer.y, width: 200, height: 200,
+            fill: "rgba(37,99,235,0.05)", stroke: "#2563eb",
+            strokeWidth: 2, strokeDashArray: [6, 4],
           });
-          canvas.add(rect);
-          setActiveTool("select");
-        } else if (activeTool === "crop") {
-          const existing = canvas.getObjects().filter(o => (o as any).isCropRect);
-          canvas.remove(...existing);
-          const rect = new Rect({
-            left: pointer.x,
-            top: pointer.y,
-            width: 300,
-            height: 300,
-            fill: "transparent",
-            stroke: "#3b82f6",
-            strokeWidth: 3,
-            strokeDashArray: [8, 4],
-            transparentCorners: false,
-          });
-          (rect as any).isCropRect = true;
-          canvas.add(rect);
-          setActiveTool("select");
+          (r as any).isCropRect = true;
+          fc.add(r); fc.setActiveObject(r); fc.renderAll(); return;
         }
       });
     });
-  }, [activeTool, zoom]);
+  }, [activeTool]);
 
-  const rotatePage = (index: number, dir: "cw" | "ccw") => {
-    const newPages = [...pages];
-    newPages[index].rotation = (newPages[index].rotation + (dir === "cw" ? 90 : -90)) % 360;
-    setPages(newPages);
+  // ─── Text layer mouseup → link popup ──────────────────────────────────────
+  useEffect(() => {
+    if (activeTool !== "link") return;
+
+    const handlers: Array<{ div: HTMLDivElement; fn: (e: MouseEvent) => void }> = [];
+
+    textLayerBuilt.current.forEach((div, pageIdx) => {
+      if (!div) return;
+
+      const fn = (_e: MouseEvent) => {
+        // Brief timeout lets browser finalise the selection
+        setTimeout(() => {
+          const sel = window.getSelection();
+          if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+
+          const selectedText = sel.toString();
+          const range = sel.getRangeAt(0);
+          const clientRects = Array.from(range.getClientRects());
+          if (!clientRects.length) return;
+
+          // Union all client rects into one bounding box
+          let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+          for (const r of clientRects) {
+            x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top);
+            x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+          }
+
+          const container = pageContainerRefs.current[pageIdx];
+          const cRect = container?.getBoundingClientRect();
+
+          setLinkPopup({
+            visible: true,
+            anchorX: x0 + window.scrollX,
+            anchorY: y1 + window.scrollY + 10,
+            url: "",
+            selectedText,
+            pageIndex: pageIdx,
+            selectionRect: cRect
+              ? { x: x0 - cRect.left, y: y0 - cRect.top, w: x1 - x0, h: y1 - y0 }
+              : null,
+          });
+
+          setTimeout(() => linkUrlInputRef.current?.focus(), 80);
+        }, 20);
+      };
+
+      div.addEventListener("mouseup", fn);
+      handlers.push({ div, fn });
+    });
+
+    return () => handlers.forEach(({ div, fn }) => div.removeEventListener("mouseup", fn));
+  }, [activeTool, pages]); // re-run if pages change (new text layers)
+
+  // ─── Apply link ────────────────────────────────────────────────────────────
+  const applyLink = () => {
+    const { url, pageIndex, selectionRect, selectedText } = linkPopup;
+    if (!url.trim()) {
+      toast({ title: "URL required", description: "Please enter a URL.", variant: "destructive" });
+      return;
+    }
+    if (!selectionRect) {
+      toast({ title: "No selection", description: "Select some text first.", variant: "destructive" });
+      return;
+    }
+
+    const page = pages[pageIndex];
+    if (!page) return;
+
+    const dispW = page.logicalWidth * zoom;
+    const dispH = page.logicalHeight * zoom;
+
+    setLinkAnnotations(prev => [...prev, {
+      pageIndex,
+      x: selectionRect.x / dispW,
+      y: selectionRect.y / dispH,
+      w: selectionRect.w / dispW,
+      h: selectionRect.h / dispH,
+      url: url.trim(),
+      text: selectedText,
+    }]);
+
+    // Visual underline in Fabric
+    const fc = fabricRefs.current[pageIndex];
+    if (fc) {
+      fc.add(new Rect({
+        left: selectionRect.x,
+        top: selectionRect.y + selectionRect.h - 2,
+        width: selectionRect.w, height: 2,
+        fill: "#2563eb", selectable: false, evented: false,
+      }));
+      fc.renderAll();
+    }
+
+    window.getSelection()?.removeAllRanges();
+    setLinkPopup(p => ({ ...p, visible: false }));
+    toast({
+      title: "Hyperlink Added",
+      description: `"${selectedText.slice(0, 40)}${selectedText.length > 40 ? "…" : ""}" → ${url}`,
+    });
   };
 
-  const deletePage = (index: number) => {
-    const newPages = [...pages];
-    newPages[index].isDeleted = true;
-    setPages(newPages);
-    toast({ title: "Page Removed", description: `Page ${index + 1} will not be included in the final PDF.` });
+  // ─── Image upload ──────────────────────────────────────────────────────────
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const fc = fabricRefs.current[activePageIndex];
+    if (!fc) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const img = await FabricImage.fromURL(ev.target?.result as string);
+      const maxW = (pages[activePageIndex]?.logicalWidth ?? 400) * zoom * 0.55;
+      if ((img.width ?? 0) > maxW) img.scaleToWidth(maxW);
+      img.set({ left: 50, top: 50 });
+      fc.add(img); fc.setActiveObject(img); fc.renderAll();
+    };
+    reader.readAsDataURL(f);
+    e.target.value = "";
   };
 
-  const savePDF = async () => {
-    if (!pdfDoc || !file) return;
+  // ─── Text formatting ───────────────────────────────────────────────────────
+  const toggleFormat = (fmt: "bold" | "italic") => {
+    const fc = fabricRefs.current[activePageIndex];
+    const obj = fc?.getActiveObject();
+    if (!(obj instanceof IText)) return;
+    if (fmt === "bold") obj.set("fontWeight", obj.fontWeight === "bold" ? "normal" : "bold");
+    else obj.set("fontStyle", obj.fontStyle === "italic" ? "normal" : "italic");
+    fc?.renderAll();
+    setSelectedFabricObj({ ...obj } as any);
+  };
+
+  // ─── Page ops ──────────────────────────────────────────────────────────────
+  const rotatePage = (idx: number, dir: "cw" | "ccw") =>
+    setPages(prev => prev.map((p, i) =>
+      i !== idx ? p : { ...p, rotation: (p.rotation + (dir === "cw" ? 90 : -90) + 360) % 360 }
+    ));
+
+  const deletePage = (idx: number) => {
+    setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, isDeleted: true }));
+    toast({ title: "Page Removed", description: `Page ${idx + 1} excluded from export.` });
+  };
+
+  // ─── Export ────────────────────────────────────────────────────────────────
+  //
+  // Strategy:
+  //   1. For each page, composite the page image + Fabric annotations onto a
+  //      fresh off-screen <canvas> at exactly PDF-point dimensions.  We never
+  //      mutate the live Fabric canvas, so the editor stays intact.
+  //   2. Convert that composite to PNG bytes via fetch(dataUrl) → arrayBuffer()
+  //      to avoid atob() stack-overflow on large canvases.
+  //   3. Embed the PNG as a full-page image overlay on the copied PDF page.
+  //   4. Append link annotations using pdf-lib's PDFArray API (not spread).
+  //   5. Trigger download by appending the <a> to the DOM before clicking.
+  //
+  const exportPDF = async () => {
+    if (!pdfLibDoc || !uploadedFile) return;
     setIsProcessing(true);
 
     try {
-      const exportPdf = await PDFDocument.create();
-      const font = await exportPdf.embedFont(StandardFonts.Helvetica);
+      const out = await PDFDocument.create();
+      const font = await out.embedFont(StandardFonts.Helvetica);
 
       for (let i = 0; i < pages.length; i++) {
-        const pageData = pages[i];
-        if (pageData.isDeleted) continue;
+        const pd = pages[i];
+        if (pd.isDeleted) continue;
 
-        const [copiedPage] = await exportPdf.copyPages(pdfDoc, [i]);
-        const { width: pdfWidth, height: pdfHeight } = copiedPage.getSize();
+        // ── Copy the original PDF page (preserves vectors, fonts, etc.) ──
+        const [copied] = await out.copyPages(pdfLibDoc, [i]);
+        const { width: pw, height: ph } = copied.getSize();
+        if (pd.rotation) copied.setRotation(degrees(pd.rotation));
 
-        if (pageData.rotation !== 0) {
-          copiedPage.setRotation(degrees(pageData.rotation));
+        // ── Build an off-screen composite canvas at PDF-point resolution ──
+        // We draw: (a) the original page bitmap, then (b) Fabric annotations.
+        // This canvas is completely separate from the live editor canvas.
+        const offscreen = document.createElement("canvas");
+        offscreen.width = Math.round(pw);
+        offscreen.height = Math.round(ph);
+        const ctx = offscreen.getContext("2d")!;
+
+        // (a) Draw the high-res page image, scaled to PDF-point size
+        await new Promise<void>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0, offscreen.width, offscreen.height);
+            resolve();
+          };
+          img.onerror = reject;
+          img.src = pd.canvasDataUrl;
+        });
+
+        // (b) Draw Fabric annotation objects (no background) on top
+        const fc = fabricRefs.current[i];
+        if (fc) {
+          // Compute the scale from current display coords → PDF-point coords
+          const dispW = pd.logicalWidth * zoom;
+          const dispH = pd.logicalHeight * zoom;
+
+          // Serialise every Fabric object and repaint it on the offscreen ctx
+          // at the correct PDF-point scale.  We do this manually so we never
+          // touch the live canvas dimensions.
+          const objects = fc.getObjects();
+          if (objects.length > 0) {
+            // Render just the annotation layer via a temporary canvas
+            const tmpCanvas = document.createElement("canvas");
+            tmpCanvas.width = Math.round(dispW);
+            tmpCanvas.height = Math.round(dispH);
+            const tmpFc = new Canvas(tmpCanvas, {
+              width: Math.round(dispW),
+              height: Math.round(dispH),
+            });
+
+            // Clone each object into the tmp canvas
+            for (const obj of objects) {
+              try {
+                const cloned = await obj.clone();
+                tmpFc.add(cloned);
+              } catch {
+                // skip uncloneable objects
+              }
+            }
+            tmpFc.renderAll();
+
+            // Draw the annotation layer scaled to PDF-point size
+            ctx.drawImage(tmpCanvas, 0, 0, offscreen.width, offscreen.height);
+            tmpFc.dispose();
+          }
         }
 
-        const canvas = fabricCanvases.current[i];
-        if (canvas) {
-          // 0. White out original positions of modified text objects
-          const objects = canvas.getObjects();
-          const scaleX = pdfWidth / pageData.width;
-          const scaleY = pdfHeight / pageData.height;
+        // ── Convert composite canvas → PNG bytes via fetch (safe for large canvases) ──
+        const dataUrl = offscreen.toDataURL("image/png");
+        const response = await fetch(dataUrl);
+        const arrayBuf = await response.arrayBuffer();
+        const pngBytes = new Uint8Array(arrayBuf);
 
-          for (const obj of objects) {
-            if ((obj as any).isModified && (obj as any).originalPos) {
-              const orig = (obj as any).originalPos;
-              copiedPage.drawRectangle({
-                x: orig.x * scaleX,
-                y: pdfHeight - ((orig.y + orig.h) * scaleY),
-                width: orig.w * scaleX,
-                height: orig.h * scaleY,
-                color: rgb(1, 1, 1),
-              });
+        // ── Embed and draw the composite as a full-page image ──
+        const embeddedPng = await out.embedPng(pngBytes);
+        copied.drawImage(embeddedPng, { x: 0, y: 0, width: pw, height: ph });
+
+        // ── Embed hyperlink annotations ──
+        const pageLinks = linkAnnotations.filter(a => a.pageIndex === i);
+        if (pageLinks.length > 0) {
+          for (const ann of pageLinks) {
+            // PDF coordinate system: origin bottom-left, Y grows upward
+            const rectX1 = ann.x * pw;
+            const rectY1 = ph - (ann.y + ann.h) * ph;  // bottom edge
+            const rectX2 = (ann.x + ann.w) * pw;
+            const rectY2 = ph - ann.y * ph;             // top edge
+
+            // Build URI action dict
+            const actionRef = out.context.register(
+              out.context.obj({
+                Type: PDFName.of("Action"),
+                S: PDFName.of("URI"),
+                URI: out.context.obj(ann.url),
+              })
+            );
+
+            // Build Link annotation dict referencing the action
+            const annotRef = out.context.register(
+              out.context.obj({
+                Type: PDFName.of("Annot"),
+                Subtype: PDFName.of("Link"),
+                Rect: out.context.obj([rectX1, rectY1, rectX2, rectY2]),
+                Border: out.context.obj([0, 0, 0]),
+                A: actionRef,
+                F: out.context.obj(4),
+              })
+            );
+
+            // Get or create the Annots array on the page node
+            const annotsKey = PDFName.of("Annots");
+            const existing = copied.node.get(annotsKey);
+            if (existing instanceof PDFArray) {
+              existing.push(annotRef);
+            } else {
+              const arr = out.context.obj([annotRef]) as PDFArray;
+              copied.node.set(annotsKey, arr);
             }
           }
-
-          // 1. Hide background image to capture ONLY annotations
-          const bg = canvas.backgroundImage;
-          canvas.backgroundImage = undefined;
-
-          // 2. Capture at original resolution (the scale we rendered at, which is scale: 2)
-          // We need to temporarily reset zoom to 1 to get full resolution capture
-          const originalZoom = canvas.getZoom();
-          canvas.setZoom(1);
-          canvas.setDimensions({ width: pageData.width, height: pageData.height });
-
-          const annotationsDataUrl = canvas.toDataURL({
-            format: "png",
-            multiplier: 1,
-          });
-
-          // 3. Restore canvas state
-          canvas.setZoom(originalZoom);
-          canvas.setDimensions({
-            width: pageData.width * originalZoom,
-            height: pageData.height * originalZoom
-          });
-          canvas.backgroundImage = bg;
-          canvas.renderAll();
-
-          // 4. Embed and Draw Overlay
-          const base64Data = annotationsDataUrl.split(',')[1];
-          const binaryData = atob(base64Data);
-          const bytes = new Uint8Array(binaryData.length);
-          for (let j = 0; j < binaryData.length; j++) {
-            bytes[j] = binaryData.charCodeAt(j);
-          }
-
-          const annotationImage = await exportPdf.embedPng(bytes);
-
-          // Draw the overlay. PDF-lib (0,0) is bottom-left.
-          // Since our PNG represents the whole page, drawing it at (0,0) with page size 
-          // will align it perfectly.
-          copiedPage.drawImage(annotationImage, {
-            x: 0,
-            y: 0,
-            width: pdfWidth,
-            height: pdfHeight,
-          });
         }
 
-        if (watermark) {
-          copiedPage.drawText(watermark.text, {
-            x: pdfWidth / 6,
-            y: pdfHeight / 3,
-            size: 60,
+        // ── Watermark ──
+        if (watermark?.text) {
+          copied.drawText(watermark.text, {
+            x: pw / 6,
+            y: ph / 3,
+            size: Math.max(24, Math.min(60, pw / 10)),
             font,
             color: rgb(0.7, 0.7, 0.7),
             opacity: watermark.opacity,
             rotate: degrees(35),
           });
         }
-        exportPdf.addPage(copiedPage);
+
+        out.addPage(copied);
       }
 
-      const pdfBytes = await exportPdf.save();
-      const blob = new Blob([pdfBytes.buffer as any], { type: "application/pdf" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `edited_${file.file.name}`;
-      link.click();
-      toast({ title: "Success", description: "Your PDF has been saved and downloaded." });
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Error", description: "Failed to save PDF", variant: "destructive" });
+      // ── Serialise & trigger download ──
+      const pdfBytes = await out.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `edited_${uploadedFile.file.name}`;
+      // Must be in the DOM for Firefox compatibility
+      document.body.appendChild(a);
+      a.click();
+      // Cleanup after the browser has a chance to start the download
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 200);
+
+      toast({ title: "Download Started", description: "Your edited PDF is downloading." });
+    } catch (err: any) {
+      console.error("PDF export error:", err);
+      toast({
+        title: "Export Failed",
+        description: err?.message ?? "An unexpected error occurred.",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // ─── UI constants ──────────────────────────────────────────────────────────
+  const TOOLS = [
+    { id: "select" as const, Icon: MousePointer2, label: "Select" },
+    { id: "text" as const, Icon: Type, label: "Add Text" },
+    { id: "erase" as const, Icon: Eraser, label: "Erase" },
+    { id: "crop" as const, Icon: Crop, label: "Crop" },
+    { id: "link" as const, Icon: LinkIcon, label: "Add Link" },
+  ];
+
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <ToolLayout
       title="Pro PDF Editor"
-      description="Interactive PDF editor with text editing, cropping, and more."
+      description="Edit, annotate, add hyperlinks and export PDFs professionally."
       category="PDF Tools"
-      keywords={["pdf editor", "edit pdf online", "pdf text editor"]}
+      keywords={["pdf editor", "edit pdf", "hyperlink pdf", "pdf annotation"]}
       howToSteps={[
-        { name: "Upload", text: "Choose your PDF file." },
-        { name: "Edit", text: "Click tools and interact with pages." },
-        { name: "Watermark", text: "Add custom watermark if needed." },
-        { name: "Download", text: "Save your changes." }
+        { name: "Upload", text: "Drop your PDF file to begin." },
+        { name: "Edit", text: "Use Select to move objects, or Text to add annotations." },
+        { name: "Link", text: "Activate Add Link, select PDF text, enter URL in the popup." },
+        { name: "Export", text: "Click Export PDF — all edits and links are embedded." },
       ]}
     >
+      {/* ── Link URL popup (fixed, above everything) ── */}
+      {linkPopup.visible && (
+        <div
+          className="fixed z-[9999] bg-white border border-blue-200 rounded-2xl shadow-2xl p-4 w-80 space-y-3"
+          style={{
+            left: Math.min(linkPopup.anchorX, Math.max(0, (typeof window !== "undefined" ? window.innerWidth : 1200) - 344)),
+            top: linkPopup.anchorY,
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-sm font-semibold text-blue-700">
+              <ExternalLink className="h-4 w-4" /> Insert Hyperlink
+            </span>
+            <button
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={() => { setLinkPopup(p => ({ ...p, visible: false })); window.getSelection()?.removeAllRanges(); }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {linkPopup.selectedText && (
+            <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-800 truncate">
+              <em>"{linkPopup.selectedText.slice(0, 55)}{linkPopup.selectedText.length > 55 ? "…" : ""}"</em>
+            </div>
+          )}
+
+          <Input
+            ref={linkUrlInputRef}
+            placeholder="https://example.com"
+            value={linkPopup.url}
+            onChange={e => setLinkPopup(p => ({ ...p, url: e.target.value }))}
+            onKeyDown={e => { if (e.key === "Enter") applyLink(); }}
+            className="text-sm border-blue-200 focus-visible:ring-blue-500"
+          />
+
+          <div className="flex gap-2">
+            <Button className="flex-1 h-9 bg-blue-600 hover:bg-blue-700 text-white gap-2" onClick={applyLink}>
+              <Check className="h-4 w-4" /> Apply Link
+            </Button>
+            <Button variant="outline" className="h-9" onClick={() => { setLinkPopup(p => ({ ...p, visible: false })); window.getSelection()?.removeAllRanges(); }}>
+              Cancel
+            </Button>
+          </div>
+          <p className="text-center text-[11px] text-gray-400">Press Enter or click Apply to save</p>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4">
-        {!file ? (
-          <Card className="border-dashed border-2 py-12">
+        {!uploadedFile ? (
+          <Card className="border-dashed border-2 py-16">
             <CardContent>
-              <FileUploader
-                accept="application/pdf"
-                onFilesSelected={handleFilesSelected}
-                multiple={false}
-              />
+              <FileUploader accept="application/pdf" onFilesSelected={handleFilesSelected} multiple={false} />
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-1">
-              <div className="sticky top-4 space-y-6 self-start">
-                <Card className="shadow-lg border-primary/10">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Layers className="h-5 w-5 text-primary" /> Tools
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+            {/* ── Sidebar ─────────────────────────────────────────────── */}
+            <aside className="lg:col-span-1">
+              <div className="sticky top-4 space-y-5">
+
+                <Card className="shadow-md border-primary/10">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-primary" /> Tools
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        variant={activeTool === "select" ? "default" : "outline"}
-                        onClick={() => setActiveTool("select")}
-                        className="gap-2"
-                      >
-                        <Move className="h-4 w-4" /> Select
-                      </Button>
-                      <Button
-                        variant={activeTool === "text" ? "default" : "outline"}
-                        onClick={() => setActiveTool("text")}
-                        className="gap-2"
-                      >
-                        <Type className="h-4 w-4" /> Text
-                      </Button>
-                      <Button
-                        variant={activeTool === "erase" ? "default" : "outline"}
-                        onClick={() => setActiveTool("erase")}
-                        className="gap-2"
-                      >
-                        <Eraser className="h-4 w-4" /> Erase
-                      </Button>
-                      <Button
-                        variant={activeTool === "crop" ? "default" : "outline"}
-                        onClick={() => setActiveTool("crop")}
-                        className="gap-2"
-                      >
-                        <Crop className="h-4 w-4" /> Crop
-                      </Button>
+                  <CardContent className="space-y-4">
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {TOOLS.map(({ id, Icon, label }) => (
+                        <Button
+                          key={id}
+                          variant={activeTool === id ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setActiveTool(id);
+                            if (id === "link") toast({
+                              title: "Link Mode Active",
+                              description: "Select any text in the PDF, then enter a URL in the popup.",
+                            });
+                          }}
+                          className={cn(
+                            "gap-1.5 text-xs",
+                            activeTool === id && id === "link" && "bg-blue-600 hover:bg-blue-700"
+                          )}
+                        >
+                          <Icon className="h-3.5 w-3.5" /> {label}
+                        </Button>
+                      ))}
                     </div>
+
+                    {activeTool === "link" && (
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 space-y-1.5">
+                        <p className="font-semibold">How to add a link:</p>
+                        <ol className="list-decimal list-inside space-y-0.5 text-blue-600">
+                          <li>Click &amp; drag to select text</li>
+                          <li>Release — a popup appears</li>
+                          <li>Type your URL and press Enter</li>
+                        </ol>
+                      </div>
+                    )}
+
+                    {/* Text formatting */}
+                    {selectedFabricObj && (selectedFabricObj as any).type === "i-text" && (
+                      <>
+                        <Separator />
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toggleFormat("bold")}>
+                            <Bold className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toggleFormat("italic")}>
+                            <Italic className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
 
                     <Separator />
 
-                    <div className="space-y-4">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Watermark</Label>
+                    {/* Watermark */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Watermark</Label>
                       <Input
-                        placeholder="Text..."
-                        onChange={(e) => setWatermark(e.target.value ? { text: e.target.value, opacity: watermark?.opacity || 0.3 } : null)}
+                        placeholder="Watermark text…"
+                        className="text-sm h-9"
+                        onChange={e => setWatermark(e.target.value
+                          ? { text: e.target.value, opacity: watermark?.opacity ?? 0.3 }
+                          : null
+                        )}
                       />
                       {watermark && (
-                        <div className="space-y-3 pt-2">
-                          <div className="flex justify-between text-xs">
-                            <span>Opacity</span>
-                            <span>{Math.round(watermark.opacity * 100)}%</span>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Opacity</span><span>{Math.round(watermark.opacity * 100)}%</span>
                           </div>
-                          <Slider
-                            value={[watermark.opacity * 100]}
-                            onValueChange={([v]) => setWatermark({ ...watermark, opacity: v / 100 })}
-                          />
+                          <Slider min={5} max={80} value={[watermark.opacity * 100]}
+                            onValueChange={([v]) => setWatermark(w => w ? { ...w, opacity: v / 100 } : null)} />
                         </div>
                       )}
                     </div>
@@ -514,103 +824,237 @@ export default function AdvancedPDFEditor() {
                     <Separator />
 
                     <Button
-                      variant="destructive"
-                      className="w-full gap-2"
+                      variant="destructive" size="sm" className="w-full gap-2"
                       onClick={() => {
-                        const canvas = fabricCanvases.current[activePageIndex];
-                        if (!canvas) return;
-                        const active = canvas.getActiveObject();
-                        if (active) {
-                          canvas.remove(active);
-                          canvas.renderAll();
-                        }
+                        const fc = fabricRefs.current[activePageIndex];
+                        const obj = fc?.getActiveObject();
+                        if (obj) { fc?.remove(obj); fc?.renderAll(); }
                       }}
                     >
                       <Trash2 className="h-4 w-4" /> Delete Selected
                     </Button>
 
                     <Button
-                      className="w-full bg-green-600 hover:bg-green-700 shadow-md"
-                      onClick={savePDF}
+                      className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
+                      onClick={exportPDF}
                       disabled={isProcessing}
                     >
-                      <Save className="mr-2 h-4 w-4" />
-                      {isProcessing ? "Processing..." : "Export PDF"}
+                      <Save className="h-4 w-4" />
+                      {isProcessing ? "Processing…" : "Export PDF"}
                     </Button>
                   </CardContent>
                 </Card>
 
+                {/* Thumbnails */}
                 <Card className="hidden lg:block">
-                  <CardHeader><CardTitle className="text-sm">Page Navigation</CardTitle></CardHeader>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Pages ({pages.filter(p => !p.isDeleted).length})</CardTitle>
+                  </CardHeader>
                   <CardContent>
-                    <ScrollArea className="h-[300px] pr-4">
-                      <div className="space-y-3">
+                    <ScrollArea className="h-72 pr-2">
+                      <div className="space-y-2">
                         {pages.map((p, i) => !p.isDeleted && (
-                          <div
+                          <button
                             key={i}
-                            className={cn(
-                              "relative border rounded cursor-pointer transition-all p-1",
-                              activePageIndex === i ? "border-primary ring-1 ring-primary" : "hover:border-primary/50"
-                            )}
                             onClick={() => {
                               setActivePageIndex(i);
-                              document.getElementById(`page-view-${i}`)?.scrollIntoView({ behavior: 'smooth' });
+                              document.getElementById(`page-${i}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
                             }}
+                            className={cn(
+                              "w-full relative border rounded-lg overflow-hidden transition-all",
+                              activePageIndex === i
+                                ? "border-primary ring-2 ring-primary/30"
+                                : "border-gray-200 hover:border-primary/40"
+                            )}
                           >
-                            <img src={p.canvasDataUrl} className="w-full h-auto rounded-sm" alt={`P${i + 1}`} />
-                            <Badge className="absolute top-1 left-1 h-5 text-[10px]">{i + 1}</Badge>
-                          </div>
+                            <img src={p.canvasDataUrl} alt={`Page ${i + 1}`} className="w-full h-auto block" />
+                            <Badge className="absolute top-1 left-1 h-4 text-[9px] px-1.5">{i + 1}</Badge>
+                          </button>
                         ))}
                       </div>
                     </ScrollArea>
                   </CardContent>
                 </Card>
               </div>
-            </div>
+            </aside>
 
-            <div className="lg:col-span-3 space-y-6">
-              <div className="flex justify-between items-center bg-white/50 backdrop-blur p-4 rounded-xl border sticky top-4 z-20 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center bg-white border rounded-lg px-2 shadow-sm">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom(z => Math.max(0.3, z - 0.1))}><ZoomOut className="h-4 w-4" /></Button>
-                    <span className="text-xs font-mono w-12 text-center">{Math.round(zoom * 100)}%</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom(z => Math.min(1.5, z + 0.1))}><ZoomIn className="h-4 w-4" /></Button>
+            {/* ── Editor ──────────────────────────────────────────────── */}
+            <div className="lg:col-span-3 flex flex-col gap-4">
+
+              {/* Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-white/95 backdrop-blur border rounded-xl px-4 py-2.5 sticky top-0 z-30 shadow-sm">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Zoom stepper */}
+                  <div className="flex items-center border rounded-lg bg-gray-50 overflow-hidden">
+                    <button
+                      onClick={() => setZoom(z => Math.max(0.5, parseFloat((z - 0.1).toFixed(2))))}
+                      className="px-2.5 py-1.5 hover:bg-gray-100 transition-colors text-gray-600"
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </button>
+                    <span className="text-xs font-mono w-12 text-center text-gray-700 select-none">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                    <button
+                      onClick={() => setZoom(z => Math.min(2.5, parseFloat((z + 0.1).toFixed(2))))}
+                      className="px-2.5 py-1.5 hover:bg-gray-100 transition-colors text-gray-600"
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </button>
                   </div>
+
+                  {/* Zoom presets */}
+                  <div className="flex gap-1">
+                    {[75, 100, 125, 150].map(pct => (
+                      <button
+                        key={pct}
+                        onClick={() => setZoom(pct / 100)}
+                        className={cn(
+                          "text-xs px-2.5 py-1 rounded-lg border font-medium transition-all",
+                          Math.round(zoom * 100) === pct
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "text-gray-500 border-gray-200 hover:border-primary/50"
+                        )}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Image insert */}
+                  <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => imageInputRef.current?.click()}>
+                    <ImagePlus className="h-3.5 w-3.5" /> Insert Image
+                  </Button>
                 </div>
+
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="px-3 py-1">{pages.filter(p => !p.isDeleted).length} Pages</Badge>
+                  {isProcessing && <Badge variant="secondary" className="animate-pulse">Working…</Badge>}
+                  {activeTool === "link" && (
+                    <Badge className="bg-blue-600 text-white px-3 gap-1">
+                      <LinkIcon className="h-3 w-3" /> Link Mode
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-xs">{pages.filter(p => !p.isDeleted).length} pages</Badge>
                 </div>
               </div>
 
-              <div className="flex flex-col items-center gap-12 pb-24 w-full">
-                {pages.map((page, idx) => !page.isDeleted && (
-                  <div
-                    key={idx}
-                    id={`page-view-${idx}`}
-                    className={cn(
-                      "relative bg-white shadow-2xl transition-all duration-300 ring-offset-8 mx-auto",
-                      activePageIndex === idx ? "ring-2 ring-primary" : "hover:ring-1 hover:ring-primary/30"
-                    )}
-                    style={{
-                      width: page.width * zoom,
-                      height: page.height * zoom,
-                      transform: `rotate(${page.rotation}deg)`,
-                      transformOrigin: "center center"
-                    }}
-                    onClick={() => setActivePageIndex(idx)}
-                  >
-                    <div className="absolute -left-14 top-0 flex flex-col gap-3">
-                      <Button variant="secondary" size="icon" className="rounded-full shadow-lg" onClick={(e) => { e.stopPropagation(); rotatePage(idx, "ccw"); }}><RotateCcw className="h-4 w-4" /></Button>
-                      <Button variant="secondary" size="icon" className="rounded-full shadow-lg" onClick={(e) => { e.stopPropagation(); rotatePage(idx, "cw"); }}><RotateCw className="h-4 w-4" /></Button>
-                      <Button variant="destructive" size="icon" className="rounded-full shadow-lg" onClick={(e) => { e.stopPropagation(); deletePage(idx); }}><Trash2 className="h-4 w-4" /></Button>
-                    </div>
+              {/* Pages */}
+              <div
+                className="overflow-y-auto overflow-x-auto rounded-xl bg-neutral-300/60"
+                style={{ minHeight: "72vh", maxHeight: "calc(100vh - 190px)" }}
+              >
+                <div className="flex flex-col items-center gap-14 py-12 px-16">
+                  {pages.map((page, idx) => {
+                    if (page.isDeleted) return null;
+                    const dispW = page.logicalWidth * zoom;
+                    const dispH = page.logicalHeight * zoom;
 
-                    <canvas
-                      ref={(el) => el && initFabric(idx, el)}
-                      className="border shadow-inner"
-                    />
-                  </div>
-                ))}
+                    return (
+                      <div key={idx} className="relative" id={`page-${idx}`}>
+                        {/* Page label */}
+                        <div className="mb-2 text-xs font-medium text-gray-500 select-none pl-1">
+                          Page {idx + 1}
+                        </div>
+
+                        {/* Page container – exact size, no overflow */}
+                        <div
+                          ref={el => { pageContainerRefs.current[idx] = el; }}
+                          className={cn(
+                            "relative overflow-hidden bg-white flex-shrink-0",
+                            "shadow-[0_6px_28px_rgba(0,0,0,0.16),0_2px_8px_rgba(0,0,0,0.08)]",
+                            activePageIndex === idx
+                              ? "ring-2 ring-primary ring-offset-2 ring-offset-neutral-300"
+                              : "hover:ring-1 hover:ring-primary/30 hover:ring-offset-1"
+                          )}
+                          style={{
+                            width: dispW,
+                            height: dispH,
+                            transform: page.rotation ? `rotate(${page.rotation}deg)` : undefined,
+                            transformOrigin: "center center",
+                          }}
+                          onClick={() => setActivePageIndex(idx)}
+                        >
+                          {/* Fabric annotation canvas */}
+                          <canvas
+                            ref={el => el && initFabric(idx, el)}
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              display: "block",
+                              // Passthrough to text layer when in link mode
+                              pointerEvents: activeTool === "link" ? "none" : "auto",
+                            }}
+                          />
+
+                          {/* PDF.js native text selection layer */}
+                          <div
+                            ref={el => { if (el && pdfjsDoc) initTextLayer(idx, el); }}
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              // Only active + interactive in link mode
+                              pointerEvents: activeTool === "link" ? "auto" : "none",
+                              zIndex: activeTool === "link" ? 20 : 0,
+                              cursor: activeTool === "link" ? "text" : "default",
+                            }}
+                          />
+
+                          {/* Link mode active indicator */}
+                          {activeTool === "link" && activePageIndex === idx && (
+                            <div
+                              className="absolute inset-0 pointer-events-none"
+                              style={{ zIndex: 30 }}
+                            >
+                              <div className="absolute inset-0 ring-2 ring-inset ring-blue-400/40 rounded-[1px]" />
+                              <span className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 opacity-90 select-none shadow">
+                                <LinkIcon className="h-2.5 w-2.5" /> select text
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Existing link highlights */}
+                          {linkAnnotations
+                            .filter(a => a.pageIndex === idx)
+                            .map((ann, ai) => (
+                              <div
+                                key={ai}
+                                title={ann.url}
+                                className="absolute pointer-events-none"
+                                style={{
+                                  left: ann.x * dispW,
+                                  top: ann.y * dispH,
+                                  width: ann.w * dispW,
+                                  height: ann.h * dispH,
+                                  background: "rgba(37,99,235,0.08)",
+                                  borderBottom: "2px solid rgba(37,99,235,0.6)",
+                                  zIndex: 25,
+                                }}
+                              />
+                            ))}
+                        </div>
+
+                        {/* Page control buttons (left side) */}
+                        <div className="absolute left-0 top-0 -translate-x-11 flex flex-col gap-1.5">
+                          {[
+                            { icon: RotateCcw, action: () => rotatePage(idx, "ccw"), title: "Rotate left", cls: "hover:bg-gray-100" },
+                            { icon: RotateCw, action: () => rotatePage(idx, "cw"), title: "Rotate right", cls: "hover:bg-gray-100" },
+                            { icon: Trash2, action: () => deletePage(idx), title: "Delete page", cls: "text-red-500 hover:bg-red-50" },
+                          ].map(({ icon: Icon, action, title, cls }) => (
+                            <button
+                              key={title}
+                              onClick={e => { e.stopPropagation(); action(); }}
+                              title={title}
+                              className={cn("h-8 w-8 rounded-full bg-white border shadow flex items-center justify-center transition-colors", cls)}
+                            >
+                              <Icon className="h-3.5 w-3.5 text-gray-600" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

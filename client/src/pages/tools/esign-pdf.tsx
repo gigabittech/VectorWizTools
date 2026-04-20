@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { PDFDocument, rgb, degrees } from "pdf-lib";
 import * as pdfjsLib from 'pdfjs-dist';
-import { Canvas, IText, Path, PencilBrush } from "fabric";
+import { Canvas, IText, Path, PencilBrush, Image as FabricImage } from "fabric";
 import {
   Card,
   CardContent,
@@ -28,8 +28,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 interface PageData {
   pageNumber: number;
   canvasDataUrl: string;
-  width: number;
-  height: number;
+  logicalWidth: number;
+  logicalHeight: number;
+  renderWidth: number;
+  renderHeight: number;
   viewBox: number[];
 }
 
@@ -39,7 +41,7 @@ export default function ESignPDF() {
   const [pages, setPages] = useState<PageData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTool, setActiveTool] = useState<"select" | "draw" | "text">("select");
-  const [zoom, setZoom] = useState(0.5);
+  const [zoom, setZoom] = useState(0.85);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const { toast } = useToast();
 
@@ -92,9 +94,11 @@ export default function ESignPDF() {
 
         newPages.push({
           pageNumber: i,
-          canvasDataUrl: canvas.toDataURL("image/png"),
-          width: viewport.width,
-          height: viewport.height,
+          canvasDataUrl: canvas.toDataURL("image/jpeg", 0.9),
+          logicalWidth: page.getViewport({ scale: 1 }).width,
+          logicalHeight: page.getViewport({ scale: 1 }).height,
+          renderWidth: viewport.width,
+          renderHeight: viewport.height,
           viewBox: page.view
         });
       }
@@ -114,11 +118,27 @@ export default function ESignPDF() {
     if (!el || fabricCanvases.current[index]) return;
 
     const page = pages[index];
+    const dispW = page.logicalWidth * zoom;
+    const dispH = page.logicalHeight * zoom;
+
     const canvas = new Canvas(el, {
-      width: page.width,
-      height: page.height,
+      width: dispW,
+      height: dispH,
       selection: true,
       allowTouchScrolling: true
+    });
+
+    FabricImage.fromURL(page.canvasDataUrl).then((img) => {
+      img.set({
+        left: 0,
+        top: 0,
+        scaleX: dispW / page.renderWidth,
+        scaleY: dispH / page.renderHeight,
+        selectable: false,
+        evented: false,
+      });
+      canvas.backgroundImage = img;
+      canvas.renderAll();
     });
 
     // Initialize brush
@@ -159,11 +179,17 @@ export default function ESignPDF() {
     fabricCanvases.current.forEach((canvas, idx) => {
       if (!canvas || !pages[idx]) return;
       const page = pages[idx];
-      canvas.setDimensions({
-        width: page.width * zoom,
-        height: page.height * zoom
-      });
-      canvas.setZoom(zoom);
+      const dispW = page.logicalWidth * zoom;
+      const dispH = page.logicalHeight * zoom;
+
+      canvas.setDimensions({ width: dispW, height: dispH });
+      const bg = canvas.backgroundImage as FabricImage;
+      if (bg) {
+        bg.set({
+          scaleX: dispW / page.renderWidth,
+          scaleY: dispH / page.renderHeight
+        });
+      }
       canvas.renderAll();
     });
   }, [zoom, pages]);
@@ -196,14 +222,10 @@ export default function ESignPDF() {
     if (pages.length > 0) {
       const container = document.getElementById("pages-container");
       if (container) {
-        const containerWidth = container.clientWidth;
-        const pageWidth = pages[0].width;
-        // Aim for about 95% of container width
-        const initialZoom = (containerWidth * 0.95) / pageWidth;
-        setZoom(Math.min(initialZoom, 1.0));
+        setZoom(0.85); // Professional default
       }
     }
-  }, [pages]);
+  }, [pages.length]);
 
   const savePDF = async () => {
     if (!pdfDoc || !file) return;
@@ -219,25 +241,32 @@ export default function ESignPDF() {
 
         const canvas = fabricCanvases.current[i];
         if (canvas) {
-          // Important: We need to export at original scale (no zoom)
-          // We capture the annotations at the same resolution as the background rendering (2x)
-          const originalZoom = canvas.getZoom();
+          // Hide background to capture only signature/annotations
+          const bg = canvas.backgroundImage;
+          canvas.backgroundImage = undefined;
+
+          // Capture at logical resolution (multiplied by RENDER_SCALE for quality)
+          const currentZoom = canvas.getZoom();
           canvas.setZoom(1);
-          canvas.setDimensions({ width: pageData.width, height: pageData.height });
+          canvas.setDimensions({ 
+            width: pageData.renderWidth, 
+            height: pageData.renderHeight 
+          });
 
           const annotationsDataUrl = canvas.toDataURL({
             format: "png",
             multiplier: 1,
           });
 
-          // Restore zoom
-          canvas.setZoom(originalZoom);
-          canvas.setDimensions({
-            width: pageData.width * originalZoom,
-            height: pageData.height * originalZoom
+          // Restore canvas for UI
+          canvas.setDimensions({ 
+            width: pageData.logicalWidth * currentZoom, 
+            height: pageData.logicalHeight * currentZoom 
           });
+          canvas.setZoom(currentZoom);
+          canvas.backgroundImage = bg;
+          canvas.renderAll();
 
-          // Convert dataURL to Uint8Array for pdf-lib
           const base64Data = annotationsDataUrl.split(',')[1];
           const binaryData = atob(base64Data);
           const bytes = new Uint8Array(binaryData.length);
@@ -247,9 +276,6 @@ export default function ESignPDF() {
 
           const annotationImage = await exportPdf.embedPng(bytes);
 
-          // PDF-lib coordinate system: (0,0) is bottom-left.
-          // Our canvas image is top-down. 
-          // Drawing it at (0,0) with full page size will overlay it correctly.
           copiedPage.drawImage(annotationImage, {
             x: 0,
             y: 0,
@@ -419,54 +445,67 @@ export default function ESignPDF() {
 
             {/* Document Viewer */}
             <div className="lg:col-span-3 space-y-4">
-              <div className="flex justify-between items-center bg-white/80 backdrop-blur-md p-3 rounded-xl border border-white/40 sticky top-6 z-20 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.max(0.1, z - 0.05))}><ZoomOut className="h-4 w-4" /></Button>
-                  <span className="text-sm font-medium w-12 text-center">{Math.round(zoom * 100)}%</span>
-                  <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.min(2.0, z + 0.05))}><ZoomIn className="h-4 w-4" /></Button>
+              <div className="flex justify-between items-center bg-white/95 backdrop-blur-md p-3 rounded-xl border border-gray-200 sticky top-0 z-30 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center bg-gray-50 border rounded-lg px-2 shadow-inner">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom(z => Math.max(0.1, z - 0.1))}><ZoomOut className="h-4 w-4" /></Button>
+                    <span className="text-xs font-mono w-12 text-center text-gray-700">{Math.round(zoom * 100)}%</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom(z => Math.min(2.0, z + 0.1))}><ZoomIn className="h-4 w-4" /></Button>
+                  </div>
+                  
+                  <div className="flex gap-1">
+                    {[75, 100, 125].map(pct => (
+                      <button
+                        key={pct}
+                        onClick={() => setZoom(pct / 100)}
+                        className={cn(
+                          "text-[10px] px-2 py-1 rounded-md border font-medium transition-all",
+                          Math.round(zoom * 100) === pct 
+                            ? "bg-primary text-white border-primary" 
+                            : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                        )}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="hidden md:block text-sm text-muted-foreground font-medium truncate max-w-[200px]">
+                <div className="hidden md:block text-xs text-muted-foreground font-semibold truncate max-w-[200px] bg-gray-100 px-3 py-1.5 rounded-full">
                   {file.file.name}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-white/50">{pages.length} Pages</Badge>
+                  <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-100">{pages.length} Pages</Badge>
                 </div>
               </div>
 
-              <div id="pages-container" className="flex flex-col items-center gap-8 pb-20 overflow-x-auto w-full">
-                {pages.map((page, idx) => (
-                  <div
-                    key={idx}
-                    id={`page-container-${idx}`}
-                    className={cn(
-                      "relative bg-white shadow-xl transition-shadow",
-                      activePageIndex === idx ? "shadow-2xl ring-2 ring-[#0B9F47]/30" : "hover:shadow-2xl"
-                    )}
-                    style={{
-                      width: page.width * zoom,
-                      height: page.height * zoom,
-                    }}
-                    onClick={() => setActivePageIndex(idx)}
-                  >
-                    {/* Rendered PDF Page as Background */}
-                    <img
-                      src={page.canvasDataUrl}
-                      className="absolute inset-0 w-full h-full pointer-events-none"
-                      style={{ userSelect: 'none' }}
-                      alt=""
-                    />
+              <div id="pages-container" className="overflow-y-auto max-h-[calc(100vh-200px)] custom-scrollbar rounded-2xl bg-gray-200/50 p-8 shadow-inner border border-gray-100">
+                <div className="flex flex-col items-center gap-12 pb-20 w-full">
+                  {pages.map((page, idx) => (
+                    <div
+                      key={idx}
+                      id={`page-container-${idx}`}
+                      className={cn(
+                        "relative bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-300",
+                        activePageIndex === idx ? "ring-2 ring-primary ring-offset-4" : "hover:ring-1 hover:ring-primary/20"
+                      )}
+                      style={{
+                        width: page.logicalWidth * zoom,
+                        height: page.logicalHeight * zoom,
+                      }}
+                      onClick={() => setActivePageIndex(idx)}
+                    >
+                      {/* Fabric Canvas Overlay (with background built-in) */}
+                      <canvas
+                        ref={(el) => el && initFabric(idx, el)}
+                        className="block"
+                      />
 
-                    {/* Fabric Canvas Overlay */}
-                    <canvas
-                      ref={(el) => el && initFabric(idx, el)}
-                      className="absolute inset-0"
-                    />
-
-                    <div className="absolute -right-12 top-0 bg-white/80 backdrop-blur-md rounded-full shadow-md py-2 px-1 text-[10px] font-bold text-gray-500 vertical-text hidden lg:block">
-                      PAGE {idx + 1}
+                      <div className="absolute -left-14 top-4 bg-white/90 backdrop-blur shadow-sm rounded-full py-3 px-1.5 text-[10px] font-black text-gray-400 [writing-mode:vertical-lr] tracking-widest hidden lg:block">
+                        PAGE {idx + 1}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
